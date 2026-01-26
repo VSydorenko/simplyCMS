@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,8 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { ProductPropertyValues } from "@/components/admin/ProductPropertyValues";
 import { ProductModifications } from "@/components/admin/ProductModifications";
+import { SimpleProductFields } from "@/components/admin/SimpleProductFields";
+import { AllProductProperties } from "@/components/admin/AllProductProperties";
 
 export default function ProductEdit() {
   const { productId } = useParams<{ productId: string }>();
@@ -40,6 +43,12 @@ export default function ProductEdit() {
     section_id: "",
     is_active: true,
     is_featured: false,
+    has_modifications: true,
+    price: null as number | null,
+    old_price: null as number | null,
+    sku: "",
+    stock_quantity: 0,
+    is_in_stock: true,
   });
   const [images, setImages] = useState<string[]>([]);
 
@@ -82,6 +91,12 @@ export default function ProductEdit() {
         section_id: product.section_id || "",
         is_active: product.is_active ?? true,
         is_featured: product.is_featured ?? false,
+        has_modifications: (product as any).has_modifications ?? true,
+        price: (product as any).price ?? null,
+        old_price: (product as any).old_price ?? null,
+        sku: (product as any).sku || "",
+        stock_quantity: (product as any).stock_quantity ?? 0,
+        is_in_stock: (product as any).is_in_stock ?? true,
       });
       const productImages = (product as any).images;
       setImages(Array.isArray(productImages) ? productImages : []);
@@ -128,11 +143,35 @@ export default function ProductEdit() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      ...formData,
+    const data: any = {
+      name: formData.name,
+      slug: formData.slug,
+      short_description: formData.short_description,
+      description: formData.description,
+      meta_title: formData.meta_title,
+      meta_description: formData.meta_description,
       section_id: formData.section_id || null,
+      is_active: formData.is_active,
+      is_featured: formData.is_featured,
+      has_modifications: formData.has_modifications,
       images,
     };
+
+    // Only include price/stock fields for simple products
+    if (!formData.has_modifications) {
+      data.price = formData.price;
+      data.old_price = formData.old_price;
+      data.sku = formData.sku || null;
+      data.stock_quantity = formData.stock_quantity;
+      data.is_in_stock = formData.is_in_stock;
+    } else {
+      // Clear simple product fields when switching to modifications
+      data.price = null;
+      data.old_price = null;
+      data.sku = null;
+      data.stock_quantity = 0;
+      data.is_in_stock = true;
+    }
 
     if (isNew) {
       createMutation.mutate(data);
@@ -270,16 +309,42 @@ export default function ProductEdit() {
             </CardContent>
           </Card>
 
-          {/* Property Values - only show for existing products with section */}
-          {!isNew && formData.section_id && (
+          {/* Simple product fields - only for simple products */}
+          {!isNew && !formData.has_modifications && (
+            <SimpleProductFields
+              price={formData.price}
+              oldPrice={formData.old_price}
+              sku={formData.sku}
+              stockQuantity={formData.stock_quantity}
+              isInStock={formData.is_in_stock}
+              onPriceChange={(v) => handleChange("price", v)}
+              onOldPriceChange={(v) => handleChange("old_price", v)}
+              onSkuChange={(v) => handleChange("sku", v)}
+              onStockQuantityChange={(v) => handleChange("stock_quantity", v)}
+              onIsInStockChange={(v) => handleChange("is_in_stock", v)}
+            />
+          )}
+
+          {/* All properties - for simple products (combines product + modification level) */}
+          {!isNew && formData.section_id && !formData.has_modifications && (
+            <AllProductProperties
+              productId={productId!}
+              sectionId={formData.section_id}
+            />
+          )}
+
+          {/* Property Values - only show for existing products with modifications */}
+          {!isNew && formData.section_id && formData.has_modifications && (
             <ProductPropertyValues
               productId={productId!}
               sectionId={formData.section_id}
             />
           )}
 
-          {/* Modifications - only show for existing products */}
-          {!isNew && <ProductModifications productId={productId!} sectionId={formData.section_id} />}
+          {/* Modifications - only show for products with modifications */}
+          {!isNew && formData.has_modifications && (
+            <ProductModifications productId={productId!} sectionId={formData.section_id} />
+          )}
         </div>
 
         {/* Sidebar */}
@@ -290,7 +355,7 @@ export default function ProductEdit() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Розділ</Label>
+                <Label>Розділ *</Label>
                 <Select
                   value={formData.section_id}
                   onValueChange={(value) => handleChange("section_id", value)}
@@ -306,6 +371,30 @@ export default function ProductEdit() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Тип товару</Label>
+                <RadioGroup
+                  value={formData.has_modifications ? "with_modifications" : "simple"}
+                  onValueChange={(value) => handleChange("has_modifications", value === "with_modifications")}
+                  className="flex flex-col gap-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="simple" id="type_simple" />
+                    <Label htmlFor="type_simple" className="font-normal cursor-pointer">
+                      Простий товар
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="with_modifications" id="type_modifications" />
+                    <Label htmlFor="type_modifications" className="font-normal cursor-pointer">
+                      Товар з модифікаціями
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               <Separator />

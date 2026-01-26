@@ -111,12 +111,15 @@ export default function ProductDetail() {
     });
   }, [product]);
 
-  // Selected modification - sync with URL
+  // Check if product has modifications
+  const hasModifications = (product as any)?.has_modifications ?? true;
+
+  // Selected modification - sync with URL (only for products with modifications)
   const [selectedModId, setSelectedModId] = useState<string>("");
   const modSlugFromUrl = searchParams.get("mod");
 
   useEffect(() => {
-    if (modifications.length > 0) {
+    if (hasModifications && modifications.length > 0) {
       // Try to find modification by slug from URL
       if (modSlugFromUrl) {
         const modFromUrl = modifications.find((m) => m.slug === modSlugFromUrl);
@@ -136,7 +139,7 @@ export default function ProductDetail() {
         }
       }
     }
-  }, [modifications, modSlugFromUrl, selectedModId, setSearchParams]);
+  }, [modifications, modSlugFromUrl, selectedModId, setSearchParams, hasModifications]);
 
   const selectedMod = modifications.find((m) => m.id === selectedModId);
 
@@ -154,13 +157,17 @@ export default function ProductDetail() {
     const productImages = Array.isArray(product?.images)
       ? (product.images as string[])
       : [];
-    const modImages =
-      selectedMod && Array.isArray(selectedMod.images)
+    
+    if (hasModifications && selectedMod) {
+      const modImages = Array.isArray(selectedMod.images)
         ? (selectedMod.images as string[])
         : [];
-    // Prefer modification images, fall back to product images
-    return modImages.length > 0 ? modImages : productImages;
-  }, [product?.images, selectedMod]);
+      // Prefer modification images, fall back to product images
+      return modImages.length > 0 ? modImages : productImages;
+    }
+    
+    return productImages;
+  }, [product?.images, selectedMod, hasModifications]);
 
   // Property values with property info - combine product and selected modification properties
   const propertyValues = useMemo(() => {
@@ -211,9 +218,25 @@ export default function ProductDetail() {
   }
 
   const section = product.sections;
-  const isInStock = selectedMod?.is_in_stock ?? true;
-  const price = selectedMod?.price;
-  const oldPrice = selectedMod?.old_price;
+  
+  // Get price, stock, and SKU based on product type
+  let isInStock: boolean;
+  let price: number | undefined;
+  let oldPrice: number | null | undefined;
+  let sku: string | null | undefined;
+
+  if (hasModifications) {
+    isInStock = selectedMod?.is_in_stock ?? true;
+    price = selectedMod?.price;
+    oldPrice = selectedMod?.old_price;
+    sku = selectedMod?.sku;
+  } else {
+    isInStock = (product as any).is_in_stock ?? true;
+    price = (product as any).price ?? undefined;
+    oldPrice = (product as any).old_price;
+    sku = (product as any).sku;
+  }
+
   const discountPercent =
     oldPrice && price && oldPrice > price
       ? Math.round(((oldPrice - price) / oldPrice) * 100)
@@ -264,9 +287,9 @@ export default function ProductDetail() {
               )}
             </div>
             <h1 className="text-3xl font-bold">{product.name}</h1>
-            {selectedMod?.sku && (
+            {sku && (
               <p className="text-sm text-muted-foreground mt-1">
-                Артикул: {selectedMod.sku}
+                Артикул: {sku}
               </p>
             )}
           </div>
@@ -309,13 +332,15 @@ export default function ProductDetail() {
             <p className="text-muted-foreground">{product.short_description}</p>
           )}
 
-          {/* Modification selector */}
-          <ModificationSelector
-            modifications={modifications}
-            selectedId={selectedModId}
-            onSelect={handleModificationSelect}
-            formatPrice={formatPrice}
-          />
+          {/* Modification selector - only for products with modifications */}
+          {hasModifications && modifications.length > 0 && (
+            <ModificationSelector
+              modifications={modifications}
+              selectedId={selectedModId}
+              onSelect={handleModificationSelect}
+              formatPrice={formatPrice}
+            />
+          )}
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3">

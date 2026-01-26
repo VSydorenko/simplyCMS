@@ -11,6 +11,10 @@ interface ProductCardProps {
     short_description?: string | null;
     images?: string[];
     section?: { slug: string } | null;
+    has_modifications?: boolean;
+    price?: number | null;
+    old_price?: number | null;
+    is_in_stock?: boolean;
     modifications?: Array<{
       price: number;
       old_price?: number | null;
@@ -21,10 +25,24 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const firstImage = product.images?.[0];
-  const defaultMod = product.modifications?.[0];
-  const price = defaultMod?.price;
-  const oldPrice = defaultMod?.old_price;
-  const isInStock = defaultMod?.is_in_stock ?? true;
+  const hasModifications = product.has_modifications ?? true;
+  
+  // Get price and stock based on product type
+  let price: number | undefined;
+  let oldPrice: number | undefined | null;
+  let isInStock: boolean;
+
+  if (hasModifications) {
+    const defaultMod = product.modifications?.[0];
+    price = defaultMod?.price;
+    oldPrice = defaultMod?.old_price;
+    isInStock = defaultMod?.is_in_stock ?? true;
+  } else {
+    price = product.price ?? undefined;
+    oldPrice = product.old_price;
+    isInStock = product.is_in_stock ?? true;
+  }
+
   const sectionSlug = product.section?.slug || "";
 
   const formatPrice = (value: number) => {
