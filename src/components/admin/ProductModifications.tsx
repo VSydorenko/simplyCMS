@@ -116,15 +116,9 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const inputSlug = formData.get("slug") as string;
-    // Make slug unique by combining productId with input slug
-    const uniqueSlug = editingModification 
-      ? inputSlug // Keep existing slug format on edit
-      : `${productId.slice(0, 8)}-${inputSlug}`;
-    
     const data = {
       name: formData.get("name") as string,
-      slug: uniqueSlug,
+      slug: formData.get("slug") as string,
       sku: (formData.get("sku") as string) || null,
       price: parseFloat(formData.get("price") as string) || 0,
       old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
