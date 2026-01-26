@@ -130,7 +130,9 @@ export default function PropertyOptionEdit() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["property-options", propertyId] });
-      queryClient.invalidateQueries({ queryKey: ["property-option", optionId] });
+      if (!isNew) {
+        queryClient.invalidateQueries({ queryKey: ["property-option", optionId] });
+      }
       toast({ title: isNew ? "Опцію створено" : "Опцію збережено" });
       
       if (isNew && result?.id) {
