@@ -35,6 +35,7 @@ interface FilterSidebarProps {
   filters: Record<string, any>;
   onFilterChange: (filters: Record<string, any>) => void;
   priceRange?: { min: number; max: number };
+  numericPropertyRanges?: Record<string, { min: number; max: number }>;
 }
 
 export function FilterSidebar({
@@ -42,6 +43,7 @@ export function FilterSidebar({
   filters,
   onFilterChange,
   priceRange,
+  numericPropertyRanges = {},
 }: FilterSidebarProps) {
   const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
     priceRange?.min || 0,
@@ -124,6 +126,18 @@ export function FilterSidebar({
     enabled: selectPropertyIds.length > 0,
   });
 
+  // Local state for numeric property ranges
+  const [localNumericRanges, setLocalNumericRanges] = useState<Record<string, [number, number]>>({});
+  
+  // Initialize local numeric ranges when props change
+  useEffect(() => {
+    const newRanges: Record<string, [number, number]> = {};
+    Object.entries(numericPropertyRanges).forEach(([code, range]) => {
+      newRanges[code] = [range.min, range.max];
+    });
+    setLocalNumericRanges(newRanges);
+  }, [numericPropertyRanges]);
+
   const handleCheckboxChange = (propertyCode: string, optionId: string, checked: boolean) => {
     const current = filters[propertyCode] || [];
     const updated = checked
@@ -148,8 +162,32 @@ export function FilterSidebar({
     });
   };
 
+  const handleNumericRangeChange = (propertyCode: string, values: number[]) => {
+    setLocalNumericRanges(prev => ({
+      ...prev,
+      [propertyCode]: [values[0], values[1]],
+    }));
+  };
+
+  const handleNumericRangeCommit = (propertyCode: string) => {
+    const range = localNumericRanges[propertyCode];
+    if (range) {
+      onFilterChange({
+        ...filters,
+        [`${propertyCode}Min`]: range[0],
+        [`${propertyCode}Max`]: range[1],
+      });
+    }
+  };
+
   const handleClearFilters = () => {
     setLocalPriceRange([priceRange?.min || 0, priceRange?.max || 100000]);
+    // Reset numeric ranges
+    const newRanges: Record<string, [number, number]> = {};
+    Object.entries(numericPropertyRanges).forEach(([code, range]) => {
+      newRanges[code] = [range.min, range.max];
+    });
+    setLocalNumericRanges(newRanges);
     onFilterChange({});
   };
 
@@ -300,6 +338,41 @@ export function FilterSidebar({
                         </Label>
                       </div>
                     ))
+                  ) : (property.property_type === "number" || property.property_type === "range") && numericPropertyRanges[property.code] ? (
+                    <div className="space-y-4">
+                      <Slider
+                        min={numericPropertyRanges[property.code].min}
+                        max={numericPropertyRanges[property.code].max}
+                        step={1}
+                        value={localNumericRanges[property.code] || [numericPropertyRanges[property.code].min, numericPropertyRanges[property.code].max]}
+                        onValueChange={(values) => handleNumericRangeChange(property.code, values)}
+                        onValueCommit={() => handleNumericRangeCommit(property.code)}
+                        className="w-full"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={localNumericRanges[property.code]?.[0] ?? numericPropertyRanges[property.code].min}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || numericPropertyRanges[property.code].min;
+                            handleNumericRangeChange(property.code, [val, localNumericRanges[property.code]?.[1] ?? numericPropertyRanges[property.code].max]);
+                          }}
+                          onBlur={() => handleNumericRangeCommit(property.code)}
+                          className="h-8 text-sm"
+                        />
+                        <span className="text-muted-foreground">—</span>
+                        <Input
+                          type="number"
+                          value={localNumericRanges[property.code]?.[1] ?? numericPropertyRanges[property.code].max}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || numericPropertyRanges[property.code].max;
+                            handleNumericRangeChange(property.code, [localNumericRanges[property.code]?.[0] ?? numericPropertyRanges[property.code].min, val]);
+                          }}
+                          onBlur={() => handleNumericRangeCommit(property.code)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               </AccordionContent>
