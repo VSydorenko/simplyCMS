@@ -23,9 +23,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Settings2, Image } from "lucide-react";
+import { Plus, Trash2, Loader2, Image } from "lucide-react";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { SectionPropertiesTable } from "@/components/admin/SectionPropertiesTable";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Section = Tables<"sections">;
@@ -239,7 +240,15 @@ export default function Sections() {
                 />
                 <Label htmlFor="is_active">Активний</Label>
               </div>
-              <div className="flex justify-end gap-2">
+
+              {/* Properties table for existing sections */}
+              {editingSection && (
+                <div className="pt-4 border-t">
+                  <SectionPropertiesTable sectionId={editingSection.id} />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={closeDialog}>
                   Скасувати
                 </Button>
@@ -309,32 +318,19 @@ export default function Sections() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/sections/${section.id}/properties`);
-                        }}
-                        title="Властивості"
-                      >
-                        <Settings2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm("Видалити цей розділ?")) {
-                            deleteMutation.mutate(section.id);
-                          }
-                        }}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Видалити цей розділ?")) {
+                          deleteMutation.mutate(section.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
