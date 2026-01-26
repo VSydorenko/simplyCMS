@@ -111,7 +111,12 @@ export default function PropertyOptionEdit() {
         meta_description: data.meta_description || null,
       };
 
-      if (optionId === "new") {
+      // Check if this is a new option - optionId is "new" string from URL params
+      const isCreating = !optionId || optionId === "new";
+      
+      console.log("Saving option:", { optionId, isCreating, payload });
+
+      if (isCreating) {
         const { data: newOption, error } = await supabase
           .from("property_options")
           .insert([{ ...payload, property_id: propertyId }])
@@ -123,19 +128,20 @@ export default function PropertyOptionEdit() {
         const { error } = await supabase
           .from("property_options")
           .update(payload)
-          .eq("id", optionId!);
+          .eq("id", optionId);
         if (error) throw error;
         return { id: optionId };
       }
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["property-options", propertyId] });
-      if (optionId !== "new") {
+      const wasCreating = !optionId || optionId === "new";
+      if (!wasCreating) {
         queryClient.invalidateQueries({ queryKey: ["property-option", optionId] });
       }
-      toast({ title: optionId === "new" ? "Опцію створено" : "Опцію збережено" });
+      toast({ title: wasCreating ? "Опцію створено" : "Опцію збережено" });
       
-      if (optionId === "new" && result?.id) {
+      if (wasCreating && result?.id) {
         navigate(`/admin/properties/${propertyId}/options/${result.id}`, { replace: true });
       }
     },
