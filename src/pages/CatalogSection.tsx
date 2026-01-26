@@ -130,6 +130,59 @@ export default function CatalogSection() {
     };
   }, [products]);
 
+  // Fetch numeric properties for the section
+  const { data: numericProperties } = useQuery({
+    queryKey: ["section-numeric-properties", section?.id],
+    queryFn: async () => {
+      if (!section?.id) return [];
+      const { data, error } = await supabase
+        .from("section_property_assignments")
+        .select(`
+          property:property_id (
+            id,
+            code,
+            property_type,
+            is_filterable
+          )
+        `)
+        .eq("section_id", section.id);
+      if (error) throw error;
+      return data
+        .map(a => a.property as { id: string; code: string; property_type: string; is_filterable: boolean } | null)
+        .filter((p): p is { id: string; code: string; property_type: string; is_filterable: boolean } => 
+          Boolean(p && p.is_filterable && (p.property_type === "number" || p.property_type === "range"))
+        );
+    },
+    enabled: !!section?.id,
+  });
+
+  // Calculate numeric property ranges from product data
+  const numericPropertyRanges = useMemo(() => {
+    if (!products?.length || !numericProperties?.length) return {};
+    
+    const ranges: Record<string, { min: number; max: number }> = {};
+    
+    numericProperties.forEach(prop => {
+      const values: number[] = [];
+      products.forEach(product => {
+        product.propertyValues.forEach((pv: any) => {
+          if (pv.property_id === prop.id && pv.numeric_value !== null) {
+            values.push(pv.numeric_value);
+          }
+        });
+      });
+      
+      if (values.length > 0) {
+        ranges[prop.code] = {
+          min: Math.min(...values),
+          max: Math.max(...values),
+        };
+      }
+    });
+    
+    return ranges;
+  }, [products, numericProperties]);
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -139,6 +192,8 @@ export default function CatalogSection() {
     // Apply property filters (by option_id)
     Object.entries(filters).forEach(([key, value]) => {
       if (key === "priceMin" || key === "priceMax") return;
+      // Skip numeric range filters (they end with Min or Max)
+      if (key.endsWith("Min") || key.endsWith("Max")) return;
       if (!value || (Array.isArray(value) && value.length === 0)) return;
 
       result = result.filter((product) => {
@@ -155,6 +210,27 @@ export default function CatalogSection() {
         );
         return !!propValue;
       });
+    });
+
+    // Apply numeric property filters
+    numericProperties?.forEach(prop => {
+      const minKey = `${prop.code}Min`;
+      const maxKey = `${prop.code}Max`;
+      const minVal = filters[minKey];
+      const maxVal = filters[maxKey];
+      
+      if (minVal !== undefined || maxVal !== undefined) {
+        result = result.filter((product) => {
+          const propValue = product.propertyValues.find(
+            (pv: any) => pv.property_id === prop.id && pv.numeric_value !== null
+          );
+          if (!propValue) return true; // Don't filter out products without this property
+          const val = propValue.numeric_value;
+          if (minVal !== undefined && val < minVal) return false;
+          if (maxVal !== undefined && val > maxVal) return false;
+          return true;
+        });
+      }
     });
 
     // Apply price filter
@@ -197,7 +273,7 @@ export default function CatalogSection() {
     }
 
     return result;
-  }, [products, filters, sortBy]);
+  }, [products, filters, sortBy, numericProperties]);
 
   if (sectionLoading) {
     return (
@@ -277,6 +353,7 @@ export default function CatalogSection() {
             filters={filters}
             onFilterChange={setFilters}
             priceRange={priceRange}
+            numericPropertyRanges={numericPropertyRanges}
           />
         </aside>
 
@@ -299,6 +376,7 @@ export default function CatalogSection() {
                     filters={filters}
                     onFilterChange={setFilters}
                     priceRange={priceRange}
+                    numericPropertyRanges={numericPropertyRanges}
                   />
                 </SheetContent>
               </Sheet>
