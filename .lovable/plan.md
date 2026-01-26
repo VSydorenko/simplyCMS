@@ -2,160 +2,96 @@
 # План: Глобальні опції властивостей зі сторінками
 
 ## Огляд
-Створення системи глобальних опцій властивостей (наприклад, виробників, матеріалів), які можна використовувати в різних розділах каталогу та мати окремі сторінки з описом, зображенням і SEO-інформацією.
+Створення системи глобальних опцій властивостей (наприклад, виробників, матеріалів), які можна використовувати в різних розділах каталогу та мати вбудовані сторінки з описом, зображенням і SEO-інформацією.
 
-## Статус: В процесі реалізації ✅
+## Статус: Виконано ✅
 
-## Нова архітектура даних
+## Архітектура даних
 
 ```text
-+-------------------+       +--------------------+       +-------------------+
-| section_properties|------>| property_options   |<------| property_pages    |
-+-------------------+       +--------------------+       +-------------------+
-| id                |       | id                 |       | id                |
-| name              |       | property_id (FK)   |       | option_id (FK)    |
-| code              |       | name               |       | slug              |
-| property_type     |       | slug               |       | description       |
-| has_page          |       | sort_order         |       | image_url         |
-| ...               |       | created_at         |       | meta_title        |
-+-------------------+       +--------------------+       | meta_description  |
-                                    ^                    +-------------------+
-                                    |
-                            +-------+--------+
-                            | product_property_values
-                            +----------------+
-                            | product_id     |
-                            | property_id    |
-                            | option_id (new)|  <-- замість text value
-                            +----------------+
++-------------------+       +--------------------+
+| section_properties|------>| property_options   |
++-------------------+       +--------------------+
+| id                |       | id                 |
+| name              |       | property_id (FK)   |
+| code              |       | name               |
+| property_type     |       | slug               |
+| has_page          |       | sort_order         |
+| ...               |       | description        | <- Page content
++-------------------+       | image_url          | <- Page image
+        ^                   | meta_title         | <- SEO
+        |                   | meta_description   | <- SEO
++-------+--------+          | created_at         |
+| section_property_assignments    +--------------------+
++----------------+                      ^
+| section_id     |                      |
+| property_id    |              +-------+--------+
+| sort_order     |              | product_property_values
++----------------+              +----------------+
+                                | product_id     |
+                                | property_id    |
+                                | option_id      |
+                                +----------------+
 ```
 
-## Етапи реалізації
+## Виконані етапи
 
-### Етап 1: Зміни в базі даних ✅ ВИКОНАНО
+### Етап 1: База даних ✅
 
-1. ✅ **Створено таблицю `property_options`**
-   - `id` (UUID, PK)
-   - `property_id` (FK -> section_properties)
-   - `name` (TEXT) - назва опції ("Samsung", "LG")
-   - `slug` (VARCHAR) - URL-сумісний ідентифікатор
-   - `sort_order` (INT)
-   - `created_at` (TIMESTAMP)
+1. ✅ **Таблиця `property_options`** з полями для сторінки:
+   - `id`, `property_id`, `name`, `slug`, `sort_order`
+   - `description` - опис (HTML)
+   - `image_url` - зображення
+   - `meta_title`, `meta_description` - SEO
 
-2. ✅ **Оновлено таблицю `property_pages`**
-   - Додано `option_id` (FK -> property_options)
-   - `property_id` зроблено nullable для перехідного періоду
+2. ✅ **Таблиця `section_property_assignments`** - зв'язок властивостей з розділами
 
-3. ✅ **Оновлено таблицю `product_property_values`**
-   - Додано `option_id` (UUID, nullable) для зв'язку з опціями
+3. ✅ **Видалено таблицю `property_pages`** - функціонал інтегровано в `property_options`
 
-4. ✅ **RLS політики**
-   - Публічне читання для каталогу
-   - Редагування тільки для адміністраторів
+### Етап 2: Адмін-панель ✅
 
-### Етап 2: Адмін-панель - Управління опціями ✅ ВИКОНАНО
+1. ✅ **Глобальне управління властивостями** (`Properties.tsx`)
+   - Список всіх властивостей
+   - Створення нових властивостей
 
-1. ✅ **Сторінка управління опціями** (`PropertyOptions.tsx`)
-   - Список опцій з кнопками редагування/видалення
-   - Створення нових опцій з автогенерацією slug
-   - Посилання на редагування сторінки опції
+2. ✅ **Редагування властивості** (`PropertyEdit.tsx`)
+   - Основна інформація (назва, код, тип)
+   - Управління опціями з вкладками:
+     - Основне: назва, slug, сортування
+     - Сторінка: зображення, опис, SEO
 
-2. ✅ **Оновлено SectionProperties.tsx**
-   - Додано колонку "Опції" з кнопкою переходу до управління опціями
-   - Кнопка показується для select/multiselect властивостей
+3. ✅ **Призначення властивостей розділам** (`SectionPropertiesTable.tsx`)
+   - Додавання глобальних властивостей до розділу
 
-3. ✅ **Сторінка редагування property_page** (`PropertyPageEdit.tsx`)
-   - Назва сторінки
-   - Опис (Rich Text Editor)
-   - Зображення (ImageUpload)
-   - SEO: meta_title, meta_description
+### Етап 3: Каталог ✅
 
-### Етап 3: Оновлення вибору властивостей у товарі ✅ ВИКОНАНО
+1. ✅ **Фільтри** (`FilterSidebar.tsx`)
+   - Завантаження властивостей через `section_property_assignments`
+   - Опції з таблиці `property_options`
 
-1. ✅ **Оновлено `ProductPropertyValues.tsx`**
-   - Для select: показує опції з таблиці `property_options`
-   - Зберігає `option_id` разом з текстовим value
-   - Fallback на legacy options якщо property_options порожній
+2. ✅ **Сторінка опції** (`PropertyPage.tsx`)
+   - Дані беруться безпосередньо з `property_options`
+   - Показує опис, зображення, товари
 
-### Етап 4: Каталог та фільтри ✅ ВИКОНАНО
+### Етап 4: Маршрутизація ✅
 
-1. ✅ **Оновлено `FilterSidebar.tsx`**
-   - Завантажує опції з `property_options`
-   - Fallback на legacy options
-   - Фільтрує по назві опції (для зворотної сумісності)
-
-2. ✅ **Створено публічну сторінку опції** (`PropertyPage.tsx`)
-   - Показує опис, зображення з property_pages
-   - Список товарів з цією опцією
-
-### Етап 5: Маршрутизація ✅ ВИКОНАНО
-
-1. ✅ Маршрут `/admin/properties/:propertyId/options` для управління опціями
-2. ✅ Маршрут `/admin/property-pages/:pageId` для редагування сторінок
-3. ✅ Публічний маршрут `/:propertyCode/:optionSlug` для сторінок опцій
+- `/admin/properties` - список властивостей
+- `/admin/properties/:propertyId` - редагування властивості з опціями
+- `/:propertyCode/:optionSlug` - публічна сторінка опції
 
 ---
 
-## Технічні деталі
+## Видалені файли
 
-### Нова таблиця property_options
-```sql
-CREATE TABLE public.property_options (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    property_id UUID REFERENCES public.section_properties(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    slug VARCHAR(255) NOT NULL,
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    UNIQUE(property_id, slug)
-);
-```
-
-### Зміни в property_pages
-```sql
-ALTER TABLE public.property_pages 
-    ADD COLUMN option_id UUID REFERENCES public.property_options(id) ON DELETE CASCADE;
-ALTER TABLE public.property_pages
-    ALTER COLUMN property_id DROP NOT NULL;
-```
-
-### Зміни в product_property_values
-```sql
-ALTER TABLE public.product_property_values 
-    ADD COLUMN option_id UUID REFERENCES public.property_options(id) ON DELETE SET NULL;
-```
-
----
-
-## Файли, що були змінені/створені
-
-### Нові файли:
-- ✅ `src/pages/admin/PropertyOptions.tsx` - управління опціями властивості
-- ✅ `src/pages/admin/PropertyPageEdit.tsx` - редагування сторінки опції
-- ✅ `src/pages/PropertyPage.tsx` - публічна сторінка опції
-
-### Оновлені файли:
-- ✅ `src/pages/admin/SectionProperties.tsx` - додано кнопку "Опції"
-- ✅ `src/components/admin/ProductPropertyValues.tsx` - працює з option_id
-- ✅ `src/components/catalog/FilterSidebar.tsx` - завантажує property_options
-- ✅ `src/App.tsx` - нові маршрути
-
----
-
-## Міграція існуючих даних
-
-Якщо в базі вже є товари з текстовими значеннями властивостей:
-1. Створити опції на основі унікальних значень
-2. Оновити product_property_values.option_id відповідно до створених опцій
-3. Очистити застарілі текстові значення (опціонально)
-
-**Примітка:** Код написаний з fallback на legacy options, тому існуючі дані продовжать працювати без міграції.
+- `src/pages/admin/PropertyPageEdit.tsx` - більше не потрібен
+- `src/pages/admin/PropertyOptions.tsx` - інтегровано в PropertyEdit
+- `src/pages/admin/SectionProperties.tsx` - замінено на глобальну систему
 
 ---
 
 ## Наступні кроки (опціонально)
 
-- [ ] Видалити property_id з property_pages після повної міграції
-- [ ] Додати drag-and-drop для сортування опцій
-- [ ] Додати масовий імпорт опцій з CSV
-- [ ] Додати лічильник товарів біля кожної опції у фільтрах
+- [ ] Drag-and-drop для сортування опцій
+- [ ] Масовий імпорт опцій з CSV
+- [ ] Лічильник товарів у фільтрах
+- [ ] Пошук та пагінація в списку властивостей

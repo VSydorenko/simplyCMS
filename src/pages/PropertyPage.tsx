@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +28,7 @@ export default function PropertyPage() {
     enabled: !!propertyCode,
   });
 
-  // Fetch option by slug
+  // Fetch option by slug (now includes page data)
   const { data: option, isLoading: optionLoading } = useQuery({
     queryKey: ["property-option-by-slug", property?.id, optionSlug],
     queryFn: async () => {
@@ -43,21 +42,6 @@ export default function PropertyPage() {
       return data;
     },
     enabled: !!property?.id && !!optionSlug,
-  });
-
-  // Fetch page content
-  const { data: page, isLoading: pageLoading } = useQuery({
-    queryKey: ["property-page-content", option?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("property_pages")
-        .select("*")
-        .eq("option_id", option!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!option?.id,
   });
 
   // Fetch products with this property value
@@ -106,9 +90,7 @@ export default function PropertyPage() {
     enabled: !!option?.id,
   });
 
-  const isLoading = optionLoading || pageLoading;
-
-  if (isLoading) {
+  if (optionLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -127,9 +109,10 @@ export default function PropertyPage() {
     );
   }
 
-  const displayName = page?.name || option.name;
-  const description = page?.description;
-  const imageUrl = page?.image_url;
+  // Page data is now directly on the option
+  const displayName = option.name;
+  const description = option.description;
+  const imageUrl = option.image_url;
 
   return (
     <div className="container mx-auto px-4 py-8">
