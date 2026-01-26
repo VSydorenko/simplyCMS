@@ -1,7 +1,18 @@
-import { Battery, Zap, Sun, Wrench, ChevronRight } from "lucide-react";
+import { Battery, Zap, Sun, Wrench, ChevronRight, LogOut, User } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const categories = [
   {
@@ -38,6 +49,26 @@ const advantages = [
 ];
 
 export default function Index() {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Помилка",
+        description: "Не вдалося вийти з акаунту",
+      });
+    } else {
+      toast({
+        title: "Вихід виконано",
+        description: "До зустрічі!",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -67,9 +98,39 @@ export default function Index() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="outline" size="sm">
-              Увійти
-            </Button>
+            {!isLoading && (
+              <>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="hidden sm:inline">{user.email?.split("@")[0]}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="text-muted-foreground text-sm">
+                        {user.email}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate("/profile")}>
+                        <User className="mr-2 h-4 w-4" />
+                        Мій кабінет
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Вийти
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/auth">Увійти</Link>
+                  </Button>
+                )}
+              </>
+            )}
             <Button size="sm" className="gradient-brand text-white border-0">
               Кошик
             </Button>
