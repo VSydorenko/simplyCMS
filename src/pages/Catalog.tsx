@@ -213,14 +213,19 @@ export default function Catalog() {
       
       if (minVal !== undefined || maxVal !== undefined) {
         result = result.filter((product) => {
-          const propValue = product.propertyValues.find(
+          // Find ALL matching property values (from any modification)
+          const matchingValues = product.propertyValues.filter(
             (pv: any) => pv.property_id === prop.id && pv.numeric_value !== null
           );
-          if (!propValue) return false; // Filter out products without this property value
-          const val = propValue.numeric_value;
-          if (minVal !== undefined && val < minVal) return false;
-          if (maxVal !== undefined && val > maxVal) return false;
-          return true;
+          if (matchingValues.length === 0) return false; // Filter out products without this property value
+          
+          // Check if ANY of the values fall within the range (for products with multiple modifications)
+          return matchingValues.some((pv: any) => {
+            const val = pv.numeric_value;
+            if (minVal !== undefined && val < minVal) return false;
+            if (maxVal !== undefined && val > maxVal) return false;
+            return true;
+          });
         });
       }
     });
