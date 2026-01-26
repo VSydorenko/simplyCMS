@@ -111,7 +111,7 @@ export default function PropertyOptionEdit() {
         meta_description: data.meta_description || null,
       };
 
-      if (isNew) {
+      if (optionId === "new") {
         const { data: newOption, error } = await supabase
           .from("property_options")
           .insert([{ ...payload, property_id: propertyId }])
@@ -130,12 +130,12 @@ export default function PropertyOptionEdit() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["property-options", propertyId] });
-      if (!isNew) {
+      if (optionId !== "new") {
         queryClient.invalidateQueries({ queryKey: ["property-option", optionId] });
       }
-      toast({ title: isNew ? "Опцію створено" : "Опцію збережено" });
+      toast({ title: optionId === "new" ? "Опцію створено" : "Опцію збережено" });
       
-      if (isNew && result?.id) {
+      if (optionId === "new" && result?.id) {
         navigate(`/admin/properties/${propertyId}/options/${result.id}`, { replace: true });
       }
     },
