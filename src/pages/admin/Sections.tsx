@@ -247,7 +247,11 @@ export default function Sections() {
             </TableHeader>
             <TableBody>
               {sections?.map((section) => (
-                <TableRow key={section.id}>
+                <TableRow 
+                  key={section.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => openEdit(section)}
+                >
                   <TableCell>
                     {section.image_url ? (
                       <img
@@ -283,18 +287,23 @@ export default function Sections() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigate(`/admin/sections/${section.id}/properties`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/sections/${section.id}/properties`);
+                        }}
                         title="Властивості"
                       >
                         <Settings2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(section)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteMutation.mutate(section.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm("Видалити цей розділ?")) {
+                            deleteMutation.mutate(section.id);
+                          }
+                        }}
                         disabled={deleteMutation.isPending}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

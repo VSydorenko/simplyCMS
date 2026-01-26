@@ -345,6 +345,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          images: Json | null
           is_active: boolean
           is_featured: boolean
           meta_description: string | null
@@ -359,6 +360,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: Json | null
           is_active?: boolean
           is_featured?: boolean
           meta_description?: string | null
@@ -373,6 +375,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: Json | null
           is_active?: boolean
           is_featured?: boolean
           meta_description?: string | null
