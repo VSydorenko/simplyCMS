@@ -20,6 +20,7 @@ import { CatalogLayout } from "./components/catalog/CatalogLayout";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Sections from "./pages/admin/Sections";
+import SectionEdit from "./pages/admin/SectionEdit";
 import Properties from "./pages/admin/Properties";
 import PropertyEdit from "./pages/admin/PropertyEdit";
 import PropertyOptionEdit from "./pages/admin/PropertyOptionEdit";
@@ -64,6 +65,7 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="sections" element={<Sections />} />
+                  <Route path="sections/:sectionId" element={<SectionEdit />} />
                   <Route path="properties" element={<Properties />} />
                   <Route path="properties/:propertyId" element={<PropertyEdit />} />
                   <Route path="properties/:propertyId/options/new" element={<PropertyOptionEdit />} />
