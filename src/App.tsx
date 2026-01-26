@@ -16,6 +16,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import Sections from "./pages/admin/Sections";
 import SectionProperties from "./pages/admin/SectionProperties";
 import Products from "./pages/admin/Products";
+import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 
@@ -47,6 +48,7 @@ function App() {
                   <Route path="sections" element={<Sections />} />
                   <Route path="sections/:sectionId/properties" element={<SectionProperties />} />
                   <Route path="products" element={<Products />} />
+                  <Route path="products/:productId" element={<ProductEdit />} />
                   <Route path="orders" element={<Orders />} />
                   <Route path="order-statuses" element={<PlaceholderPage />} />
                   <Route path="services" element={<PlaceholderPage />} />
