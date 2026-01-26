@@ -30,12 +30,20 @@ interface PropertyOption {
   sort_order: number;
 }
 
+interface ProductForCounting {
+  propertyValues: Array<{
+    property_id: string;
+    option_id?: string | null;
+  }>;
+}
+
 interface FilterSidebarProps {
   sectionId?: string;
   filters: Record<string, any>;
   onFilterChange: (filters: Record<string, any>) => void;
   priceRange?: { min: number; max: number };
   numericPropertyRanges?: Record<string, { min: number; max: number }>;
+  products?: ProductForCounting[];
 }
 
 export function FilterSidebar({
@@ -44,6 +52,7 @@ export function FilterSidebar({
   onFilterChange,
   priceRange,
   numericPropertyRanges = {},
+  products = [],
 }: FilterSidebarProps) {
   const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
     priceRange?.min || 0,
@@ -201,6 +210,18 @@ export function FilterSidebar({
     return propertyOptions?.[property.id] || [];
   };
 
+  // Count products for each option
+  const getOptionCount = (optionId: string): number => {
+    return products.filter(product => 
+      product.propertyValues.some(pv => {
+        if (!pv.option_id) return false;
+        // Handle comma-separated option_ids for multiselect
+        const productOptionIds = pv.option_id.split(",").filter(Boolean);
+        return productOptionIds.includes(optionId);
+      })
+    ).length;
+  };
+
   if (!sectionId) {
     return null;
   }
@@ -277,23 +298,29 @@ export function FilterSidebar({
                   {property.property_type === "select" ||
                   property.property_type === "multiselect" ? (
                     options.length > 0 ? (
-                      options.map((option) => (
-                        <div key={option.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`${property.code}-${option.id}`}
-                            checked={(filters[property.code] || []).includes(option.id)}
-                            onCheckedChange={(checked) =>
-                              handleCheckboxChange(property.code, option.id, !!checked)
-                            }
-                          />
-                          <Label
-                            htmlFor={`${property.code}-${option.id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {option.name}
-                          </Label>
-                        </div>
-                      ))
+                      options.map((option) => {
+                        const count = getOptionCount(option.id);
+                        return (
+                          <div key={option.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`${property.code}-${option.id}`}
+                              checked={(filters[property.code] || []).includes(option.id)}
+                              onCheckedChange={(checked) =>
+                                handleCheckboxChange(property.code, option.id, !!checked)
+                              }
+                            />
+                            <Label
+                              htmlFor={`${property.code}-${option.id}`}
+                              className="text-sm font-normal cursor-pointer flex-1"
+                            >
+                              {option.name}
+                            </Label>
+                            <span className="text-xs text-muted-foreground">
+                              ({count})
+                            </span>
+                          </div>
+                        );
+                      })
                     ) : (
                       <p className="text-sm text-muted-foreground">Немає опцій</p>
                     )
@@ -317,27 +344,33 @@ export function FilterSidebar({
                       </Label>
                     </div>
                   ) : property.property_type === "color" ? (
-                    options.map((option) => (
-                      <div key={option.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`${property.code}-${option.id}`}
-                          checked={(filters[property.code] || []).includes(option.id)}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange(property.code, option.id, !!checked)
-                          }
-                        />
-                        <div
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: option.name }}
-                        />
-                        <Label
-                          htmlFor={`${property.code}-${option.id}`}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {option.name}
-                        </Label>
-                      </div>
-                    ))
+                    options.map((option) => {
+                      const count = getOptionCount(option.id);
+                      return (
+                        <div key={option.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`${property.code}-${option.id}`}
+                            checked={(filters[property.code] || []).includes(option.id)}
+                            onCheckedChange={(checked) =>
+                              handleCheckboxChange(property.code, option.id, !!checked)
+                            }
+                          />
+                          <div
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: option.name }}
+                          />
+                          <Label
+                            htmlFor={`${property.code}-${option.id}`}
+                            className="text-sm font-normal cursor-pointer flex-1"
+                          >
+                            {option.name}
+                          </Label>
+                          <span className="text-xs text-muted-foreground">
+                            ({count})
+                          </span>
+                        </div>
+                      );
+                    })
                   ) : (property.property_type === "number" || property.property_type === "range") && numericPropertyRanges[property.code] ? (
                     <div className="space-y-4">
                       <Slider

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { FilterSidebar } from "@/components/catalog/FilterSidebar";
+import { ActiveFilters } from "@/components/catalog/ActiveFilters";
 import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "lucide-react";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
@@ -293,6 +294,116 @@ export default function CatalogSection() {
     return result;
   }, [products, filters, sortBy, numericProperties]);
 
+  // Fetch property options for active filters display
+  const { data: allPropertyOptions } = useQuery({
+    queryKey: ["all-property-options-for-section-filters", section?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("property_options")
+        .select("id, name, property_id, section_properties(name, code)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Build active filters list for display
+  const activeFiltersList = useMemo(() => {
+    const result: Array<{
+      key: string;
+      label: string;
+      value: string;
+      type: "option" | "range" | "price";
+      optionId?: string;
+    }> = [];
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value === undefined) return;
+
+      // Price filters
+      if (key === "priceMin" || key === "priceMax") {
+        const existingPrice = result.find(f => f.type === "price");
+        if (!existingPrice) {
+          const min = filters.priceMin;
+          const max = filters.priceMax;
+          if (min !== undefined || max !== undefined) {
+            result.push({
+              key: "price",
+              label: "Ціна",
+              value: `${min ?? priceRange?.min ?? 0} - ${max ?? priceRange?.max ?? "∞"} ₴`,
+              type: "price",
+            });
+          }
+        }
+        return;
+      }
+
+      // Numeric range filters
+      if (key.endsWith("Min") || key.endsWith("Max")) {
+        const propCode = key.replace(/Min$|Max$/, "");
+        const existingRange = result.find(f => f.key === propCode && f.type === "range");
+        if (!existingRange) {
+          const min = filters[`${propCode}Min`];
+          const max = filters[`${propCode}Max`];
+          if (min !== undefined || max !== undefined) {
+            const prop = numericProperties?.find(p => p.code === propCode);
+            const propName = prop?.code || propCode;
+            result.push({
+              key: propCode,
+              label: propName,
+              value: `${min ?? numericPropertyRanges[propCode]?.min ?? 0} - ${max ?? numericPropertyRanges[propCode]?.max ?? "∞"}`,
+              type: "range",
+            });
+          }
+        }
+        return;
+      }
+
+      // Option filters (arrays)
+      if (Array.isArray(value)) {
+        value.forEach((optionId: string) => {
+          const option = allPropertyOptions?.find(o => o.id === optionId);
+          if (option) {
+            result.push({
+              key,
+              label: (option.section_properties as any)?.name || key,
+              value: option.name,
+              type: "option",
+              optionId,
+            });
+          }
+        });
+      }
+    });
+
+    return result;
+  }, [filters, allPropertyOptions, priceRange, numericPropertyRanges, numericProperties]);
+
+  const handleRemoveFilter = useCallback((filter: { key: string; type: string; optionId?: string }) => {
+    const newFilters = { ...filters };
+    
+    if (filter.type === "price") {
+      delete newFilters.priceMin;
+      delete newFilters.priceMax;
+    } else if (filter.type === "range") {
+      delete newFilters[`${filter.key}Min`];
+      delete newFilters[`${filter.key}Max`];
+    } else if (filter.type === "option" && filter.optionId) {
+      const current = newFilters[filter.key] as string[] || [];
+      const updated = current.filter(id => id !== filter.optionId);
+      if (updated.length > 0) {
+        newFilters[filter.key] = updated;
+      } else {
+        delete newFilters[filter.key];
+      }
+    }
+    
+    setFilters(newFilters);
+  }, [filters]);
+
+  const handleClearAllFilters = useCallback(() => {
+    setFilters({});
+  }, []);
+
   if (sectionLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -372,6 +483,7 @@ export default function CatalogSection() {
             onFilterChange={setFilters}
             priceRange={priceRange}
             numericPropertyRanges={numericPropertyRanges}
+            products={products}
           />
         </aside>
 
@@ -395,6 +507,7 @@ export default function CatalogSection() {
                     onFilterChange={setFilters}
                     priceRange={priceRange}
                     numericPropertyRanges={numericPropertyRanges}
+                    products={products}
                   />
                 </SheetContent>
               </Sheet>
@@ -440,6 +553,13 @@ export default function CatalogSection() {
               </div>
             </div>
           </div>
+
+          {/* Active filters badges */}
+          <ActiveFilters
+            filters={activeFiltersList}
+            onRemoveFilter={handleRemoveFilter}
+            onClearAll={handleClearAllFilters}
+          />
 
           {/* Products grid */}
           {productsLoading ? (
