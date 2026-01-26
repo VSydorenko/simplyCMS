@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Catalog from "./pages/Catalog";
 import CatalogSection from "./pages/CatalogSection";
+import ProductDetail from "./pages/ProductDetail";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
+                <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductDetail />} />
                 
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminLayout />}>
