@@ -56,6 +56,7 @@ export function FilterSidebar({
   }, [priceRange]);
 
   // Fetch properties assigned to this section via section_property_assignments
+  // Include both product and modification properties for filtering
   const { data: properties } = useQuery({
     queryKey: ["section-filter-properties", sectionId],
     queryFn: async () => {
@@ -63,6 +64,7 @@ export function FilterSidebar({
       const { data, error } = await supabase
         .from("section_property_assignments")
         .select(`
+          applies_to,
           property:property_id (
             id,
             name,
@@ -73,10 +75,16 @@ export function FilterSidebar({
         `)
         .eq("section_id", sectionId);
       if (error) throw error;
-      // Extract and filter properties
-      return data
-        .map(a => a.property as Property | null)
-        .filter((p): p is Property => Boolean(p && p.is_filterable));
+      // Extract and filter properties - include both product and modification properties
+      // Use a Map to deduplicate by property id
+      const propertyMap = new Map<string, Property>();
+      data.forEach(a => {
+        const prop = a.property as Property | null;
+        if (prop && prop.is_filterable && !propertyMap.has(prop.id)) {
+          propertyMap.set(prop.id, prop);
+        }
+      });
+      return Array.from(propertyMap.values());
     },
     enabled: !!sectionId,
   });
