@@ -22,7 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, GripVertical, Image } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Image } from "lucide-react";
+import { ImageUpload } from "./ImageUpload";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ProductModification = Tables<"product_modifications">;
@@ -34,7 +35,7 @@ interface ProductModificationsProps {
 export function ProductModifications({ productId }: ProductModificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingModification, setEditingModification] = useState<ProductModification | null>(null);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -114,10 +115,9 @@ export function ProductModifications({ productId }: ProductModificationsProps) {
       price: parseFloat(formData.get("price") as string) || 0,
       old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
       stock_quantity: parseInt(formData.get("stock_quantity") as string) || 0,
-      is_in_stock: formData.get("is_in_stock") === "on",
       is_default: formData.get("is_default") === "on",
       sort_order: parseInt(formData.get("sort_order") as string) || 0,
-      images: imageUrls.filter(url => url.trim() !== ""),
+      images: images,
     };
 
     if (editingModification) {
@@ -129,37 +129,21 @@ export function ProductModifications({ productId }: ProductModificationsProps) {
 
   const openEdit = (modification: ProductModification) => {
     setEditingModification(modification);
-    const images = Array.isArray(modification.images) ? modification.images as string[] : [];
-    setImageUrls(images.length > 0 ? images : [""]);
+    const existingImages = Array.isArray(modification.images) ? modification.images as string[] : [];
+    setImages(existingImages);
     setIsOpen(true);
   };
 
   const openCreate = () => {
     setEditingModification(null);
-    setImageUrls([""]);
+    setImages([]);
     setIsOpen(true);
   };
 
   const closeDialog = () => {
     setIsOpen(false);
     setEditingModification(null);
-    setImageUrls([""]);
-  };
-
-  const addImageField = () => {
-    setImageUrls([...imageUrls, ""]);
-  };
-
-  const updateImageUrl = (index: number, value: string) => {
-    const newUrls = [...imageUrls];
-    newUrls[index] = value;
-    setImageUrls(newUrls);
-  };
-
-  const removeImageField = (index: number) => {
-    if (imageUrls.length > 1) {
-      setImageUrls(imageUrls.filter((_, i) => i !== index));
-    }
+    setImages([]);
   };
 
   const formatPrice = (price: number) => {
@@ -297,50 +281,14 @@ export function ProductModifications({ productId }: ProductModificationsProps) {
                 </div>
 
                 {/* Images section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Зображення (URL)</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addImageField}>
-                      <Plus className="h-3 w-3 mr-1" />
-                      Додати
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {imageUrls.map((url, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          value={url}
-                          onChange={(e) => updateImageUrl(index, e.target.value)}
-                          placeholder="https://example.com/image.jpg"
-                        />
-                        {imageUrls.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeImageField(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {imageUrls.some(url => url.trim()) && (
-                    <div className="flex gap-2 flex-wrap mt-2">
-                      {imageUrls.filter(url => url.trim()).map((url, index) => (
-                        <img
-                          key={index}
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="h-16 w-16 object-cover rounded border"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+                <div className="space-y-2">
+                  <Label>Зображення</Label>
+                  <ImageUpload
+                    images={images}
+                    onImagesChange={setImages}
+                    folder={`modifications/${editingModification?.id || 'new'}`}
+                    maxImages={10}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
