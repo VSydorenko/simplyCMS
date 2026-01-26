@@ -10,6 +10,14 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
+// Admin imports
+import { AdminLayout } from "./components/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import Sections from "./pages/admin/Sections";
+import Products from "./pages/admin/Products";
+import Orders from "./pages/admin/Orders";
+import PlaceholderPage from "./pages/admin/PlaceholderPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -31,6 +39,22 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                
+                {/* Admin routes */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="sections" element={<Sections />} />
+                  <Route path="products" element={<Products />} />
+                  <Route path="orders" element={<Orders />} />
+                  <Route path="order-statuses" element={<PlaceholderPage />} />
+                  <Route path="services" element={<PlaceholderPage />} />
+                  <Route path="service-requests" element={<PlaceholderPage />} />
+                  <Route path="users" element={<PlaceholderPage />} />
+                  <Route path="user-categories" element={<PlaceholderPage />} />
+                  <Route path="languages" element={<PlaceholderPage />} />
+                  <Route path="settings" element={<PlaceholderPage />} />
+                </Route>
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
