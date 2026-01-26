@@ -113,8 +113,6 @@ export default function PropertyOptionEdit() {
 
       // Check if this is a new option - optionId is "new" string from URL params
       const isCreating = !optionId || optionId === "new";
-      
-      console.log("Saving option:", { optionId, isCreating, payload });
 
       if (isCreating) {
         const { data: newOption, error } = await supabase
