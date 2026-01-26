@@ -64,6 +64,7 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="sections" element={<Sections />} />
+                  <Route path="properties" element={<Properties />} />
                   <Route path="properties/:propertyId" element={<PropertyEdit />} />
                   <Route path="properties/:propertyId/options/new" element={<PropertyOptionEdit />} />
                   <Route path="properties/:propertyId/options/:optionId" element={<PropertyOptionEdit />} />
