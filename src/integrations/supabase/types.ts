@@ -877,6 +877,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_user_category: {
+        Args: { new_category_id: string; target_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
