@@ -33,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { ProductPropertyValues } from "@/components/admin/ProductPropertyValues";
+import { ProductModifications } from "@/components/admin/ProductModifications";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -253,6 +254,14 @@ export default function Products() {
                     productId={editingProduct.id}
                     sectionId={selectedSection}
                   />
+                </>
+              )}
+
+              {/* Product Modifications - only show when editing existing product */}
+              {editingProduct && (
+                <>
+                  <Separator className="my-4" />
+                  <ProductModifications productId={editingProduct.id} />
                 </>
               )}
 
