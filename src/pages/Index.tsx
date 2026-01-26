@@ -1,4 +1,4 @@
-import { Battery, Zap, Sun, Wrench, ChevronRight, LogOut, User } from "lucide-react";
+import { Battery, Zap, Sun, Wrench, ChevronRight, LogOut, User, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +49,7 @@ const advantages = [
 ];
 
 export default function Index() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -117,6 +117,12 @@ export default function Index() {
                         <User className="mr-2 h-4 w-4" />
                         Мій кабінет
                       </DropdownMenuItem>
+                      {isAdmin && (
+                        <DropdownMenuItem onClick={() => navigate("/admin")}>
+                          <Settings className="mr-2 h-4 w-4" />
+                          Адмін-панель
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                         <LogOut className="mr-2 h-4 w-4" />
