@@ -111,7 +111,7 @@ export default function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -119,7 +119,7 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="min-h-[50vh] flex flex-col items-center justify-center">
         <h1 className="text-2xl font-bold mb-4">Товар не знайдено</h1>
         <Button onClick={() => navigate(-1)}>Повернутись назад</Button>
       </div>
@@ -136,152 +136,150 @@ export default function ProductDetail() {
       : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
-          <Link to="/" className="hover:text-foreground transition-colors">
-            Головна
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link to="/catalog" className="hover:text-foreground transition-colors">
-            Каталог
-          </Link>
-          {section && (
-            <>
-              <ChevronRight className="h-4 w-4" />
-              <Link
-                to={`/catalog/${section.slug}`}
-                className="hover:text-foreground transition-colors"
-              >
-                {section.name}
-              </Link>
-            </>
-          )}
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground">{product.name}</span>
-        </nav>
+    <div className="container mx-auto px-4 py-8">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
+        <Link to="/" className="hover:text-foreground transition-colors">
+          Головна
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to="/catalog" className="hover:text-foreground transition-colors">
+          Каталог
+        </Link>
+        {section && (
+          <>
+            <ChevronRight className="h-4 w-4" />
+            <Link
+              to={`/catalog/${section.slug}`}
+              className="hover:text-foreground transition-colors"
+            >
+              {section.name}
+            </Link>
+          </>
+        )}
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground">{product.name}</span>
+      </nav>
 
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Gallery */}
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+        {/* Gallery */}
+        <div>
+          <ProductGallery images={allImages} productName={product.name} />
+        </div>
+
+        {/* Product info */}
+        <div className="space-y-6">
+          {/* Title and badges */}
           <div>
-            <ProductGallery images={allImages} productName={product.name} />
-          </div>
-
-          {/* Product info */}
-          <div className="space-y-6">
-            {/* Title and badges */}
-            <div>
-              <div className="flex items-start gap-3 mb-2">
-                {discountPercent && (
-                  <Badge variant="destructive">-{discountPercent}%</Badge>
-                )}
-                {!isInStock && (
-                  <Badge variant="secondary">Немає в наявності</Badge>
-                )}
-              </div>
-              <h1 className="text-3xl font-bold">{product.name}</h1>
-              {selectedMod?.sku && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Артикул: {selectedMod.sku}
-                </p>
+            <div className="flex items-start gap-3 mb-2">
+              {discountPercent && (
+                <Badge variant="destructive">-{discountPercent}%</Badge>
+              )}
+              {!isInStock && (
+                <Badge variant="secondary">Немає в наявності</Badge>
               )}
             </div>
-
-            {/* Price */}
-            <div className="flex items-baseline gap-3">
-              {price !== undefined && (
-                <span className="text-4xl font-bold text-primary">
-                  {formatPrice(price)}
-                </span>
-              )}
-              {oldPrice && price && oldPrice > price && (
-                <span className="text-xl text-muted-foreground line-through">
-                  {formatPrice(oldPrice)}
-                </span>
-              )}
-            </div>
-
-            {/* Stock status */}
-            <div className="flex items-center gap-2">
-              {isInStock ? (
-                <>
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span className="text-green-600 font-medium">В наявності</span>
-                </>
-              ) : (
-                <>
-                  <X className="h-5 w-5 text-destructive" />
-                  <span className="text-destructive font-medium">
-                    Немає в наявності
-                  </span>
-                </>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Short description */}
-            {product.short_description && (
-              <p className="text-muted-foreground">{product.short_description}</p>
+            <h1 className="text-3xl font-bold">{product.name}</h1>
+            {selectedMod?.sku && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Артикул: {selectedMod.sku}
+              </p>
             )}
+          </div>
 
-            {/* Modification selector */}
-            <ModificationSelector
-              modifications={modifications}
-              selectedId={selectedModId}
-              onSelect={setSelectedModId}
-              formatPrice={formatPrice}
-            />
+          {/* Price */}
+          <div className="flex items-baseline gap-3">
+            {price !== undefined && (
+              <span className="text-4xl font-bold text-primary">
+                {formatPrice(price)}
+              </span>
+            )}
+            {oldPrice && price && oldPrice > price && (
+              <span className="text-xl text-muted-foreground line-through">
+                {formatPrice(oldPrice)}
+              </span>
+            )}
+          </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="flex-1 min-w-[200px]" disabled={!isInStock}>
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Додати в кошик
-              </Button>
-              <Button size="lg" variant="outline">
-                <Heart className="h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline">
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </div>
+          {/* Stock status */}
+          <div className="flex items-center gap-2">
+            {isInStock ? (
+              <>
+                <Check className="h-5 w-5 text-green-500" />
+                <span className="text-green-600 font-medium">В наявності</span>
+              </>
+            ) : (
+              <>
+                <X className="h-5 w-5 text-destructive" />
+                <span className="text-destructive font-medium">
+                  Немає в наявності
+                </span>
+              </>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Short description */}
+          {product.short_description && (
+            <p className="text-muted-foreground">{product.short_description}</p>
+          )}
+
+          {/* Modification selector */}
+          <ModificationSelector
+            modifications={modifications}
+            selectedId={selectedModId}
+            onSelect={setSelectedModId}
+            formatPrice={formatPrice}
+          />
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-3">
+            <Button size="lg" className="flex-1 min-w-[200px]" disabled={!isInStock}>
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Додати в кошик
+            </Button>
+            <Button size="lg" variant="outline">
+              <Heart className="h-5 w-5" />
+            </Button>
+            <Button size="lg" variant="outline">
+              <Share2 className="h-5 w-5" />
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Tabs section */}
-        <div className="mt-12">
-          <Tabs defaultValue="description">
-            <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
-              <TabsTrigger
-                value="description"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-              >
-                Опис
-              </TabsTrigger>
-              <TabsTrigger
-                value="characteristics"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-              >
-                Характеристики
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="description" className="mt-6">
-              {product.description ? (
-                <div
-                  className="prose prose-sm max-w-none dark:prose-invert"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
-                />
-              ) : (
-                <p className="text-muted-foreground">Опис товару відсутній</p>
-              )}
-            </TabsContent>
-            <TabsContent value="characteristics" className="mt-6">
-              <ProductCharacteristics propertyValues={propertyValues} />
-            </TabsContent>
-          </Tabs>
-        </div>
+      {/* Tabs section */}
+      <div className="mt-12">
+        <Tabs defaultValue="description">
+          <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
+            <TabsTrigger
+              value="description"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            >
+              Опис
+            </TabsTrigger>
+            <TabsTrigger
+              value="characteristics"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+            >
+              Характеристики
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="description" className="mt-6">
+            {product.description ? (
+              <div
+                className="prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
+            ) : (
+              <p className="text-muted-foreground">Опис товару відсутній</p>
+            )}
+          </TabsContent>
+          <TabsContent value="characteristics" className="mt-6">
+            <ProductCharacteristics propertyValues={propertyValues} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
