@@ -43,8 +43,9 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
   const entityId = modificationId || productId;
 
   // Fetch properties assigned to this section via section_property_assignments
+  // Filter by applies_to based on whether we're editing a product or modification
   const { data: properties, isLoading: loadingProperties } = useQuery({
-    queryKey: ["section-assigned-properties", sectionId],
+    queryKey: ["section-assigned-properties", sectionId, entityType],
     queryFn: async () => {
       if (!sectionId) return [];
       const { data, error } = await supabase
@@ -52,6 +53,7 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
         .select(`
           id,
           sort_order,
+          applies_to,
           property:property_id (
             id,
             name,
@@ -63,6 +65,7 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
           )
         `)
         .eq("section_id", sectionId)
+        .eq("applies_to", entityType)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data.map(a => a.property).filter(Boolean) as SectionProperty[];

@@ -601,6 +601,7 @@ export type Database = {
       }
       section_property_assignments: {
         Row: {
+          applies_to: string
           created_at: string
           id: string
           property_id: string
@@ -608,6 +609,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          applies_to?: string
           created_at?: string
           id?: string
           property_id: string
@@ -615,6 +617,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          applies_to?: string
           created_at?: string
           id?: string
           property_id?: string
