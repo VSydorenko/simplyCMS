@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Settings2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Section = Tables<"sections">;
 
 export default function Sections() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const { toast } = useToast();
@@ -241,6 +243,14 @@ export default function Sections() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/admin/sections/${section.id}/properties`)}
+                        title="Властивості"
+                      >
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(section)}>
                         <Pencil className="h-4 w-4" />
                       </Button>

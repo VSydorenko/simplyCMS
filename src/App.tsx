@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Sections from "./pages/admin/Sections";
+import SectionProperties from "./pages/admin/SectionProperties";
 import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
@@ -44,6 +45,7 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="sections" element={<Sections />} />
+                  <Route path="sections/:sectionId/properties" element={<SectionProperties />} />
                   <Route path="products" element={<Products />} />
                   <Route path="orders" element={<Orders />} />
                   <Route path="order-statuses" element={<PlaceholderPage />} />

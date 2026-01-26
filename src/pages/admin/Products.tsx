@@ -29,8 +29,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { ProductPropertyValues } from "@/components/admin/ProductPropertyValues";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -242,7 +244,19 @@ export default function Products() {
                   <Label htmlFor="is_featured">Рекомендований</Label>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+
+              {/* Property Values - only show when editing existing product */}
+              {editingProduct && selectedSection && (
+                <>
+                  <Separator className="my-4" />
+                  <ProductPropertyValues
+                    productId={editingProduct.id}
+                    sectionId={selectedSection}
+                  />
+                </>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={closeDialog}>
                   Скасувати
                 </Button>
