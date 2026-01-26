@@ -22,6 +22,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import Sections from "./pages/admin/Sections";
 import Properties from "./pages/admin/Properties";
 import PropertyEdit from "./pages/admin/PropertyEdit";
+import PropertyOptionEdit from "./pages/admin/PropertyOptionEdit";
 import Products from "./pages/admin/Products";
 import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
@@ -63,8 +64,9 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
                   <Route path="sections" element={<Sections />} />
-                  <Route path="properties" element={<Properties />} />
                   <Route path="properties/:propertyId" element={<PropertyEdit />} />
+                  <Route path="properties/:propertyId/options/new" element={<PropertyOptionEdit />} />
+                  <Route path="properties/:propertyId/options/:optionId" element={<PropertyOptionEdit />} />
                   <Route path="products" element={<Products />} />
                   <Route path="products/:productId" element={<ProductEdit />} />
                   <Route path="orders" element={<Orders />} />

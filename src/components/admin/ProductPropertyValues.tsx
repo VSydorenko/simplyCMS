@@ -26,17 +26,21 @@ interface PropertyOption {
 }
 
 interface Props {
-  productId: string;
+  productId?: string;
+  modificationId?: string;
   sectionId: string | null;
 }
 
-export function ProductPropertyValues({ productId, sectionId }: Props) {
+export function ProductPropertyValues({ productId, modificationId, sectionId }: Props) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, { 
     value: string | null; 
     numeric_value: number | null;
     option_id: string | null;
   }>>({});
+
+  const entityType = modificationId ? "modification" : "product";
+  const entityId = modificationId || productId;
 
   // Fetch properties assigned to this section via section_property_assignments
   const { data: properties, isLoading: loadingProperties } = useQuery({
@@ -61,7 +65,6 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
         .eq("section_id", sectionId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      // Extract properties from assignments
       return data.map(a => a.property).filter(Boolean) as SectionProperty[];
     },
     enabled: !!sectionId,
@@ -69,7 +72,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
 
   // Fetch property options for select/multiselect properties
   const { data: propertyOptions } = useQuery({
-    queryKey: ["property-options-for-product", properties?.map(p => p.id)],
+    queryKey: ["property-options-for-entity", properties?.map(p => p.id)],
     queryFn: async () => {
       if (!properties?.length) return {};
       
@@ -88,7 +91,6 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
       
       if (error) throw error;
       
-      // Group by property_id
       const grouped: Record<string, PropertyOption[]> = {};
       data?.forEach(opt => {
         if (!grouped[opt.property_id]) {
@@ -102,17 +104,27 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
     enabled: !!properties?.length,
   });
 
+  // Fetch existing values based on entity type
   const { data: existingValues, isLoading: loadingValues } = useQuery({
-    queryKey: ["product-property-values", productId],
+    queryKey: [entityType === "modification" ? "modification-property-values" : "product-property-values", entityId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_property_values")
-        .select("*")
-        .eq("product_id", productId);
-      if (error) throw error;
-      return data;
+      if (entityType === "modification") {
+        const { data, error } = await supabase
+          .from("modification_property_values")
+          .select("*")
+          .eq("modification_id", entityId!);
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from("product_property_values")
+          .select("*")
+          .eq("product_id", entityId!);
+        if (error) throw error;
+        return data;
+      }
     },
-    enabled: !!productId,
+    enabled: !!entityId,
   });
 
   useEffect(() => {
@@ -122,7 +134,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
         numeric_value: number | null;
         option_id: string | null;
       }> = {};
-      existingValues.forEach((v) => {
+      existingValues.forEach((v: any) => {
         valuesMap[v.property_id] = { 
           value: v.value, 
           numeric_value: v.numeric_value,
@@ -145,33 +157,61 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
       numericValue: number | null;
       optionId?: string | null;
     }) => {
-      const existingValue = existingValues?.find(v => v.property_id === propertyId);
+      const existingValue = existingValues?.find((v: any) => v.property_id === propertyId);
       
-      if (existingValue) {
-        const { error } = await supabase
-          .from("product_property_values")
-          .update({ 
-            value, 
-            numeric_value: numericValue,
-            option_id: optionId ?? null
-          })
-          .eq("id", existingValue.id);
-        if (error) throw error;
-      } else if (value || numericValue !== null || optionId) {
-        const { error } = await supabase
-          .from("product_property_values")
-          .insert([{ 
-            product_id: productId, 
-            property_id: propertyId, 
-            value, 
-            numeric_value: numericValue,
-            option_id: optionId ?? null
-          }]);
-        if (error) throw error;
+      if (entityType === "modification") {
+        if (existingValue) {
+          const { error } = await supabase
+            .from("modification_property_values")
+            .update({ 
+              value, 
+              numeric_value: numericValue,
+              option_id: optionId ?? null
+            })
+            .eq("id", existingValue.id);
+          if (error) throw error;
+        } else if (value || numericValue !== null || optionId) {
+          const { error } = await supabase
+            .from("modification_property_values")
+            .insert([{ 
+              modification_id: entityId, 
+              property_id: propertyId, 
+              value, 
+              numeric_value: numericValue,
+              option_id: optionId ?? null
+            }]);
+          if (error) throw error;
+        }
+      } else {
+        if (existingValue) {
+          const { error } = await supabase
+            .from("product_property_values")
+            .update({ 
+              value, 
+              numeric_value: numericValue,
+              option_id: optionId ?? null
+            })
+            .eq("id", existingValue.id);
+          if (error) throw error;
+        } else if (value || numericValue !== null || optionId) {
+          const { error } = await supabase
+            .from("product_property_values")
+            .insert([{ 
+              product_id: entityId, 
+              property_id: propertyId, 
+              value, 
+              numeric_value: numericValue,
+              option_id: optionId ?? null
+            }]);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-property-values", productId] });
+      const queryKey = entityType === "modification" 
+        ? ["modification-property-values", entityId]
+        : ["product-property-values", entityId];
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
@@ -205,7 +245,6 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
       newOptionIds = currentOptionIds.filter(id => id !== optionId);
     }
     
-    // Get names for value field
     const options = propertyOptions?.[propertyId] || [];
     const selectedOptions = options.filter(o => newOptionIds.includes(o.id));
     const newValue = selectedOptions.map(o => o.name).join(", ");
@@ -216,7 +255,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
   if (!sectionId) {
     return (
       <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
-        Оберіть розділ, щоб налаштувати властивості товару
+        Оберіть розділ, щоб налаштувати властивості
       </div>
     );
   }
@@ -353,7 +392,9 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-lg">Властивості товару</h3>
+      <h3 className="font-semibold text-lg">
+        Властивості {entityType === "modification" ? "модифікації" : "товару"}
+      </h3>
       <div className="grid gap-4">
         {properties.map((property) => (
           <div key={property.id} className="space-y-2">
