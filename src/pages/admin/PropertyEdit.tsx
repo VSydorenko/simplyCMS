@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -26,6 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -36,9 +43,10 @@ import {
   Plus, 
   Pencil, 
   Trash2, 
-  FileText,
   GripVertical 
 } from "lucide-react";
+import { ImageUpload } from "@/components/admin/ImageUpload";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SectionProperty = Tables<"section_properties">;
@@ -49,6 +57,10 @@ interface PropertyOption {
   name: string;
   slug: string;
   sort_order: number;
+  description: string | null;
+  image_url: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
   created_at: string;
 }
 
@@ -90,9 +102,15 @@ export default function PropertyEdit() {
   // Option dialog state
   const [isOptionDialogOpen, setIsOptionDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<PropertyOption | null>(null);
-  const [optionName, setOptionName] = useState("");
-  const [optionSlug, setOptionSlug] = useState("");
-  const [optionSortOrder, setOptionSortOrder] = useState(0);
+  const [optionFormData, setOptionFormData] = useState({
+    name: "",
+    slug: "",
+    sort_order: 0,
+    description: "",
+    image_url: "",
+    meta_title: "",
+    meta_description: "",
+  });
 
   // Fetch property
   const { data: property, isLoading: propertyLoading } = useQuery({
@@ -122,26 +140,6 @@ export default function PropertyEdit() {
       return data as PropertyOption[];
     },
     enabled: !!propertyId,
-  });
-
-  // Check which options have pages
-  const { data: optionPages } = useQuery({
-    queryKey: ["property-pages-by-options", propertyId],
-    queryFn: async () => {
-      if (!options?.length) return {};
-      const optionIds = options.map(o => o.id);
-      const { data, error } = await supabase
-        .from("property_pages")
-        .select("id, option_id")
-        .in("option_id", optionIds);
-      if (error) throw error;
-      const map: Record<string, string> = {};
-      data?.forEach(p => {
-        if (p.option_id) map[p.option_id] = p.id;
-      });
-      return map;
-    },
-    enabled: !!options?.length,
   });
 
   // Set form data when property loads
@@ -180,10 +178,19 @@ export default function PropertyEdit() {
 
   // Option mutations
   const createOptionMutation = useMutation({
-    mutationFn: async (data: { name: string; slug: string; sort_order: number }) => {
+    mutationFn: async (data: typeof optionFormData) => {
       const { error } = await supabase
         .from("property_options")
-        .insert([{ ...data, property_id: propertyId }]);
+        .insert([{ 
+          property_id: propertyId,
+          name: data.name,
+          slug: data.slug || generateSlug(data.name),
+          sort_order: data.sort_order,
+          description: data.description || null,
+          image_url: data.image_url || null,
+          meta_title: data.meta_title || null,
+          meta_description: data.meta_description || null,
+        }]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -197,10 +204,18 @@ export default function PropertyEdit() {
   });
 
   const updateOptionMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<PropertyOption> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: typeof optionFormData }) => {
       const { error } = await supabase
         .from("property_options")
-        .update(data)
+        .update({
+          name: data.name,
+          slug: data.slug || generateSlug(data.name),
+          sort_order: data.sort_order,
+          description: data.description || null,
+          image_url: data.image_url || null,
+          meta_title: data.meta_title || null,
+          meta_description: data.meta_description || null,
+        })
         .eq("id", id);
       if (error) throw error;
     },
@@ -246,47 +261,63 @@ export default function PropertyEdit() {
   // Option dialog handlers
   const openCreateOption = () => {
     setEditingOption(null);
-    setOptionName("");
-    setOptionSlug("");
-    setOptionSortOrder(options?.length || 0);
+    setOptionFormData({
+      name: "",
+      slug: "",
+      sort_order: options?.length || 0,
+      description: "",
+      image_url: "",
+      meta_title: "",
+      meta_description: "",
+    });
     setIsOptionDialogOpen(true);
   };
 
   const openEditOption = (option: PropertyOption) => {
     setEditingOption(option);
-    setOptionName(option.name);
-    setOptionSlug(option.slug);
-    setOptionSortOrder(option.sort_order);
+    setOptionFormData({
+      name: option.name,
+      slug: option.slug,
+      sort_order: option.sort_order,
+      description: option.description || "",
+      image_url: option.image_url || "",
+      meta_title: option.meta_title || "",
+      meta_description: option.meta_description || "",
+    });
     setIsOptionDialogOpen(true);
   };
 
   const closeOptionDialog = () => {
     setIsOptionDialogOpen(false);
     setEditingOption(null);
-    setOptionName("");
-    setOptionSlug("");
-    setOptionSortOrder(0);
+    setOptionFormData({
+      name: "",
+      slug: "",
+      sort_order: 0,
+      description: "",
+      image_url: "",
+      meta_title: "",
+      meta_description: "",
+    });
   };
 
-  const handleOptionNameChange = (value: string) => {
-    setOptionName(value);
-    if (!editingOption) {
-      setOptionSlug(generateSlug(value));
-    }
+  const handleOptionChange = (field: keyof typeof optionFormData, value: string | number) => {
+    setOptionFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Auto-generate slug when name changes for new options
+      if (field === "name" && !editingOption) {
+        newData.slug = generateSlug(value as string);
+      }
+      return newData;
+    });
   };
 
   const handleOptionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      name: optionName,
-      slug: optionSlug || generateSlug(optionName),
-      sort_order: optionSortOrder,
-    };
-
     if (editingOption) {
-      updateOptionMutation.mutate({ id: editingOption.id, data });
+      updateOptionMutation.mutate({ id: editingOption.id, data: optionFormData });
     } else {
-      createOptionMutation.mutate(data);
+      createOptionMutation.mutate(optionFormData);
     }
   };
 
@@ -445,20 +476,12 @@ export default function PropertyEdit() {
                         {option.slug}
                       </TableCell>
                       <TableCell>
-                        {optionPages?.[option.id] ? (
-                          <Link to={`/admin/property-pages/${optionPages[option.id]}`}>
-                            <Button variant="ghost" size="sm" className="h-8 gap-1">
-                              <FileText className="h-3 w-3" />
-                              Редагувати
-                            </Button>
-                          </Link>
+                        {option.description || option.image_url ? (
+                          <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                            Заповнено
+                          </span>
                         ) : (
-                          <Link to={`/admin/property-pages/new?optionId=${option.id}`}>
-                            <Button variant="outline" size="sm" className="h-8 gap-1">
-                              <Plus className="h-3 w-3" />
-                              Створити
-                            </Button>
-                          </Link>
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -496,50 +519,105 @@ export default function PropertyEdit() {
         </Card>
       )}
 
-      {/* Option Dialog */}
+      {/* Option Dialog with Tabs */}
       <Dialog open={isOptionDialogOpen} onOpenChange={setIsOptionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingOption ? "Редагувати опцію" : "Нова опція"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleOptionSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="optionName">Назва</Label>
-              <Input
-                id="optionName"
-                value={optionName}
-                onChange={(e) => handleOptionNameChange(e.target.value)}
-                placeholder="Samsung"
-                required
-              />
-            </div>
+          <form onSubmit={handleOptionSubmit}>
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="general">Основне</TabsTrigger>
+                <TabsTrigger value="page">Сторінка</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="general" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="optionName">Назва</Label>
+                  <Input
+                    id="optionName"
+                    value={optionFormData.name}
+                    onChange={(e) => handleOptionChange("name", e.target.value)}
+                    placeholder="Samsung"
+                    required
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="optionSlug">Slug (URL)</Label>
-              <Input
-                id="optionSlug"
-                value={optionSlug}
-                onChange={(e) => setOptionSlug(e.target.value)}
-                placeholder="samsung"
-              />
-              <p className="text-xs text-muted-foreground">
-                Залиште порожнім для автоматичної генерації
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="optionSlug">Slug (URL)</Label>
+                  <Input
+                    id="optionSlug"
+                    value={optionFormData.slug}
+                    onChange={(e) => handleOptionChange("slug", e.target.value)}
+                    placeholder="samsung"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Залиште порожнім для автоматичної генерації
+                  </p>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="optionSortOrder">Порядок сортування</Label>
-              <Input
-                id="optionSortOrder"
-                type="number"
-                value={optionSortOrder}
-                onChange={(e) => setOptionSortOrder(parseInt(e.target.value) || 0)}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="optionSortOrder">Порядок сортування</Label>
+                  <Input
+                    id="optionSortOrder"
+                    type="number"
+                    value={optionFormData.sort_order}
+                    onChange={(e) => handleOptionChange("sort_order", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="page" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Зображення</Label>
+                  <ImageUpload
+                    images={optionFormData.image_url ? [optionFormData.image_url] : []}
+                    onImagesChange={(urls) => handleOptionChange("image_url", urls[0] || "")}
+                    maxImages={1}
+                  />
+                </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+                <div className="space-y-2">
+                  <Label>Опис</Label>
+                  <RichTextEditor
+                    content={optionFormData.description}
+                    onChange={(value) => handleOptionChange("description", value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metaTitle">Meta Title</Label>
+                  <Input
+                    id="metaTitle"
+                    value={optionFormData.meta_title}
+                    onChange={(e) => handleOptionChange("meta_title", e.target.value)}
+                    placeholder="Назва для пошукових систем"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {optionFormData.meta_title.length}/60 символів
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metaDescription">Meta Description</Label>
+                  <Textarea
+                    id="metaDescription"
+                    value={optionFormData.meta_description}
+                    onChange={(e) => handleOptionChange("meta_description", e.target.value)}
+                    placeholder="Опис для пошукових систем"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {optionFormData.meta_description.length}/160 символів
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end gap-2 pt-6">
               <Button type="button" variant="outline" onClick={closeOptionDialog}>
                 Скасувати
               </Button>
@@ -550,7 +628,8 @@ export default function PropertyEdit() {
                 {(createOptionMutation.isPending || updateOptionMutation.isPending) && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                {editingOption ? "Зберегти" : "Створити"}
+                <Save className="h-4 w-4 mr-2" />
+                Зберегти
               </Button>
             </div>
           </form>

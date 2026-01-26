@@ -453,7 +453,11 @@ export type Database = {
       property_options: {
         Row: {
           created_at: string
+          description: string | null
           id: string
+          image_url: string | null
+          meta_description: string | null
+          meta_title: string | null
           name: string
           property_id: string
           slug: string
@@ -461,7 +465,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
+          image_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
           name: string
           property_id: string
           slug: string
@@ -469,7 +477,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
+          image_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
           name?: string
           property_id?: string
           slug?: string
@@ -478,63 +490,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "property_options_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "section_properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      property_pages: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          meta_description: string | null
-          meta_title: string | null
-          name: string
-          option_id: string | null
-          property_id: string | null
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          meta_description?: string | null
-          meta_title?: string | null
-          name: string
-          option_id?: string | null
-          property_id?: string | null
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          meta_description?: string | null
-          meta_title?: string | null
-          name?: string
-          option_id?: string | null
-          property_id?: string | null
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "property_pages_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "property_options"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "property_pages_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "section_properties"
