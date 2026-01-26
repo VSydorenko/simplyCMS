@@ -82,9 +82,9 @@ export default function Index() {
           </div>
           
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/catalog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Каталог
-            </a>
+            </Link>
             <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Послуги
             </a>
@@ -159,9 +159,11 @@ export default function Index() {
               сонячні панелі та послуги монтажу під ключ
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Button size="lg" className="gradient-brand text-white border-0 h-12 px-8">
-                Переглянути каталог
-                <ChevronRight className="ml-2 h-5 w-5" />
+              <Button size="lg" className="gradient-brand text-white border-0 h-12 px-8" asChild>
+                <Link to="/catalog">
+                  Переглянути каталог
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Link>
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8">
                 Замовити консультацію

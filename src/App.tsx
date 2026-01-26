@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Catalog from "./pages/Catalog";
+import CatalogSection from "./pages/CatalogSection";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
@@ -41,6 +43,8 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
                 
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminLayout />}>

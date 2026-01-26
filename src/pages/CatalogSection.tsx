@@ -1,0 +1,321 @@
+import { useState, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ProductCard } from "@/components/catalog/ProductCard";
+import { FilterSidebar } from "@/components/catalog/FilterSidebar";
+import { Loader2, ChevronRight, Filter, LayoutGrid, List } from "lucide-react";
+
+type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
+
+export default function CatalogSection() {
+  const { sectionSlug } = useParams<{ sectionSlug: string }>();
+  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [sortBy, setSortBy] = useState<SortOption>("popular");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Fetch section
+  const { data: section, isLoading: sectionLoading } = useQuery({
+    queryKey: ["public-section", sectionSlug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("slug", sectionSlug)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch section properties for filters
+  const { data: properties } = useQuery({
+    queryKey: ["section-properties", section?.id],
+    queryFn: async () => {
+      if (!section?.id) return [];
+      const { data, error } = await supabase
+        .from("section_properties")
+        .select("*")
+        .eq("section_id", section.id)
+        .order("sort_order");
+      if (error) throw error;
+      return data.map((p) => ({
+        ...p,
+        options: Array.isArray(p.options) ? p.options as string[] : null,
+      }));
+    },
+    enabled: !!section?.id,
+  });
+
+  // Fetch products with modifications and property values
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: ["section-products", section?.id],
+    queryFn: async () => {
+      if (!section?.id) return [];
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          sections(slug),
+          product_modifications(price, old_price, is_in_stock, is_default, sort_order),
+          product_property_values(property_id, value, numeric_value)
+        `)
+        .eq("section_id", section.id)
+        .eq("is_active", true);
+      if (error) throw error;
+      
+      return data.map((product) => {
+        const mods = product.product_modifications || [];
+        const defaultMod = mods.find((m: any) => m.is_default) || mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
+        const images = (product as any).images;
+        return {
+          ...product,
+          images: Array.isArray(images) ? images : [],
+          section: product.sections,
+          modifications: defaultMod ? [defaultMod] : [],
+          propertyValues: product.product_property_values || [],
+        };
+      });
+    },
+    enabled: !!section?.id,
+  });
+
+  // Calculate price range
+  const priceRange = useMemo(() => {
+    if (!products?.length) return undefined;
+    const prices = products
+      .flatMap((p) => p.modifications?.map((m: any) => m.price) || [])
+      .filter((p): p is number => typeof p === "number");
+    if (prices.length === 0) return undefined;
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }, [products]);
+
+  // Filter and sort products
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+
+    let result = [...products];
+
+    // Apply property filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (key === "priceMin" || key === "priceMax") return;
+      if (!value || (Array.isArray(value) && value.length === 0)) return;
+
+      const property = properties?.find((p) => p.code === key);
+      if (!property) return;
+
+      result = result.filter((product) => {
+        const propValue = product.propertyValues.find(
+          (pv: any) => pv.property_id === property.id
+        );
+        if (!propValue) return false;
+
+        if (Array.isArray(value)) {
+          return value.includes(propValue.value);
+        }
+        return propValue.value === String(value);
+      });
+    });
+
+    // Apply price filter
+    if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
+      result = result.filter((product) => {
+        const price = product.modifications?.[0]?.price;
+        if (price === undefined) return true;
+        if (filters.priceMin !== undefined && price < filters.priceMin) return false;
+        if (filters.priceMax !== undefined && price > filters.priceMax) return false;
+        return true;
+      });
+    }
+
+    // Sort
+    switch (sortBy) {
+      case "price_asc":
+        result.sort((a, b) => {
+          const priceA = a.modifications?.[0]?.price || 0;
+          const priceB = b.modifications?.[0]?.price || 0;
+          return priceA - priceB;
+        });
+        break;
+      case "price_desc":
+        result.sort((a, b) => {
+          const priceA = a.modifications?.[0]?.price || 0;
+          const priceB = b.modifications?.[0]?.price || 0;
+          return priceB - priceA;
+        });
+        break;
+      case "newest":
+        result.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        break;
+      default:
+        // popular - keep original order
+        break;
+    }
+
+    return result;
+  }, [products, filters, sortBy, properties]);
+
+  if (sectionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!section) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold mb-4">Розділ не знайдено</h1>
+        <Link to="/catalog">
+          <Button>Повернутись до каталогу</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Головна
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <Link to="/catalog" className="hover:text-foreground transition-colors">
+            Каталог
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground">{section.name}</span>
+        </nav>
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">{section.name}</h1>
+          {section.description && (
+            <p className="text-muted-foreground">{section.description}</p>
+          )}
+        </div>
+
+        <div className="flex gap-8">
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <FilterSidebar
+              properties={properties || []}
+              filters={filters}
+              onFilterChange={setFilters}
+              priceRange={priceRange}
+            />
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b">
+              <div className="flex items-center gap-4">
+                {/* Mobile filter button */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="lg:hidden">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Фільтри
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80 overflow-y-auto">
+                    <FilterSidebar
+                      properties={properties || []}
+                      filters={filters}
+                      onFilterChange={setFilters}
+                      priceRange={priceRange}
+                    />
+                  </SheetContent>
+                </Sheet>
+
+                <span className="text-sm text-muted-foreground">
+                  {filteredProducts.length} товарів
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="popular">За популярністю</SelectItem>
+                    <SelectItem value="newest">Новинки</SelectItem>
+                    <SelectItem value="price_asc">Дешевші</SelectItem>
+                    <SelectItem value="price_desc">Дорожчі</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="hidden sm:flex border rounded-md">
+                  <Button
+                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="rounded-r-none"
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="rounded-l-none"
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Products grid */}
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+                    : "flex flex-col gap-4"
+                }
+              >
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  Товарів за вибраними фільтрами не знайдено
+                </p>
+                <Button variant="outline" onClick={() => setFilters({})}>
+                  Скинути фільтри
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
