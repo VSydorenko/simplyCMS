@@ -24,7 +24,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, Settings2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Settings2, Image } from "lucide-react";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Section = Tables<"sections">;
@@ -33,6 +34,7 @@ export default function Sections() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
+  const [sectionImage, setSectionImage] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -100,6 +102,7 @@ export default function Sections() {
       name: formData.get("name") as string,
       slug: formData.get("slug") as string,
       description: formData.get("description") as string || null,
+      image_url: sectionImage.length > 0 ? sectionImage[0] : null,
       is_active: formData.get("is_active") === "on",
       sort_order: parseInt(formData.get("sort_order") as string) || 0,
     };
@@ -113,12 +116,20 @@ export default function Sections() {
 
   const openEdit = (section: Section) => {
     setEditingSection(section);
+    setSectionImage(section.image_url ? [section.image_url] : []);
+    setIsOpen(true);
+  };
+
+  const openCreate = () => {
+    setEditingSection(null);
+    setSectionImage([]);
     setIsOpen(true);
   };
 
   const closeDialog = () => {
     setIsOpen(false);
     setEditingSection(null);
+    setSectionImage([]);
   };
 
   if (isLoading) {
@@ -138,12 +149,12 @@ export default function Sections() {
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingSection(null)}>
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               Додати розділ
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingSection ? "Редагувати розділ" : "Новий розділ"}
@@ -185,6 +196,15 @@ export default function Sections() {
                   defaultValue={editingSection?.sort_order || 0}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Зображення розділу</Label>
+                <ImageUpload
+                  images={sectionImage}
+                  onImagesChange={setSectionImage}
+                  folder="sections"
+                  maxImages={1}
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   id="is_active"
@@ -217,6 +237,7 @@ export default function Sections() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16"></TableHead>
                 <TableHead>Назва</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Порядок</TableHead>
@@ -227,6 +248,22 @@ export default function Sections() {
             <TableBody>
               {sections?.map((section) => (
                 <TableRow key={section.id}>
+                  <TableCell>
+                    {section.image_url ? (
+                      <img
+                        src={section.image_url}
+                        alt={section.name}
+                        className="h-10 w-10 object-cover rounded"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                        <Image className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{section.name}</TableCell>
                   <TableCell className="text-muted-foreground">{section.slug}</TableCell>
                   <TableCell>{section.sort_order}</TableCell>
@@ -268,7 +305,7 @@ export default function Sections() {
               ))}
               {sections?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     Розділів ще немає
                   </TableCell>
                 </TableRow>
