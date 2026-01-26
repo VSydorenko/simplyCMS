@@ -4,6 +4,8 @@
 ## Огляд
 Створення системи глобальних опцій властивостей (наприклад, виробників, матеріалів), які можна використовувати в різних розділах каталогу та мати окремі сторінки з описом, зображенням і SEO-інформацією.
 
+## Статус: В процесі реалізації ✅
+
 ## Нова архітектура даних
 
 ```text
@@ -30,9 +32,9 @@
 
 ## Етапи реалізації
 
-### Етап 1: Зміни в базі даних
+### Етап 1: Зміни в базі даних ✅ ВИКОНАНО
 
-1. **Створити таблицю `property_options`**
+1. ✅ **Створено таблицю `property_options`**
    - `id` (UUID, PK)
    - `property_id` (FK -> section_properties)
    - `name` (TEXT) - назва опції ("Samsung", "LG")
@@ -40,57 +42,57 @@
    - `sort_order` (INT)
    - `created_at` (TIMESTAMP)
 
-2. **Оновити таблицю `property_pages`**
-   - Змінити `property_id` на `option_id` (FK -> property_options)
-   - Тепер сторінка прив'язана до конкретної опції, а не до властивості
+2. ✅ **Оновлено таблицю `property_pages`**
+   - Додано `option_id` (FK -> property_options)
+   - `property_id` зроблено nullable для перехідного періоду
 
-3. **Оновити таблицю `product_property_values`**
-   - Додати `option_id` (UUID, nullable) для зв'язку з опціями
-   - Для select/multiselect використовувати `option_id`
-   - Для text/number залишити `value`/`numeric_value`
+3. ✅ **Оновлено таблицю `product_property_values`**
+   - Додано `option_id` (UUID, nullable) для зв'язку з опціями
 
-4. **RLS політики для нових таблиць**
+4. ✅ **RLS політики**
    - Публічне читання для каталогу
    - Редагування тільки для адміністраторів
 
-### Етап 2: Адмін-панель - Управління опціями
+### Етап 2: Адмін-панель - Управління опціями ✅ ВИКОНАНО
 
-1. **Оновити діалог редагування властивості** (`SectionProperties.tsx`)
-   - Замінити textarea на список опцій з картками
-   - Кожна опція показує: назва, slug, кнопки "Редагувати сторінку" / "Видалити"
-   - Кнопка "Додати опцію" відкриває форму
+1. ✅ **Сторінка управління опціями** (`PropertyOptions.tsx`)
+   - Список опцій з кнопками редагування/видалення
+   - Створення нових опцій з автогенерацією slug
+   - Посилання на редагування сторінки опції
 
-2. **Форма додавання/редагування опції**
-   - Назва (text)
-   - Slug (auto-generate або manual)
-   - Порядок сортування
+2. ✅ **Оновлено SectionProperties.tsx**
+   - Додано колонку "Опції" з кнопкою переходу до управління опціями
+   - Кнопка показується для select/multiselect властивостей
 
-3. **Сторінка редагування property_page** (окрема сторінка або модальне вікно)
-   - Назва (успадковується з опції)
+3. ✅ **Сторінка редагування property_page** (`PropertyPageEdit.tsx`)
+   - Назва сторінки
    - Опис (Rich Text Editor)
    - Зображення (ImageUpload)
    - SEO: meta_title, meta_description
 
-### Етап 3: Оновлення вибору властивостей у товарі
+### Етап 3: Оновлення вибору властивостей у товарі ✅ ВИКОНАНО
 
-1. **Оновити `ProductPropertyValues.tsx`**
-   - Для select: показувати опції з таблиці `property_options`
-   - Зберігати `option_id` замість текстового value
+1. ✅ **Оновлено `ProductPropertyValues.tsx`**
+   - Для select: показує опції з таблиці `property_options`
+   - Зберігає `option_id` разом з текстовим value
+   - Fallback на legacy options якщо property_options порожній
 
-### Етап 4: Каталог та фільтри
+### Етап 4: Каталог та фільтри ✅ ВИКОНАНО
 
-1. **Оновити `FilterSidebar.tsx`**
-   - Завантажувати опції з `property_options`
-   - Фільтрувати по `option_id`
+1. ✅ **Оновлено `FilterSidebar.tsx`**
+   - Завантажує опції з `property_options`
+   - Fallback на legacy options
+   - Фільтрує по назві опції (для зворотної сумісності)
 
-2. **Створити публічну сторінку опції** (наприклад, `/manufacturer/samsung`)
-   - Показувати опис, зображення
+2. ✅ **Створено публічну сторінку опції** (`PropertyPage.tsx`)
+   - Показує опис, зображення з property_pages
    - Список товарів з цією опцією
 
-### Етап 5: Маршрутизація
+### Етап 5: Маршрутизація ✅ ВИКОНАНО
 
-1. Додати маршрут `/admin/properties/:propertyId/options` для управління опціями
-2. Додати публічний маршрут `/:propertyCode/:optionSlug` для сторінок опцій
+1. ✅ Маршрут `/admin/properties/:propertyId/options` для управління опціями
+2. ✅ Маршрут `/admin/property-pages/:pageId` для редагування сторінок
+3. ✅ Публічний маршрут `/:propertyCode/:optionSlug` для сторінок опцій
 
 ---
 
@@ -112,8 +114,9 @@ CREATE TABLE public.property_options (
 ### Зміни в property_pages
 ```sql
 ALTER TABLE public.property_pages 
-    DROP COLUMN property_id,
-    ADD COLUMN option_id UUID REFERENCES public.property_options(id) ON DELETE CASCADE NOT NULL;
+    ADD COLUMN option_id UUID REFERENCES public.property_options(id) ON DELETE CASCADE;
+ALTER TABLE public.property_pages
+    ALTER COLUMN property_id DROP NOT NULL;
 ```
 
 ### Зміни в product_property_values
@@ -124,19 +127,18 @@ ALTER TABLE public.product_property_values
 
 ---
 
-## Файли, що будуть змінені/створені
+## Файли, що були змінені/створені
 
 ### Нові файли:
-- `src/pages/admin/PropertyOptions.tsx` - управління опціями властивості
-- `src/pages/admin/PropertyPageEdit.tsx` - редагування сторінки опції
-- `src/pages/PropertyPage.tsx` - публічна сторінка опції
+- ✅ `src/pages/admin/PropertyOptions.tsx` - управління опціями властивості
+- ✅ `src/pages/admin/PropertyPageEdit.tsx` - редагування сторінки опції
+- ✅ `src/pages/PropertyPage.tsx` - публічна сторінка опції
 
-### Файли для оновлення:
-- `src/pages/admin/SectionProperties.tsx` - додати посилання на управління опціями
-- `src/components/admin/ProductPropertyValues.tsx` - працювати з option_id
-- `src/components/catalog/FilterSidebar.tsx` - завантажувати property_options
-- `src/pages/Catalog.tsx` та `src/pages/CatalogSection.tsx` - фільтрація по option_id
-- `src/App.tsx` - нові маршрути
+### Оновлені файли:
+- ✅ `src/pages/admin/SectionProperties.tsx` - додано кнопку "Опції"
+- ✅ `src/components/admin/ProductPropertyValues.tsx` - працює з option_id
+- ✅ `src/components/catalog/FilterSidebar.tsx` - завантажує property_options
+- ✅ `src/App.tsx` - нові маршрути
 
 ---
 
@@ -147,13 +149,13 @@ ALTER TABLE public.product_property_values
 2. Оновити product_property_values.option_id відповідно до створених опцій
 3. Очистити застарілі текстові значення (опціонально)
 
+**Примітка:** Код написаний з fallback на legacy options, тому існуючі дані продовжать працювати без міграції.
+
 ---
 
-## Порядок виконання
+## Наступні кроки (опціонально)
 
-1. Міграція бази даних (таблиці + RLS)
-2. Адмін: управління опціями
-3. Адмін: редагування сторінок опцій
-4. Товари: вибір опцій замість тексту
-5. Каталог: оновлення фільтрів
-6. Публічні сторінки опцій
+- [ ] Видалити property_id з property_pages після повної міграції
+- [ ] Додати drag-and-drop для сортування опцій
+- [ ] Додати масовий імпорт опцій з CSV
+- [ ] Додати лічильник товарів біля кожної опції у фільтрах

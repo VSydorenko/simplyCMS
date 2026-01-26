@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, GripVertical, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SectionProperty = Tables<"section_properties">;
@@ -333,6 +333,7 @@ export default function SectionProperties() {
                 <TableHead>Код</TableHead>
                 <TableHead>Тип</TableHead>
                 <TableHead>Фільтр</TableHead>
+                <TableHead>Опції</TableHead>
                 <TableHead className="text-right">Дії</TableHead>
               </TableRow>
             </TableHeader>
@@ -361,6 +362,16 @@ export default function SectionProperties() {
                       <span className="text-muted-foreground">Ні</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {(property.property_type === "select" || property.property_type === "multiselect") && (
+                      <Link to={`/admin/properties/${property.id}/options`}>
+                        <Button variant="outline" size="sm" className="h-7 gap-1">
+                          <Settings className="h-3 w-3" />
+                          Опції
+                        </Button>
+                      </Link>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(property)}>
@@ -380,7 +391,7 @@ export default function SectionProperties() {
               ))}
               {properties?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Властивостей ще немає
                   </TableCell>
                 </TableRow>

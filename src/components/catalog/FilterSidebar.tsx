@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,14 @@ interface Property {
   is_filterable: boolean;
 }
 
+interface PropertyOption {
+  id: string;
+  property_id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+}
+
 interface FilterSidebarProps {
   properties: Property[];
   filters: Record<string, any>;
@@ -39,7 +49,47 @@ export function FilterSidebar({
     priceRange?.max || 100000,
   ]);
 
+  // Update local price range when priceRange prop changes
+  useEffect(() => {
+    if (priceRange) {
+      setLocalPriceRange([priceRange.min, priceRange.max]);
+    }
+  }, [priceRange]);
+
   const filterableProperties = properties.filter((p) => p.is_filterable);
+  
+  // Get property IDs for select/multiselect properties
+  const selectPropertyIds = filterableProperties
+    .filter(p => p.property_type === "select" || p.property_type === "multiselect")
+    .map(p => p.id);
+
+  // Fetch property options from property_options table
+  const { data: propertyOptions } = useQuery({
+    queryKey: ["filter-property-options", selectPropertyIds],
+    queryFn: async () => {
+      if (selectPropertyIds.length === 0) return {};
+      
+      const { data, error } = await supabase
+        .from("property_options")
+        .select("*")
+        .in("property_id", selectPropertyIds)
+        .order("sort_order", { ascending: true });
+      
+      if (error) throw error;
+      
+      // Group by property_id
+      const grouped: Record<string, PropertyOption[]> = {};
+      data?.forEach(opt => {
+        if (!grouped[opt.property_id]) {
+          grouped[opt.property_id] = [];
+        }
+        grouped[opt.property_id].push(opt);
+      });
+      
+      return grouped;
+    },
+    enabled: selectPropertyIds.length > 0,
+  });
 
   const handleCheckboxChange = (propertyCode: string, value: string, checked: boolean) => {
     const current = filters[propertyCode] || [];
@@ -74,6 +124,19 @@ export function FilterSidebar({
     (key) => filters[key] !== undefined && 
     (Array.isArray(filters[key]) ? filters[key].length > 0 : true)
   );
+
+  // Get options for a property - from property_options or fallback to legacy options
+  const getOptionsForProperty = (property: Property): { id: string; name: string }[] => {
+    const dbOptions = propertyOptions?.[property.id];
+    if (dbOptions && dbOptions.length > 0) {
+      return dbOptions.map(opt => ({ id: opt.id, name: opt.name }));
+    }
+    // Fallback to legacy options stored in property
+    if (property.options) {
+      return property.options.map(opt => ({ id: opt, name: opt }));
+    }
+    return [];
+  };
 
   return (
     <div className="space-y-4">
@@ -144,20 +207,20 @@ export function FilterSidebar({
                 {property.property_type === "select" ||
                 property.property_type === "multiselect" ? (
                   // Options-based filter
-                  (property.options || []).map((option) => (
-                    <div key={option} className="flex items-center gap-2">
+                  getOptionsForProperty(property).map((option) => (
+                    <div key={option.id} className="flex items-center gap-2">
                       <Checkbox
-                        id={`${property.code}-${option}`}
-                        checked={(filters[property.code] || []).includes(option)}
+                        id={`${property.code}-${option.id}`}
+                        checked={(filters[property.code] || []).includes(option.name)}
                         onCheckedChange={(checked) =>
-                          handleCheckboxChange(property.code, option, !!checked)
+                          handleCheckboxChange(property.code, option.name, !!checked)
                         }
                       />
                       <Label
-                        htmlFor={`${property.code}-${option}`}
+                        htmlFor={`${property.code}-${option.id}`}
                         className="text-sm font-normal cursor-pointer"
                       >
-                        {option}
+                        {option.name}
                       </Label>
                     </div>
                   ))
@@ -181,24 +244,24 @@ export function FilterSidebar({
                     </Label>
                   </div>
                 ) : property.property_type === "color" ? (
-                  (property.options || []).map((option) => (
-                    <div key={option} className="flex items-center gap-2">
+                  getOptionsForProperty(property).map((option) => (
+                    <div key={option.id} className="flex items-center gap-2">
                       <Checkbox
-                        id={`${property.code}-${option}`}
-                        checked={(filters[property.code] || []).includes(option)}
+                        id={`${property.code}-${option.id}`}
+                        checked={(filters[property.code] || []).includes(option.name)}
                         onCheckedChange={(checked) =>
-                          handleCheckboxChange(property.code, option, !!checked)
+                          handleCheckboxChange(property.code, option.name, !!checked)
                         }
                       />
                       <div
                         className="w-4 h-4 rounded-full border"
-                        style={{ backgroundColor: option }}
+                        style={{ backgroundColor: option.name }}
                       />
                       <Label
-                        htmlFor={`${property.code}-${option}`}
+                        htmlFor={`${property.code}-${option.id}`}
                         className="text-sm font-normal cursor-pointer"
                       >
-                        {option}
+                        {option.name}
                       </Label>
                     </div>
                   ))
