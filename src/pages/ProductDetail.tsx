@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export default function ProductDetail() {
     productSlug: string;
   }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch product with all related data
   const { data: product, isLoading } = useQuery({
@@ -64,18 +65,43 @@ export default function ProductDetail() {
     });
   }, [product]);
 
-  // Selected modification
+  // Selected modification - sync with URL
   const [selectedModId, setSelectedModId] = useState<string>("");
+  const modSlugFromUrl = searchParams.get("mod");
 
   useEffect(() => {
-    if (modifications.length > 0 && !selectedModId) {
-      const defaultMod =
-        modifications.find((m) => m.is_default) || modifications[0];
-      setSelectedModId(defaultMod.id);
+    if (modifications.length > 0) {
+      // Try to find modification by slug from URL
+      if (modSlugFromUrl) {
+        const modFromUrl = modifications.find((m) => m.slug === modSlugFromUrl);
+        if (modFromUrl) {
+          setSelectedModId(modFromUrl.id);
+          return;
+        }
+      }
+      // Fall back to default modification
+      if (!selectedModId) {
+        const defaultMod =
+          modifications.find((m) => m.is_default) || modifications[0];
+        setSelectedModId(defaultMod.id);
+        // Update URL with default modification slug
+        if (defaultMod.slug) {
+          setSearchParams({ mod: defaultMod.slug }, { replace: true });
+        }
+      }
     }
-  }, [modifications, selectedModId]);
+  }, [modifications, modSlugFromUrl, selectedModId, setSearchParams]);
 
   const selectedMod = modifications.find((m) => m.id === selectedModId);
+
+  // Handle modification selection with URL update
+  const handleModificationSelect = useCallback((modId: string) => {
+    const mod = modifications.find((m) => m.id === modId);
+    if (mod) {
+      setSelectedModId(modId);
+      setSearchParams({ mod: mod.slug }, { replace: true });
+    }
+  }, [modifications, setSearchParams]);
 
   // Combine product and modification images
   const allImages = useMemo(() => {
@@ -229,7 +255,7 @@ export default function ProductDetail() {
           <ModificationSelector
             modifications={modifications}
             selectedId={selectedModId}
-            onSelect={setSelectedModId}
+            onSelect={handleModificationSelect}
             formatPrice={formatPrice}
           />
 
