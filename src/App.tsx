@@ -13,6 +13,9 @@ import CatalogSection from "./pages/CatalogSection";
 import ProductDetail from "./pages/ProductDetail";
 import NotFound from "./pages/NotFound";
 
+// Catalog layout
+import { CatalogLayout } from "./components/catalog/CatalogLayout";
+
 // Admin imports
 import { AdminLayout } from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
@@ -44,9 +47,13 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/catalog" element={<Catalog />} />
-                <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
-                <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductDetail />} />
+                
+                {/* Catalog routes with shared layout */}
+                <Route element={<CatalogLayout />}>
+                  <Route path="/catalog" element={<Catalog />} />
+                  <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
+                  <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductDetail />} />
+                </Route>
                 
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminLayout />}>

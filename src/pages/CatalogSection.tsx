@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { FilterSidebar } from "@/components/catalog/FilterSidebar";
-import { Loader2, ChevronRight, Filter, LayoutGrid, List } from "lucide-react";
+import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "lucide-react";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
@@ -23,7 +24,21 @@ export default function CatalogSection() {
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Fetch section
+  // Fetch all sections for chips
+  const { data: sections } = useQuery({
+    queryKey: ["public-sections"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch current section
   const { data: section, isLoading: sectionLoading } = useQuery({
     queryKey: ["public-section", sectionSlug],
     queryFn: async () => {
@@ -47,11 +62,12 @@ export default function CatalogSection() {
         .from("section_properties")
         .select("*")
         .eq("section_id", section.id)
+        .eq("is_filterable", true)
         .order("sort_order");
       if (error) throw error;
       return data.map((p) => ({
         ...p,
-        options: Array.isArray(p.options) ? p.options as string[] : null,
+        options: Array.isArray(p.options) ? (p.options as string[]) : null,
       }));
     },
     enabled: !!section?.id,
@@ -66,18 +82,20 @@ export default function CatalogSection() {
         .from("products")
         .select(`
           *,
-          sections(slug),
+          sections(id, slug, name),
           product_modifications(price, old_price, is_in_stock, is_default, sort_order),
           product_property_values(property_id, value, numeric_value)
         `)
         .eq("section_id", section.id)
         .eq("is_active", true);
       if (error) throw error;
-      
+
       return data.map((product) => {
         const mods = product.product_modifications || [];
-        const defaultMod = mods.find((m: any) => m.is_default) || mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
-        const images = (product as any).images;
+        const defaultMod =
+          mods.find((m: any) => m.is_default) ||
+          mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
+        const images = product.images as string[] | null;
         return {
           ...product,
           images: Array.isArray(images) ? images : [],
@@ -135,8 +153,10 @@ export default function CatalogSection() {
       result = result.filter((product) => {
         const price = product.modifications?.[0]?.price;
         if (price === undefined) return true;
-        if (filters.priceMin !== undefined && price < filters.priceMin) return false;
-        if (filters.priceMax !== undefined && price > filters.priceMax) return false;
+        if (filters.priceMin !== undefined && price < filters.priceMin)
+          return false;
+        if (filters.priceMax !== undefined && price > filters.priceMax)
+          return false;
         return true;
       });
     }
@@ -158,12 +178,12 @@ export default function CatalogSection() {
         });
         break;
       case "newest":
-        result.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        result.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         break;
       default:
-        // popular - keep original order
         break;
     }
 
@@ -172,7 +192,7 @@ export default function CatalogSection() {
 
   if (sectionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -180,7 +200,7 @@ export default function CatalogSection() {
 
   if (!section) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="min-h-[50vh] flex flex-col items-center justify-center">
         <h1 className="text-2xl font-bold mb-4">Розділ не знайдено</h1>
         <Link to="/catalog">
           <Button>Повернутись до каталогу</Button>
@@ -190,132 +210,172 @@ export default function CatalogSection() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-foreground transition-colors">
-            Головна
+    <div className="container mx-auto px-4 py-8">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <Link to="/" className="hover:text-foreground transition-colors">
+          Головна
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to="/catalog" className="hover:text-foreground transition-colors">
+          Каталог
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground">{section.name}</span>
+      </nav>
+
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-4xl font-bold mb-2">{section.name}</h1>
+        <p className="text-muted-foreground">
+          Оберіть категорію або скористайтесь фільтрами
+        </p>
+      </div>
+
+      {/* Section chips */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Link to="/catalog">
+          <Badge variant="outline" className="cursor-pointer px-3 py-1.5 text-sm">
+            Всі товари
+          </Badge>
+        </Link>
+        {sections?.map((s) => (
+          <Link key={s.id} to={`/catalog/${s.slug}`}>
+            <Badge
+              variant={s.id === section.id ? "default" : "outline"}
+              className="cursor-pointer px-3 py-1.5 text-sm gap-2"
+            >
+              {s.image_url ? (
+                <img
+                  src={s.image_url}
+                  alt=""
+                  className="w-4 h-4 rounded object-cover"
+                />
+              ) : (
+                <FolderOpen className="w-3 h-3" />
+              )}
+              {s.name}
+            </Badge>
           </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link to="/catalog" className="hover:text-foreground transition-colors">
-            Каталог
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground">{section.name}</span>
-        </nav>
+        ))}
+      </div>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{section.name}</h1>
-          {section.description && (
-            <p className="text-muted-foreground">{section.description}</p>
-          )}
-        </div>
+      <div className="flex gap-8">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <FilterSidebar
+            properties={properties || []}
+            filters={filters}
+            onFilterChange={setFilters}
+            priceRange={priceRange}
+          />
+        </aside>
 
-        <div className="flex gap-8">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <FilterSidebar
-              properties={properties || []}
-              filters={filters}
-              onFilterChange={setFilters}
-              priceRange={priceRange}
-            />
-          </aside>
-
-          {/* Main content */}
-          <div className="flex-1">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b">
-              <div className="flex items-center gap-4">
-                {/* Mobile filter button */}
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="lg:hidden">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Фільтри
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 overflow-y-auto">
-                    <FilterSidebar
-                      properties={properties || []}
-                      filters={filters}
-                      onFilterChange={setFilters}
-                      priceRange={priceRange}
-                    />
-                  </SheetContent>
-                </Sheet>
-
-                <span className="text-sm text-muted-foreground">
-                  {filteredProducts.length} товарів
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="popular">За популярністю</SelectItem>
-                    <SelectItem value="newest">Новинки</SelectItem>
-                    <SelectItem value="price_asc">Дешевші</SelectItem>
-                    <SelectItem value="price_desc">Дорожчі</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <div className="hidden sm:flex border rounded-md">
-                  <Button
-                    variant={viewMode === "grid" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="rounded-r-none"
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
+        {/* Main content */}
+        <div className="flex-1">
+          {/* Toolbar */}
+          <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b">
+            <div className="flex items-center gap-4">
+              {/* Mobile filter button */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="lg:hidden">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Фільтри
                   </Button>
-                  <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="rounded-l-none"
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80 overflow-y-auto">
+                  <FilterSidebar
+                    properties={properties || []}
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    priceRange={priceRange}
+                  />
+                </SheetContent>
+              </Sheet>
+
+              <span className="text-sm text-muted-foreground">
+                {filteredProducts.length} товарів
+              </span>
             </div>
 
-            {/* Products grid */}
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
-                    : "flex flex-col gap-4"
-                }
+            <div className="flex items-center gap-2">
+              <Select
+                value={sortBy}
+                onValueChange={(v) => setSortBy(v as SortOption)}
               >
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">
-                  Товарів за вибраними фільтрами не знайдено
-                </p>
-                <Button variant="outline" onClick={() => setFilters({})}>
-                  Скинути фільтри
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="popular">За популярністю</SelectItem>
+                  <SelectItem value="newest">Новинки</SelectItem>
+                  <SelectItem value="price_asc">Дешевші</SelectItem>
+                  <SelectItem value="price_desc">Дорожчі</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="hidden sm:flex border rounded-md">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="rounded-r-none"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="rounded-l-none"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="h-4 w-4" />
                 </Button>
               </div>
-            )}
+            </div>
           </div>
+
+          {/* Products grid */}
+          {productsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "flex flex-col gap-4"
+              }
+            >
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">
+                Товарів за вибраними фільтрами не знайдено
+              </p>
+              <Button variant="outline" onClick={() => setFilters({})}>
+                Скинути фільтри
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Section description at the bottom */}
+      {section.description && (
+        <div className="mt-12 pt-8 border-t">
+          <h2 className="text-2xl font-bold mb-4">{section.name}</h2>
+          <div
+            className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: section.description }}
+          />
+        </div>
+      )}
     </div>
   );
 }
