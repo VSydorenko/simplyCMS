@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { ProductPropertyValues } from "@/components/admin/ProductPropertyValues";
 import { ProductModifications } from "@/components/admin/ProductModifications";
 
@@ -219,11 +220,10 @@ export default function ProductEdit() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Повний опис</Label>
-                <Textarea
-                  id="description"
-                  rows={6}
-                  value={formData.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
+                <RichTextEditor
+                  content={formData.description}
+                  onChange={(content) => handleChange("description", content)}
+                  placeholder="Введіть опис товару..."
                 />
               </div>
             </CardContent>
