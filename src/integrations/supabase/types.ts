@@ -70,6 +70,58 @@ export type Database = {
         }
         Relationships: []
       }
+      modification_property_values: {
+        Row: {
+          created_at: string
+          id: string
+          modification_id: string
+          numeric_value: number | null
+          option_id: string | null
+          property_id: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modification_id: string
+          numeric_value?: number | null
+          option_id?: string | null
+          property_id: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modification_id?: string
+          numeric_value?: number | null
+          option_id?: string | null
+          property_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modification_property_values_modification_id_fkey"
+            columns: ["modification_id"]
+            isOneToOne: false
+            referencedRelation: "product_modifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modification_property_values_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "property_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modification_property_values_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "section_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string

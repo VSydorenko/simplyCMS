@@ -279,7 +279,7 @@ export default function ProductEdit() {
           )}
 
           {/* Modifications - only show for existing products */}
-          {!isNew && <ProductModifications productId={productId!} />}
+          {!isNew && <ProductModifications productId={productId!} sectionId={formData.section_id} />}
         </div>
 
         {/* Sidebar */}

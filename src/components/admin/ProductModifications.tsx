@@ -21,18 +21,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Loader2, Image } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
+import { ProductPropertyValues } from "./ProductPropertyValues";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ProductModification = Tables<"product_modifications">;
 
 interface ProductModificationsProps {
   productId: string;
+  sectionId: string | null;
 }
 
-export function ProductModifications({ productId }: ProductModificationsProps) {
+export function ProductModifications({ productId, sectionId }: ProductModificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingModification, setEditingModification] = useState<ProductModification | null>(null);
   const [images, setImages] = useState<string[]>([]);
@@ -290,6 +298,21 @@ export function ProductModifications({ productId }: ProductModificationsProps) {
                     maxImages={10}
                   />
                 </div>
+
+                {/* Properties section for existing modifications */}
+                {editingModification && sectionId && (
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="properties">
+                      <AccordionTrigger>Властивості модифікації</AccordionTrigger>
+                      <AccordionContent>
+                        <ProductPropertyValues
+                          modificationId={editingModification.id}
+                          sectionId={sectionId}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={closeDialog}>

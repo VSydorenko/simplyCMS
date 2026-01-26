@@ -53,7 +53,7 @@ export default function CatalogSection() {
     },
   });
 
-  // Fetch products with modifications and property values
+  // Fetch products with modifications and property values (both product and modification level)
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["section-products", section?.id],
     queryFn: async () => {
@@ -63,12 +63,34 @@ export default function CatalogSection() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(price, old_price, is_in_stock, is_default, sort_order),
+          product_modifications(id, price, old_price, is_in_stock, is_default, sort_order),
           product_property_values(property_id, value, numeric_value, option_id)
         `)
         .eq("section_id", section.id)
         .eq("is_active", true);
       if (error) throw error;
+
+      // Fetch modification property values
+      const modificationIds = data.flatMap(p => 
+        (p.product_modifications || []).map((m: any) => m.id)
+      );
+      
+      let modPropertyValues: Record<string, any[]> = {};
+      if (modificationIds.length > 0) {
+        const { data: modPropValues } = await supabase
+          .from("modification_property_values")
+          .select("modification_id, property_id, value, numeric_value, option_id")
+          .in("modification_id", modificationIds);
+        
+        if (modPropValues) {
+          modPropValues.forEach(v => {
+            if (!modPropertyValues[v.modification_id]) {
+              modPropertyValues[v.modification_id] = [];
+            }
+            modPropertyValues[v.modification_id].push(v);
+          });
+        }
+      }
 
       return data.map((product) => {
         const mods = product.product_modifications || [];
@@ -76,12 +98,19 @@ export default function CatalogSection() {
           mods.find((m: any) => m.is_default) ||
           mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
         const images = product.images as string[] | null;
+        
+        // Collect all property values from product and all modifications
+        const allPropertyValues = [
+          ...(product.product_property_values || []),
+          ...mods.flatMap((m: any) => modPropertyValues[m.id] || [])
+        ];
+        
         return {
           ...product,
           images: Array.isArray(images) ? images : [],
           section: product.sections,
           modifications: defaultMod ? [defaultMod] : [],
-          propertyValues: product.product_property_values || [],
+          propertyValues: allPropertyValues,
         };
       });
     },
