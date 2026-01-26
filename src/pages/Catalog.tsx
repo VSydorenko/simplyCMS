@@ -38,32 +38,6 @@ export default function Catalog() {
     },
   });
 
-  // Fetch all properties from all sections
-  const { data: allProperties } = useQuery({
-    queryKey: ["all-section-properties"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("section_properties")
-        .select("*, sections(name)")
-        .eq("is_filterable", true)
-        .order("sort_order");
-      if (error) throw error;
-      return data.map((p) => ({
-        ...p,
-        options: Array.isArray(p.options) ? (p.options as string[]) : null,
-      }));
-    },
-  });
-
-  // Filter properties based on selected section
-  const properties = useMemo(() => {
-    if (!allProperties) return [];
-    if (selectedSectionId) {
-      return allProperties.filter((p) => p.section_id === selectedSectionId);
-    }
-    return allProperties;
-  }, [allProperties, selectedSectionId]);
-
   // Fetch all products
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["all-products"],
@@ -74,7 +48,7 @@ export default function Catalog() {
           *,
           sections(id, slug, name),
           product_modifications(price, old_price, is_in_stock, is_default, sort_order),
-          product_property_values(property_id, value, numeric_value)
+          product_property_values(property_id, value, numeric_value, option_id)
         `)
         .eq("is_active", true);
       if (error) throw error;
@@ -120,24 +94,24 @@ export default function Catalog() {
       result = result.filter((p) => p.section?.id === selectedSectionId);
     }
 
-    // Apply property filters
+    // Apply property filters (by option_id)
     Object.entries(filters).forEach(([key, value]) => {
       if (key === "priceMin" || key === "priceMax") return;
       if (!value || (Array.isArray(value) && value.length === 0)) return;
 
-      const property = properties?.find((p) => p.code === key);
-      if (!property) return;
-
       result = result.filter((product) => {
         const propValue = product.propertyValues.find(
-          (pv: any) => pv.property_id === property.id
+          (pv: any) => {
+            // Find by option_id in the selected values
+            if (pv.option_id && Array.isArray(value)) {
+              // Handle comma-separated option_ids for multiselect
+              const productOptionIds = pv.option_id.split(",").filter(Boolean);
+              return productOptionIds.some((id: string) => value.includes(id));
+            }
+            return false;
+          }
         );
-        if (!propValue) return false;
-
-        if (Array.isArray(value)) {
-          return value.includes(propValue.value);
-        }
-        return propValue.value === String(value);
+        return !!propValue;
       });
     });
 
@@ -181,7 +155,7 @@ export default function Catalog() {
     }
 
     return result;
-  }, [products, filters, sortBy, properties, selectedSectionId]);
+  }, [products, filters, sortBy, selectedSectionId]);
 
   const handleSectionClick = (sectionId: string | null) => {
     setSelectedSectionId(sectionId);
@@ -241,7 +215,7 @@ export default function Catalog() {
         {/* Desktop Sidebar */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <FilterSidebar
-            properties={properties || []}
+            sectionId={selectedSectionId || undefined}
             filters={filters}
             onFilterChange={setFilters}
             priceRange={priceRange}
@@ -263,7 +237,7 @@ export default function Catalog() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 overflow-y-auto">
                   <FilterSidebar
-                    properties={properties || []}
+                    sectionId={selectedSectionId || undefined}
                     filters={filters}
                     onFilterChange={setFilters}
                     priceRange={priceRange}

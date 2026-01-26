@@ -53,26 +53,6 @@ export default function CatalogSection() {
     },
   });
 
-  // Fetch section properties for filters
-  const { data: properties } = useQuery({
-    queryKey: ["section-properties", section?.id],
-    queryFn: async () => {
-      if (!section?.id) return [];
-      const { data, error } = await supabase
-        .from("section_properties")
-        .select("*")
-        .eq("section_id", section.id)
-        .eq("is_filterable", true)
-        .order("sort_order");
-      if (error) throw error;
-      return data.map((p) => ({
-        ...p,
-        options: Array.isArray(p.options) ? (p.options as string[]) : null,
-      }));
-    },
-    enabled: !!section?.id,
-  });
-
   // Fetch products with modifications and property values
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["section-products", section?.id],
@@ -84,7 +64,7 @@ export default function CatalogSection() {
           *,
           sections(id, slug, name),
           product_modifications(price, old_price, is_in_stock, is_default, sort_order),
-          product_property_values(property_id, value, numeric_value)
+          product_property_values(property_id, value, numeric_value, option_id)
         `)
         .eq("section_id", section.id)
         .eq("is_active", true);
@@ -127,24 +107,24 @@ export default function CatalogSection() {
 
     let result = [...products];
 
-    // Apply property filters
+    // Apply property filters (by option_id)
     Object.entries(filters).forEach(([key, value]) => {
       if (key === "priceMin" || key === "priceMax") return;
       if (!value || (Array.isArray(value) && value.length === 0)) return;
 
-      const property = properties?.find((p) => p.code === key);
-      if (!property) return;
-
       result = result.filter((product) => {
         const propValue = product.propertyValues.find(
-          (pv: any) => pv.property_id === property.id
+          (pv: any) => {
+            // Find by option_id in the selected values
+            if (pv.option_id && Array.isArray(value)) {
+              // Handle comma-separated option_ids for multiselect
+              const productOptionIds = pv.option_id.split(",").filter(Boolean);
+              return productOptionIds.some((id: string) => value.includes(id));
+            }
+            return false;
+          }
         );
-        if (!propValue) return false;
-
-        if (Array.isArray(value)) {
-          return value.includes(propValue.value);
-        }
-        return propValue.value === String(value);
+        return !!propValue;
       });
     });
 
@@ -188,7 +168,7 @@ export default function CatalogSection() {
     }
 
     return result;
-  }, [products, filters, sortBy, properties]);
+  }, [products, filters, sortBy]);
 
   if (sectionLoading) {
     return (
@@ -264,7 +244,7 @@ export default function CatalogSection() {
         {/* Desktop Sidebar */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <FilterSidebar
-            properties={properties || []}
+            sectionId={section.id}
             filters={filters}
             onFilterChange={setFilters}
             priceRange={priceRange}
@@ -286,7 +266,7 @@ export default function CatalogSection() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 overflow-y-auto">
                   <FilterSidebar
-                    properties={properties || []}
+                    sectionId={section.id}
                     filters={filters}
                     onFilterChange={setFilters}
                     priceRange={priceRange}
