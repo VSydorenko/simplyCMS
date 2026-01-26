@@ -163,11 +163,11 @@ export default function PropertyPageEdit() {
     }));
   };
 
-  // Navigate back to options page
+  // Navigate back to property page
   const goBack = () => {
     const propertyId = option?.section_properties?.id || page?.property_id;
     if (propertyId) {
-      navigate(`/admin/properties/${propertyId}/options`);
+      navigate(`/admin/properties/${propertyId}`);
     } else {
       navigate(-1);
     }

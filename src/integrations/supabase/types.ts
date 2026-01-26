@@ -553,7 +553,7 @@ export type Database = {
           name: string
           options: Json | null
           property_type: Database["public"]["Enums"]["property_type"]
-          section_id: string
+          section_id: string | null
           sort_order: number
         }
         Insert: {
@@ -566,7 +566,7 @@ export type Database = {
           name: string
           options?: Json | null
           property_type?: Database["public"]["Enums"]["property_type"]
-          section_id: string
+          section_id?: string | null
           sort_order?: number
         }
         Update: {
@@ -579,12 +579,51 @@ export type Database = {
           name?: string
           options?: Json | null
           property_type?: Database["public"]["Enums"]["property_type"]
-          section_id?: string
+          section_id?: string | null
           sort_order?: number
         }
         Relationships: [
           {
             foreignKeyName: "section_properties_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_property_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          section_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          section_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          section_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_property_assignments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "section_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_property_assignments_section_id_fkey"
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "sections"

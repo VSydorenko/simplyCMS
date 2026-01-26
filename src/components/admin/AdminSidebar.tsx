@@ -11,6 +11,7 @@ import {
   Wrench,
   Globe,
   Tags,
+  ListChecks,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +26,7 @@ import {
 
 const catalogItems = [
   { title: "Розділи", url: "/admin/sections", icon: FolderTree },
+  { title: "Властивості", url: "/admin/properties", icon: ListChecks },
   { title: "Товари", url: "/admin/products", icon: Package },
 ];
 

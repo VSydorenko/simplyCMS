@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,9 +29,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, GripVertical, Settings } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type SectionProperty = Tables<"section_properties">;
@@ -46,42 +45,24 @@ const propertyTypes = [
   { value: "boolean", label: "Так/Ні" },
 ];
 
-export default function SectionProperties() {
-  const { sectionId } = useParams();
+export default function Properties() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<SectionProperty | null>(null);
   const [propertyType, setPropertyType] = useState<string>("text");
-  const [optionsText, setOptionsText] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: section } = useQuery({
-    queryKey: ["section", sectionId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sections")
-        .select("*")
-        .eq("id", sectionId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!sectionId,
-  });
-
+  // Fetch all properties (global, not section-specific)
   const { data: properties, isLoading } = useQuery({
-    queryKey: ["section-properties", sectionId],
+    queryKey: ["all-properties"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("section_properties")
         .select("*")
-        .eq("section_id", sectionId!)
-        .order("sort_order", { ascending: true });
+        .order("name", { ascending: true });
       if (error) throw error;
       return data;
     },
-    enabled: !!sectionId,
   });
 
   const createMutation = useMutation({
@@ -90,24 +71,9 @@ export default function SectionProperties() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["section-properties", sectionId] });
+      queryClient.invalidateQueries({ queryKey: ["all-properties"] });
       closeDialog();
       toast({ title: "Властивість створено" });
-    },
-    onError: (error) => {
-      toast({ variant: "destructive", title: "Помилка", description: error.message });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<SectionProperty> }) => {
-      const { error } = await supabase.from("section_properties").update(data).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["section-properties", sectionId] });
-      closeDialog();
-      toast({ title: "Властивість оновлено" });
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Помилка", description: error.message });
@@ -120,7 +86,7 @@ export default function SectionProperties() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["section-properties", sectionId] });
+      queryClient.invalidateQueries({ queryKey: ["all-properties"] });
       toast({ title: "Властивість видалено" });
     },
     onError: (error) => {
@@ -131,16 +97,8 @@ export default function SectionProperties() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    // Parse options for select/multiselect types
-    let options = null;
-    if (propertyType === "select" || propertyType === "multiselect") {
-      const optionsList = optionsText.split("\n").filter(Boolean).map(opt => opt.trim());
-      options = optionsList.length > 0 ? optionsList : null;
-    }
 
     const data = {
-      section_id: sectionId,
       name: formData.get("name") as string,
       code: formData.get("code") as string,
       property_type: propertyType as any,
@@ -148,35 +106,19 @@ export default function SectionProperties() {
       is_filterable: formData.get("is_filterable") === "on",
       has_page: formData.get("has_page") === "on",
       sort_order: parseInt(formData.get("sort_order") as string) || 0,
-      options: options,
+      section_id: null, // Global property
     };
 
-    if (editingProperty) {
-      updateMutation.mutate({ id: editingProperty.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const openEdit = (property: SectionProperty) => {
-    setEditingProperty(property);
-    setPropertyType(property.property_type);
-    const opts = property.options as string[] | null;
-    setOptionsText(opts?.join("\n") || "");
-    setIsOpen(true);
+    createMutation.mutate(data);
   };
 
   const closeDialog = () => {
     setIsOpen(false);
-    setEditingProperty(null);
     setPropertyType("text");
-    setOptionsText("");
   };
 
   const openCreate = () => {
-    setEditingProperty(null);
     setPropertyType("text");
-    setOptionsText("");
     setIsOpen(true);
   };
 
@@ -190,17 +132,11 @@ export default function SectionProperties() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/sections")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Властивості розділу</h1>
-          <p className="text-muted-foreground">{section?.name}</p>
+          <h1 className="text-3xl font-bold">Властивості</h1>
+          <p className="text-muted-foreground">Глобальні властивості для товарів</p>
         </div>
-      </div>
-
-      <div className="flex justify-end">
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreate}>
@@ -210,9 +146,7 @@ export default function SectionProperties() {
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {editingProperty ? "Редагувати властивість" : "Нова властивість"}
-              </DialogTitle>
+              <DialogTitle>Нова властивість</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -221,7 +155,6 @@ export default function SectionProperties() {
                   <Input
                     id="name"
                     name="name"
-                    defaultValue={editingProperty?.name || ""}
                     placeholder="Виробник"
                     required
                   />
@@ -231,7 +164,6 @@ export default function SectionProperties() {
                   <Input
                     id="code"
                     name="code"
-                    defaultValue={editingProperty?.code || ""}
                     placeholder="manufacturer"
                     required
                   />
@@ -254,52 +186,27 @@ export default function SectionProperties() {
                 </Select>
               </div>
 
-              {(propertyType === "select" || propertyType === "multiselect") && (
-                <div className="space-y-2">
-                  <Label htmlFor="options">Варіанти (кожен з нового рядка)</Label>
-                  <Textarea
-                    id="options"
-                    value={optionsText}
-                    onChange={(e) => setOptionsText(e.target.value)}
-                    rows={4}
-                    placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3"
-                  />
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="sort_order">Порядок сортування</Label>
                 <Input
                   id="sort_order"
                   name="sort_order"
                   type="number"
-                  defaultValue={editingProperty?.sort_order || 0}
+                  defaultValue={0}
                 />
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_required"
-                    name="is_required"
-                    defaultChecked={editingProperty?.is_required ?? false}
-                  />
+                  <Switch id="is_required" name="is_required" />
                   <Label htmlFor="is_required">Обов'язкова</Label>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_filterable"
-                    name="is_filterable"
-                    defaultChecked={editingProperty?.is_filterable ?? false}
-                  />
+                  <Switch id="is_filterable" name="is_filterable" />
                   <Label htmlFor="is_filterable">Показувати у фільтрах</Label>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch
-                    id="has_page"
-                    name="has_page"
-                    defaultChecked={editingProperty?.has_page ?? false}
-                  />
+                  <Switch id="has_page" name="has_page" />
                   <Label htmlFor="has_page">Створювати сторінки для значень</Label>
                 </div>
               </div>
@@ -308,11 +215,11 @@ export default function SectionProperties() {
                 <Button type="button" variant="outline" onClick={closeDialog}>
                   Скасувати
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {(createMutation.isPending || updateMutation.isPending) && (
+                <Button type="submit" disabled={createMutation.isPending}>
+                  {createMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  {editingProperty ? "Зберегти" : "Створити"}
+                  Створити
                 </Button>
               </div>
             </form>
@@ -322,27 +229,26 @@ export default function SectionProperties() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Властивості</CardTitle>
+          <CardTitle>Всі властивості</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10"></TableHead>
                 <TableHead>Назва</TableHead>
                 <TableHead>Код</TableHead>
                 <TableHead>Тип</TableHead>
                 <TableHead>Фільтр</TableHead>
-                <TableHead>Опції</TableHead>
                 <TableHead className="text-right">Дії</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {properties?.map((property) => (
-                <TableRow key={property.id}>
-                  <TableCell>
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
+                <TableRow 
+                  key={property.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/admin/properties/${property.id}`)}
+                >
                   <TableCell className="font-medium">
                     {property.name}
                     {property.is_required && (
@@ -362,36 +268,26 @@ export default function SectionProperties() {
                       <span className="text-muted-foreground">Ні</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {(property.property_type === "select" || property.property_type === "multiselect") && (
-                      <Link to={`/admin/properties/${property.id}/options`}>
-                        <Button variant="outline" size="sm" className="h-7 gap-1">
-                          <Settings className="h-3 w-3" />
-                          Опції
-                        </Button>
-                      </Link>
-                    )}
-                  </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(property)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteMutation.mutate(property.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Видалити цю властивість?")) {
+                          deleteMutation.mutate(property.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
               {properties?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Властивостей ще немає
                   </TableCell>
                 </TableRow>
