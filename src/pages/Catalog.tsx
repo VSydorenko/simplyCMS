@@ -216,7 +216,7 @@ export default function Catalog() {
           const propValue = product.propertyValues.find(
             (pv: any) => pv.property_id === prop.id && pv.numeric_value !== null
           );
-          if (!propValue) return true; // Don't filter out products without this property
+          if (!propValue) return false; // Filter out products without this property value
           const val = propValue.numeric_value;
           if (minVal !== undefined && val < minVal) return false;
           if (maxVal !== undefined && val > maxVal) return false;
