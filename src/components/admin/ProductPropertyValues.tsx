@@ -38,24 +38,38 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
     option_id: string | null;
   }>>({});
 
+  // Fetch properties assigned to this section via section_property_assignments
   const { data: properties, isLoading: loadingProperties } = useQuery({
-    queryKey: ["section-properties", sectionId],
+    queryKey: ["section-assigned-properties", sectionId],
     queryFn: async () => {
       if (!sectionId) return [];
       const { data, error } = await supabase
-        .from("section_properties")
-        .select("*")
+        .from("section_property_assignments")
+        .select(`
+          id,
+          sort_order,
+          property:property_id (
+            id,
+            name,
+            code,
+            property_type,
+            is_required,
+            is_filterable,
+            has_page
+          )
+        `)
         .eq("section_id", sectionId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data;
+      // Extract properties from assignments
+      return data.map(a => a.property).filter(Boolean) as SectionProperty[];
     },
     enabled: !!sectionId,
   });
 
   // Fetch property options for select/multiselect properties
   const { data: propertyOptions } = useQuery({
-    queryKey: ["property-options-for-section", sectionId],
+    queryKey: ["property-options-for-product", properties?.map(p => p.id)],
     queryFn: async () => {
       if (!properties?.length) return {};
       
@@ -112,7 +126,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
         valuesMap[v.property_id] = { 
           value: v.value, 
           numeric_value: v.numeric_value,
-          option_id: (v as any).option_id || null
+          option_id: v.option_id || null
         };
       });
       setValues(valuesMap);
@@ -140,7 +154,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
             value, 
             numeric_value: numericValue,
             option_id: optionId ?? null
-          } as any)
+          })
           .eq("id", existingValue.id);
         if (error) throw error;
       } else if (value || numericValue !== null || optionId) {
@@ -152,7 +166,7 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
             value, 
             numeric_value: numericValue,
             option_id: optionId ?? null
-          } as any]);
+          }]);
         if (error) throw error;
       }
     },
@@ -226,7 +240,6 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
   const renderPropertyInput = (property: SectionProperty) => {
     const currentValue = values[property.id];
     const options = propertyOptions?.[property.id] || [];
-    const legacyOptions = property.options as string[] | null;
 
     switch (property.property_type) {
       case "text":
@@ -253,39 +266,18 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
         );
 
       case "select":
-        // Use property_options if available, fallback to legacy options
-        if (options.length > 0) {
-          return (
-            <Select
-              value={currentValue?.option_id || ""}
-              onValueChange={(val) => handleSelectChange(property.id, val)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Оберіть значення" />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((opt) => (
-                  <SelectItem key={opt.id} value={opt.id}>
-                    {opt.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          );
-        }
-        // Fallback to legacy options
         return (
           <Select
-            value={currentValue?.value || ""}
-            onValueChange={(val) => handleChange(property.id, val || null)}
+            value={currentValue?.option_id || ""}
+            onValueChange={(val) => handleSelectChange(property.id, val)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Оберіть значення" />
             </SelectTrigger>
             <SelectContent>
-              {legacyOptions?.map((opt) => (
-                <SelectItem key={opt} value={opt}>
-                  {opt}
+              {options.map((opt) => (
+                <SelectItem key={opt.id} value={opt.id}>
+                  {opt.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -294,53 +286,27 @@ export function ProductPropertyValues({ productId, sectionId }: Props) {
 
       case "multiselect":
         const selectedOptionIds = currentValue?.option_id?.split(",").filter(Boolean) || [];
-        
-        // Use property_options if available
-        if (options.length > 0) {
-          return (
-            <div className="space-y-2">
-              {options.map((opt) => (
-                <div key={opt.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${property.id}-${opt.id}`}
-                    checked={selectedOptionIds.includes(opt.id)}
-                    onCheckedChange={(checked) => 
-                      handleMultiselectChange(property.id, opt.id, !!checked)
-                    }
-                  />
-                  <Label htmlFor={`${property.id}-${opt.id}`} className="font-normal">
-                    {opt.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          );
-        }
-        
-        // Fallback to legacy options
-        const selectedLegacyOptions = currentValue?.value?.split(",").map(s => s.trim()) || [];
         return (
           <div className="space-y-2">
-            {legacyOptions?.map((opt) => (
-              <div key={opt} className="flex items-center gap-2">
+            {options.map((opt) => (
+              <div key={opt.id} className="flex items-center gap-2">
                 <Checkbox
-                  id={`${property.id}-${opt}`}
-                  checked={selectedLegacyOptions.includes(opt)}
-                  onCheckedChange={(checked) => {
-                    let newOptions: string[];
-                    if (checked) {
-                      newOptions = [...selectedLegacyOptions, opt];
-                    } else {
-                      newOptions = selectedLegacyOptions.filter(o => o !== opt);
-                    }
-                    handleChange(property.id, newOptions.join(", ") || null);
-                  }}
+                  id={`${property.id}-${opt.id}`}
+                  checked={selectedOptionIds.includes(opt.id)}
+                  onCheckedChange={(checked) => 
+                    handleMultiselectChange(property.id, opt.id, !!checked)
+                  }
                 />
-                <Label htmlFor={`${property.id}-${opt}`} className="font-normal">
-                  {opt}
+                <Label htmlFor={`${property.id}-${opt.id}`} className="font-normal">
+                  {opt.name}
                 </Label>
               </div>
             ))}
+            {options.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Опцій не знайдено. Додайте опції у властивості.
+              </p>
+            )}
           </div>
         );
 

@@ -19,7 +19,6 @@ interface Property {
   name: string;
   code: string;
   property_type: string;
-  options?: string[] | null;
   is_filterable: boolean;
 }
 
@@ -32,14 +31,14 @@ interface PropertyOption {
 }
 
 interface FilterSidebarProps {
-  properties: Property[];
+  sectionId?: string;
   filters: Record<string, any>;
   onFilterChange: (filters: Record<string, any>) => void;
   priceRange?: { min: number; max: number };
 }
 
 export function FilterSidebar({
-  properties,
+  sectionId,
   filters,
   onFilterChange,
   priceRange,
@@ -56,7 +55,33 @@ export function FilterSidebar({
     }
   }, [priceRange]);
 
-  const filterableProperties = properties.filter((p) => p.is_filterable);
+  // Fetch properties assigned to this section via section_property_assignments
+  const { data: properties } = useQuery({
+    queryKey: ["section-filter-properties", sectionId],
+    queryFn: async () => {
+      if (!sectionId) return [];
+      const { data, error } = await supabase
+        .from("section_property_assignments")
+        .select(`
+          property:property_id (
+            id,
+            name,
+            code,
+            property_type,
+            is_filterable
+          )
+        `)
+        .eq("section_id", sectionId);
+      if (error) throw error;
+      // Extract and filter properties
+      return data
+        .map(a => a.property as Property | null)
+        .filter((p): p is Property => Boolean(p && p.is_filterable));
+    },
+    enabled: !!sectionId,
+  });
+
+  const filterableProperties = properties || [];
   
   // Get property IDs for select/multiselect properties
   const selectPropertyIds = filterableProperties
@@ -91,11 +116,11 @@ export function FilterSidebar({
     enabled: selectPropertyIds.length > 0,
   });
 
-  const handleCheckboxChange = (propertyCode: string, value: string, checked: boolean) => {
+  const handleCheckboxChange = (propertyCode: string, optionId: string, checked: boolean) => {
     const current = filters[propertyCode] || [];
     const updated = checked
-      ? [...current, value]
-      : current.filter((v: string) => v !== value);
+      ? [...current, optionId]
+      : current.filter((v: string) => v !== optionId);
     
     onFilterChange({
       ...filters,
@@ -125,18 +150,14 @@ export function FilterSidebar({
     (Array.isArray(filters[key]) ? filters[key].length > 0 : true)
   );
 
-  // Get options for a property - from property_options or fallback to legacy options
-  const getOptionsForProperty = (property: Property): { id: string; name: string }[] => {
-    const dbOptions = propertyOptions?.[property.id];
-    if (dbOptions && dbOptions.length > 0) {
-      return dbOptions.map(opt => ({ id: opt.id, name: opt.name }));
-    }
-    // Fallback to legacy options stored in property
-    if (property.options) {
-      return property.options.map(opt => ({ id: opt, name: opt }));
-    }
-    return [];
+  // Get options for a property
+  const getOptionsForProperty = (property: Property): PropertyOption[] => {
+    return propertyOptions?.[property.id] || [];
   };
+
+  if (!sectionId) {
+    return null;
+  }
 
   return (
     <div className="space-y-4">
@@ -197,79 +218,86 @@ export function FilterSidebar({
         )}
 
         {/* Property filters */}
-        {filterableProperties.map((property) => (
-          <AccordionItem key={property.id} value={property.id}>
-            <AccordionTrigger className="text-sm font-medium">
-              {property.name}
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-2 pt-2">
-                {property.property_type === "select" ||
-                property.property_type === "multiselect" ? (
-                  // Options-based filter
-                  getOptionsForProperty(property).map((option) => (
-                    <div key={option.id} className="flex items-center gap-2">
+        {filterableProperties.map((property) => {
+          const options = getOptionsForProperty(property);
+          
+          return (
+            <AccordionItem key={property.id} value={property.id}>
+              <AccordionTrigger className="text-sm font-medium">
+                {property.name}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2 pt-2">
+                  {property.property_type === "select" ||
+                  property.property_type === "multiselect" ? (
+                    options.length > 0 ? (
+                      options.map((option) => (
+                        <div key={option.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`${property.code}-${option.id}`}
+                            checked={(filters[property.code] || []).includes(option.id)}
+                            onCheckedChange={(checked) =>
+                              handleCheckboxChange(property.code, option.id, !!checked)
+                            }
+                          />
+                          <Label
+                            htmlFor={`${property.code}-${option.id}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {option.name}
+                          </Label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Немає опцій</p>
+                    )
+                  ) : property.property_type === "boolean" ? (
+                    <div className="flex items-center gap-2">
                       <Checkbox
-                        id={`${property.code}-${option.id}`}
-                        checked={(filters[property.code] || []).includes(option.name)}
+                        id={`${property.code}-true`}
+                        checked={filters[property.code] === true}
                         onCheckedChange={(checked) =>
-                          handleCheckboxChange(property.code, option.name, !!checked)
+                          onFilterChange({
+                            ...filters,
+                            [property.code]: checked ? true : undefined,
+                          })
                         }
                       />
                       <Label
-                        htmlFor={`${property.code}-${option.id}`}
+                        htmlFor={`${property.code}-true`}
                         className="text-sm font-normal cursor-pointer"
                       >
-                        {option.name}
+                        Так
                       </Label>
                     </div>
-                  ))
-                ) : property.property_type === "boolean" ? (
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`${property.code}-true`}
-                      checked={filters[property.code] === true}
-                      onCheckedChange={(checked) =>
-                        onFilterChange({
-                          ...filters,
-                          [property.code]: checked ? true : undefined,
-                        })
-                      }
-                    />
-                    <Label
-                      htmlFor={`${property.code}-true`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      Так
-                    </Label>
-                  </div>
-                ) : property.property_type === "color" ? (
-                  getOptionsForProperty(property).map((option) => (
-                    <div key={option.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`${property.code}-${option.id}`}
-                        checked={(filters[property.code] || []).includes(option.name)}
-                        onCheckedChange={(checked) =>
-                          handleCheckboxChange(property.code, option.name, !!checked)
-                        }
-                      />
-                      <div
-                        className="w-4 h-4 rounded-full border"
-                        style={{ backgroundColor: option.name }}
-                      />
-                      <Label
-                        htmlFor={`${property.code}-${option.id}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {option.name}
-                      </Label>
-                    </div>
-                  ))
-                ) : null}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
+                  ) : property.property_type === "color" ? (
+                    options.map((option) => (
+                      <div key={option.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`${property.code}-${option.id}`}
+                          checked={(filters[property.code] || []).includes(option.id)}
+                          onCheckedChange={(checked) =>
+                            handleCheckboxChange(property.code, option.id, !!checked)
+                          }
+                        />
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: option.name }}
+                        />
+                        <Label
+                          htmlFor={`${property.code}-${option.id}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {option.name}
+                        </Label>
+                      </div>
+                    ))
+                  ) : null}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
       </Accordion>
     </div>
   );
