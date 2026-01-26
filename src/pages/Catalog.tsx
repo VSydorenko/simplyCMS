@@ -81,6 +81,7 @@ export default function Catalog() {
           mods.find((m: any) => m.is_default) ||
           mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
         const images = product.images as string[] | null;
+        const hasModifications = (product as any).has_modifications ?? true;
         
         // Collect all property values from product and all modifications
         const allPropertyValues = [
@@ -92,6 +93,7 @@ export default function Catalog() {
           ...product,
           images: Array.isArray(images) ? images : [],
           section: product.sections,
+          has_modifications: hasModifications,
           modifications: defaultMod ? [defaultMod] : [],
           propertyValues: allPropertyValues,
         };
@@ -99,11 +101,17 @@ export default function Catalog() {
     },
   });
 
-  // Calculate price range
+  // Calculate price range (for both simple products and modifications)
   const priceRange = useMemo(() => {
     if (!products?.length) return undefined;
     const prices = products
-      .flatMap((p) => p.modifications?.map((m: any) => m.price) || [])
+      .map((p) => {
+        if (p.has_modifications) {
+          return p.modifications?.[0]?.price;
+        } else {
+          return (p as any).price;
+        }
+      })
       .filter((p): p is number => typeof p === "number");
     if (prices.length === 0) return undefined;
     return {
@@ -233,7 +241,12 @@ export default function Catalog() {
     // Apply price filter
     if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
       result = result.filter((product) => {
-        const price = product.modifications?.[0]?.price;
+        let price: number | undefined;
+        if (product.has_modifications) {
+          price = product.modifications?.[0]?.price;
+        } else {
+          price = (product as any).price;
+        }
         if (price === undefined) return true;
         if (filters.priceMin !== undefined && price < filters.priceMin)
           return false;
@@ -247,15 +260,15 @@ export default function Catalog() {
     switch (sortBy) {
       case "price_asc":
         result.sort((a, b) => {
-          const priceA = a.modifications?.[0]?.price || 0;
-          const priceB = b.modifications?.[0]?.price || 0;
+          const priceA = a.has_modifications ? (a.modifications?.[0]?.price || 0) : ((a as any).price || 0);
+          const priceB = b.has_modifications ? (b.modifications?.[0]?.price || 0) : ((b as any).price || 0);
           return priceA - priceB;
         });
         break;
       case "price_desc":
         result.sort((a, b) => {
-          const priceA = a.modifications?.[0]?.price || 0;
-          const priceB = b.modifications?.[0]?.price || 0;
+          const priceA = a.has_modifications ? (a.modifications?.[0]?.price || 0) : ((a as any).price || 0);
+          const priceB = b.has_modifications ? (b.modifications?.[0]?.price || 0) : ((b as any).price || 0);
           return priceB - priceA;
         });
         break;

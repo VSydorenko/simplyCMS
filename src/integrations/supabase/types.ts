@@ -406,46 +406,64 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          has_modifications: boolean | null
           id: string
           images: Json | null
           is_active: boolean
           is_featured: boolean
+          is_in_stock: boolean | null
           meta_description: string | null
           meta_title: string | null
           name: string
+          old_price: number | null
+          price: number | null
           section_id: string | null
           short_description: string | null
+          sku: string | null
           slug: string
+          stock_quantity: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          has_modifications?: boolean | null
           id?: string
           images?: Json | null
           is_active?: boolean
           is_featured?: boolean
+          is_in_stock?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
+          old_price?: number | null
+          price?: number | null
           section_id?: string | null
           short_description?: string | null
+          sku?: string | null
           slug: string
+          stock_quantity?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          has_modifications?: boolean | null
           id?: string
           images?: Json | null
           is_active?: boolean
           is_featured?: boolean
+          is_in_stock?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
+          old_price?: number | null
+          price?: number | null
           section_id?: string | null
           short_description?: string | null
+          sku?: string | null
           slug?: string
+          stock_quantity?: number | null
           updated_at?: string
         }
         Relationships: [
