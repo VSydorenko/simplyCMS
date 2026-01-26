@@ -1,0 +1,465 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Pencil, Trash2, Loader2, GripVertical, Image } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
+
+type ProductModification = Tables<"product_modifications">;
+
+interface ProductModificationsProps {
+  productId: string;
+}
+
+export function ProductModifications({ productId }: ProductModificationsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingModification, setEditingModification] = useState<ProductModification | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: modifications, isLoading } = useQuery({
+    queryKey: ["product-modifications", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_modifications")
+        .select("*")
+        .eq("product_id", productId)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: Partial<ProductModification>) => {
+      const { error } = await supabase
+        .from("product_modifications")
+        .insert([{ ...data, product_id: productId } as any]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-modifications", productId] });
+      closeDialog();
+      toast({ title: "Модифікацію створено" });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Помилка", description: error.message });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ProductModification> }) => {
+      const { error } = await supabase
+        .from("product_modifications")
+        .update(data)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-modifications", productId] });
+      closeDialog();
+      toast({ title: "Модифікацію оновлено" });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Помилка", description: error.message });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("product_modifications")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-modifications", productId] });
+      toast({ title: "Модифікацію видалено" });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Помилка", description: error.message });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const data = {
+      name: formData.get("name") as string,
+      slug: formData.get("slug") as string,
+      sku: (formData.get("sku") as string) || null,
+      price: parseFloat(formData.get("price") as string) || 0,
+      old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
+      stock_quantity: parseInt(formData.get("stock_quantity") as string) || 0,
+      is_in_stock: formData.get("is_in_stock") === "on",
+      is_default: formData.get("is_default") === "on",
+      sort_order: parseInt(formData.get("sort_order") as string) || 0,
+      images: imageUrls.filter(url => url.trim() !== ""),
+    };
+
+    if (editingModification) {
+      updateMutation.mutate({ id: editingModification.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const openEdit = (modification: ProductModification) => {
+    setEditingModification(modification);
+    const images = Array.isArray(modification.images) ? modification.images as string[] : [];
+    setImageUrls(images.length > 0 ? images : [""]);
+    setIsOpen(true);
+  };
+
+  const openCreate = () => {
+    setEditingModification(null);
+    setImageUrls([""]);
+    setIsOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsOpen(false);
+    setEditingModification(null);
+    setImageUrls([""]);
+  };
+
+  const addImageField = () => {
+    setImageUrls([...imageUrls, ""]);
+  };
+
+  const updateImageUrl = (index: number, value: string) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = value;
+    setImageUrls(newUrls);
+  };
+
+  const removeImageField = (index: number) => {
+    if (imageUrls.length > 1) {
+      setImageUrls(imageUrls.filter((_, i) => i !== index));
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("uk-UA", {
+      style: "currency",
+      currency: "UAH",
+    }).format(price);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">Модифікації товару</CardTitle>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-1" />
+                Додати
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingModification ? "Редагувати модифікацію" : "Нова модифікація"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-name">Назва *</Label>
+                    <Input
+                      id="mod-name"
+                      name="name"
+                      defaultValue={editingModification?.name || ""}
+                      placeholder="Наприклад: 100W, Синій"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-slug">URL (slug) *</Label>
+                    <Input
+                      id="mod-slug"
+                      name="slug"
+                      defaultValue={editingModification?.slug || ""}
+                      placeholder="100w"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-sku">Артикул (SKU)</Label>
+                    <Input
+                      id="mod-sku"
+                      name="sku"
+                      defaultValue={editingModification?.sku || ""}
+                      placeholder="SP-100W-BLK"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-price">Ціна (₴) *</Label>
+                    <Input
+                      id="mod-price"
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={editingModification?.price || ""}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-old-price">Стара ціна (₴)</Label>
+                    <Input
+                      id="mod-old-price"
+                      name="old_price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={editingModification?.old_price || ""}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-stock">Кількість на складі</Label>
+                    <Input
+                      id="mod-stock"
+                      name="stock_quantity"
+                      type="number"
+                      min="0"
+                      defaultValue={editingModification?.stock_quantity ?? 0}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mod-sort">Порядок сортування</Label>
+                    <Input
+                      id="mod-sort"
+                      name="sort_order"
+                      type="number"
+                      min="0"
+                      defaultValue={editingModification?.sort_order ?? 0}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="mod-in-stock"
+                      name="is_in_stock"
+                      defaultChecked={editingModification?.is_in_stock ?? true}
+                    />
+                    <Label htmlFor="mod-in-stock">В наявності</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="mod-default"
+                      name="is_default"
+                      defaultChecked={editingModification?.is_default ?? false}
+                    />
+                    <Label htmlFor="mod-default">За замовчуванням</Label>
+                  </div>
+                </div>
+
+                {/* Images section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Зображення (URL)</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addImageField}>
+                      <Plus className="h-3 w-3 mr-1" />
+                      Додати
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {imageUrls.map((url, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={url}
+                          onChange={(e) => updateImageUrl(index, e.target.value)}
+                          placeholder="https://example.com/image.jpg"
+                        />
+                        {imageUrls.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeImageField(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {imageUrls.some(url => url.trim()) && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {imageUrls.filter(url => url.trim()).map((url, index) => (
+                        <img
+                          key={index}
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="h-16 w-16 object-cover rounded border"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={closeDialog}>
+                    Скасувати
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                  >
+                    {(createMutation.isPending || updateMutation.isPending) && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    {editingModification ? "Зберегти" : "Створити"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {modifications && modifications.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12"></TableHead>
+                <TableHead>Назва</TableHead>
+                <TableHead>Артикул</TableHead>
+                <TableHead>Ціна</TableHead>
+                <TableHead>Залишок</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Дії</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {modifications.map((mod) => {
+                const images = Array.isArray(mod.images) ? mod.images as string[] : [];
+                return (
+                  <TableRow key={mod.id}>
+                    <TableCell>
+                      {images.length > 0 ? (
+                        <img
+                          src={images[0]}
+                          alt={mod.name}
+                          className="h-10 w-10 object-cover rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                          <Image className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {mod.name}
+                      {mod.is_default && (
+                        <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          За замовч.
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {mod.sku || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{formatPrice(Number(mod.price))}</span>
+                        {mod.old_price && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatPrice(Number(mod.old_price))}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={mod.stock_quantity > 0 ? "text-green-600" : "text-red-600"}>
+                        {mod.stock_quantity} шт.
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          mod.is_in_stock
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {mod.is_in_stock ? "В наявності" : "Немає"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(mod)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteMutation.mutate(mod.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Модифікацій ще немає. Додайте першу модифікацію товару.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
