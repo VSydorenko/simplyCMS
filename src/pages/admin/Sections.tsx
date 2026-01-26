@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,20 +21,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, Settings2, Image } from "lucide-react";
+import { Plus, Trash2, Loader2, Settings2, Image } from "lucide-react";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Section = Tables<"sections">;
+
+const initialFormState = {
+  name: "",
+  slug: "",
+  description: "",
+  sort_order: 0,
+  is_active: true,
+};
 
 export default function Sections() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [sectionImage, setSectionImage] = useState<string[]>([]);
+  const [formData, setFormData] = useState(initialFormState);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,6 +59,22 @@ export default function Sections() {
     },
   });
 
+  useEffect(() => {
+    if (editingSection) {
+      setFormData({
+        name: editingSection.name || "",
+        slug: editingSection.slug || "",
+        description: editingSection.description || "",
+        sort_order: editingSection.sort_order || 0,
+        is_active: editingSection.is_active ?? true,
+      });
+      setSectionImage(editingSection.image_url ? [editingSection.image_url] : []);
+    } else {
+      setFormData(initialFormState);
+      setSectionImage([]);
+    }
+  }, [editingSection]);
+
   const createMutation = useMutation({
     mutationFn: async (data: Partial<Section>) => {
       const { error } = await supabase.from("sections").insert([data as any]);
@@ -57,7 +82,7 @@ export default function Sections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-sections"] });
-      setIsOpen(false);
+      closeDialog();
       toast({ title: "Розділ створено" });
     },
     onError: (error) => {
@@ -72,8 +97,7 @@ export default function Sections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-sections"] });
-      setIsOpen(false);
-      setEditingSection(null);
+      closeDialog();
       toast({ title: "Розділ оновлено" });
     },
     onError: (error) => {
@@ -97,14 +121,13 @@ export default function Sections() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
     const data = {
-      name: formData.get("name") as string,
-      slug: formData.get("slug") as string,
-      description: formData.get("description") as string || null,
+      name: formData.name,
+      slug: formData.slug,
+      description: formData.description || null,
       image_url: sectionImage.length > 0 ? sectionImage[0] : null,
-      is_active: formData.get("is_active") === "on",
-      sort_order: parseInt(formData.get("sort_order") as string) || 0,
+      is_active: formData.is_active,
+      sort_order: formData.sort_order,
     };
 
     if (editingSection) {
@@ -114,22 +137,23 @@ export default function Sections() {
     }
   };
 
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const openEdit = (section: Section) => {
     setEditingSection(section);
-    setSectionImage(section.image_url ? [section.image_url] : []);
     setIsOpen(true);
   };
 
   const openCreate = () => {
     setEditingSection(null);
-    setSectionImage([]);
     setIsOpen(true);
   };
 
   const closeDialog = () => {
     setIsOpen(false);
     setEditingSection(null);
-    setSectionImage([]);
   };
 
   if (isLoading) {
@@ -154,46 +178,48 @@ export default function Sections() {
               Додати розділ
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingSection ? "Редагувати розділ" : "Новий розділ"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Назва</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  defaultValue={editingSection?.name || ""}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">URL (slug)</Label>
-                <Input
-                  id="slug"
-                  name="slug"
-                  defaultValue={editingSection?.slug || ""}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Назва</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="slug">URL (slug)</Label>
+                  <Input
+                    id="slug"
+                    value={formData.slug}
+                    onChange={(e) => handleChange("slug", e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Опис</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  defaultValue={editingSection?.description || ""}
+                <RichTextEditor
+                  content={formData.description}
+                  onChange={(content) => handleChange("description", content)}
+                  placeholder="Введіть опис розділу..."
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="sort_order">Порядок сортування</Label>
                 <Input
                   id="sort_order"
-                  name="sort_order"
                   type="number"
-                  defaultValue={editingSection?.sort_order || 0}
+                  value={formData.sort_order}
+                  onChange={(e) => handleChange("sort_order", parseInt(e.target.value) || 0)}
                 />
               </div>
               <div className="space-y-2">
@@ -208,8 +234,8 @@ export default function Sections() {
               <div className="flex items-center gap-2">
                 <Switch
                   id="is_active"
-                  name="is_active"
-                  defaultChecked={editingSection?.is_active ?? true}
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => handleChange("is_active", checked)}
                 />
                 <Label htmlFor="is_active">Активний</Label>
               </div>
