@@ -42,6 +42,7 @@ export default function ProductDetail() {
             property_id,
             value,
             numeric_value,
+            option_id,
             section_properties(id, name, code, property_type)
           )
         `
@@ -53,6 +54,51 @@ export default function ProductDetail() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch modification property values for all modifications
+  const modificationIds = useMemo(() => {
+    if (!product?.product_modifications) return [];
+    return product.product_modifications.map((m: any) => m.id);
+  }, [product]);
+
+  const { data: modificationPropertyValues } = useQuery({
+    queryKey: ["modification-property-values", modificationIds],
+    queryFn: async () => {
+      if (modificationIds.length === 0) return {};
+      
+      const { data, error } = await supabase
+        .from("modification_property_values")
+        .select(`
+          modification_id,
+          property_id,
+          value,
+          numeric_value,
+          option_id,
+          section_properties:property_id(id, name, code, property_type)
+        `)
+        .in("modification_id", modificationIds);
+      
+      if (error) throw error;
+      
+      // Group by modification_id
+      const grouped: Record<string, any[]> = {};
+      data?.forEach(v => {
+        if (!grouped[v.modification_id]) {
+          grouped[v.modification_id] = [];
+        }
+        grouped[v.modification_id].push({
+          property_id: v.property_id,
+          value: v.value,
+          numeric_value: v.numeric_value,
+          option_id: v.option_id,
+          property: v.section_properties,
+        });
+      });
+      
+      return grouped;
+    },
+    enabled: modificationIds.length > 0,
   });
 
   // Get sorted modifications
@@ -116,16 +162,28 @@ export default function ProductDetail() {
     return modImages.length > 0 ? modImages : productImages;
   }, [product?.images, selectedMod]);
 
-  // Property values with property info
+  // Property values with property info - combine product and selected modification properties
   const propertyValues = useMemo(() => {
-    if (!product?.product_property_values) return [];
-    return product.product_property_values.map((pv: any) => ({
+    // Product-level properties
+    const productProps = (product?.product_property_values || []).map((pv: any) => ({
       property_id: pv.property_id,
       value: pv.value,
       numeric_value: pv.numeric_value,
       property: pv.section_properties,
     }));
-  }, [product]);
+    
+    // Modification-level properties for selected modification
+    const modProps = selectedModId && modificationPropertyValues?.[selectedModId] 
+      ? modificationPropertyValues[selectedModId] 
+      : [];
+    
+    // Combine: modification properties override product properties with same property_id
+    const propMap = new Map<string, any>();
+    productProps.forEach((pv: any) => propMap.set(pv.property_id, pv));
+    modProps.forEach((pv: any) => propMap.set(pv.property_id, pv));
+    
+    return Array.from(propMap.values());
+  }, [product, selectedModId, modificationPropertyValues]);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat("uk-UA", {
