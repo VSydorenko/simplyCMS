@@ -52,7 +52,7 @@ export function AllProductProperties({ productId, sectionId }: Props) {
           property:property_id (
             id,
             name,
-            code,
+            slug,
             property_type,
             is_required,
             is_filterable,

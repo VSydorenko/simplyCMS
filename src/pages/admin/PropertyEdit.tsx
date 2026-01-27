@@ -66,7 +66,7 @@ export default function PropertyEdit() {
 
   const [formData, setFormData] = useState({
     name: "",
-    code: "",
+    slug: "",
     property_type: "text" as string,
     is_required: false,
     is_filterable: false,
@@ -109,7 +109,7 @@ export default function PropertyEdit() {
     if (property) {
       setFormData({
         name: property.name || "",
-        code: property.code || "",
+        slug: property.slug || "",
         property_type: property.property_type || "text",
         is_required: property.is_required ?? false,
         is_filterable: property.is_filterable ?? false,
@@ -206,11 +206,11 @@ export default function PropertyEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="code">Код</Label>
+                <Label htmlFor="slug">Slug</Label>
                 <Input
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) => handleChange("code", e.target.value)}
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => handleChange("slug", e.target.value)}
                   required
                 />
               </div>

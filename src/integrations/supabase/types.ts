@@ -569,7 +569,6 @@ export type Database = {
       }
       section_properties: {
         Row: {
-          code: string
           created_at: string
           has_page: boolean
           id: string
@@ -579,10 +578,10 @@ export type Database = {
           options: Json | null
           property_type: Database["public"]["Enums"]["property_type"]
           section_id: string | null
+          slug: string
           sort_order: number
         }
         Insert: {
-          code: string
           created_at?: string
           has_page?: boolean
           id?: string
@@ -592,10 +591,10 @@ export type Database = {
           options?: Json | null
           property_type?: Database["public"]["Enums"]["property_type"]
           section_id?: string | null
+          slug: string
           sort_order?: number
         }
         Update: {
-          code?: string
           created_at?: string
           has_page?: boolean
           id?: string
@@ -605,6 +604,7 @@ export type Database = {
           options?: Json | null
           property_type?: Database["public"]["Enums"]["property_type"]
           section_id?: string | null
+          slug?: string
           sort_order?: number
         }
         Relationships: [

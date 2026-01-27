@@ -6,19 +6,22 @@ import { Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function PropertyPage() {
-  const { propertyCode, optionSlug } = useParams<{ 
-    propertyCode: string; 
+  const { propertySlug, optionSlug } = useParams<{ 
+    propertySlug: string; 
     optionSlug: string;
   }>();
 
-  // Fetch property by code
+  // Use propertySlug as propertyCode for the queries
+  const propertyCode = propertySlug;
+
+  // Fetch property by slug
   const { data: property } = useQuery({
-    queryKey: ["property-by-code", propertyCode],
+    queryKey: ["property-by-slug", propertyCode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("section_properties")
         .select("*")
-        .eq("code", propertyCode!)
+        .eq("slug", propertyCode!)
         .eq("has_page", true)
         .limit(1)
         .maybeSingle();
@@ -44,22 +47,37 @@ export default function PropertyPage() {
     enabled: !!property?.id && !!optionSlug,
   });
 
-  // Fetch products with this property value
+  // Fetch products with this property value (from both product and modification levels)
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["products-by-option", option?.id],
     queryFn: async () => {
       if (!option?.id) return [];
       
-      // Get product IDs that have this option
-      const { data: propertyValues, error: pvError } = await supabase
+      // Get product IDs that have this option at product level
+      const { data: productLevelValues, error: pvError } = await supabase
         .from("product_property_values")
         .select("product_id")
         .eq("option_id", option.id);
       
       if (pvError) throw pvError;
-      if (!propertyValues?.length) return [];
-
-      const productIds = propertyValues.map(pv => pv.product_id);
+      
+      // Get modification IDs that have this option at modification level
+      const { data: modLevelValues, error: mvError } = await supabase
+        .from("modification_property_values")
+        .select("modification_id, product_modifications!inner(product_id)")
+        .eq("option_id", option.id);
+      
+      if (mvError) throw mvError;
+      
+      // Combine unique product IDs
+      const productIds = new Set<string>();
+      productLevelValues?.forEach(pv => productIds.add(pv.product_id));
+      modLevelValues?.forEach(mv => {
+        const productId = (mv.product_modifications as any)?.product_id;
+        if (productId) productIds.add(productId);
+      });
+      
+      if (productIds.size === 0) return [];
 
       const { data, error } = await supabase
         .from("products")
@@ -68,7 +86,7 @@ export default function PropertyPage() {
           sections(id, slug, name),
           product_modifications(price, old_price, is_in_stock, is_default, sort_order)
         `)
-        .in("id", productIds)
+        .in("id", Array.from(productIds))
         .eq("is_active", true);
 
       if (error) throw error;
@@ -122,8 +140,12 @@ export default function PropertyPage() {
           Головна
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <Link to="/catalog" className="hover:text-foreground transition-colors">
-          Каталог
+        <Link to="/properties" className="hover:text-foreground transition-colors">
+          Властивості
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to={`/properties/${property?.slug}`} className="hover:text-foreground transition-colors">
+          {property?.name}
         </Link>
         <ChevronRight className="h-4 w-4" />
         <span className="text-foreground">{displayName}</span>

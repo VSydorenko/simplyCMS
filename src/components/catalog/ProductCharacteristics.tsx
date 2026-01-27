@@ -1,14 +1,21 @@
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface PropertyValue {
   property_id: string;
   value: string | null;
   numeric_value: number | null;
+  option_id?: string | null;
+  option?: {
+    id: string;
+    slug: string;
+  } | null;
   property?: {
     id: string;
     name: string;
-    code: string;
+    slug: string;
     property_type: string;
+    has_page?: boolean;
   };
 }
 
@@ -35,6 +42,24 @@ export function ProductCharacteristics({ propertyValues }: ProductCharacteristic
     return pv.value || "—";
   };
 
+  const renderValue = (pv: PropertyValue) => {
+    const formattedValue = formatValue(pv);
+    
+    // If property has page and option has slug, make it a link
+    if (pv.property?.has_page && pv.option?.slug && pv.property?.slug) {
+      return (
+        <Link
+          to={`/properties/${pv.property.slug}/${pv.option.slug}`}
+          className="text-primary hover:underline"
+        >
+          {formattedValue}
+        </Link>
+      );
+    }
+    
+    return formattedValue;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -48,7 +73,7 @@ export function ProductCharacteristics({ propertyValues }: ProductCharacteristic
               className="flex justify-between py-3 first:pt-0 last:pb-0"
             >
               <dt className="text-muted-foreground">{pv.property?.name}</dt>
-              <dd className="font-medium text-right">{formatValue(pv)}</dd>
+              <dd className="font-medium text-right">{renderValue(pv)}</dd>
             </div>
           ))}
         </dl>

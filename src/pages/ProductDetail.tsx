@@ -43,7 +43,8 @@ export default function ProductDetail() {
             value,
             numeric_value,
             option_id,
-            section_properties(id, name, code, property_type)
+            property_options:option_id(id, slug),
+            section_properties:property_id(id, name, slug, property_type, has_page)
           )
         `
         )
@@ -75,7 +76,8 @@ export default function ProductDetail() {
           value,
           numeric_value,
           option_id,
-          section_properties:property_id(id, name, code, property_type)
+          property_options:option_id(id, slug),
+          section_properties:property_id(id, name, slug, property_type, has_page)
         `)
         .in("modification_id", modificationIds);
       
@@ -92,6 +94,7 @@ export default function ProductDetail() {
           value: v.value,
           numeric_value: v.numeric_value,
           option_id: v.option_id,
+          option: v.property_options,
           property: v.section_properties,
         });
       });
@@ -176,6 +179,8 @@ export default function ProductDetail() {
       property_id: pv.property_id,
       value: pv.value,
       numeric_value: pv.numeric_value,
+      option_id: pv.option_id,
+      option: pv.property_options,
       property: pv.section_properties,
     }));
     

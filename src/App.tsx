@@ -21,7 +21,7 @@ import { AdminLayout } from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Sections from "./pages/admin/Sections";
 import SectionEdit from "./pages/admin/SectionEdit";
-import Properties from "./pages/admin/Properties";
+import AdminProperties from "./pages/admin/Properties";
 import PropertyEdit from "./pages/admin/PropertyEdit";
 import PropertyOptionEdit from "./pages/admin/PropertyOptionEdit";
 import Products from "./pages/admin/Products";
@@ -29,7 +29,9 @@ import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 
-// Public property page
+// Public property pages
+import Properties from "./pages/Properties";
+import PropertyDetail from "./pages/PropertyDetail";
 import PropertyPage from "./pages/PropertyPage";
 
 const queryClient = new QueryClient({
@@ -59,6 +61,11 @@ function App() {
                   <Route path="/catalog" element={<Catalog />} />
                   <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
                   <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductDetail />} />
+                  
+                  {/* Property pages */}
+                  <Route path="/properties" element={<Properties />} />
+                  <Route path="/properties/:propertySlug" element={<PropertyDetail />} />
+                  <Route path="/properties/:propertySlug/:optionSlug" element={<PropertyPage />} />
                 </Route>
                 
                 {/* Admin routes */}
@@ -66,7 +73,7 @@ function App() {
                   <Route index element={<Dashboard />} />
                   <Route path="sections" element={<Sections />} />
                   <Route path="sections/:sectionId" element={<SectionEdit />} />
-                  <Route path="properties" element={<Properties />} />
+                  <Route path="properties" element={<AdminProperties />} />
                   <Route path="properties/:propertyId" element={<PropertyEdit />} />
                   <Route path="properties/:propertyId/options/new" element={<PropertyOptionEdit />} />
                   <Route path="properties/:propertyId/options/:optionId" element={<PropertyOptionEdit />} />
@@ -81,9 +88,6 @@ function App() {
                   <Route path="languages" element={<PlaceholderPage />} />
                   <Route path="settings" element={<PlaceholderPage />} />
                 </Route>
-                
-                {/* Public property pages */}
-                <Route path="/:propertyCode/:optionSlug" element={<PropertyPage />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

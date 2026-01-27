@@ -55,6 +55,12 @@ export function CatalogLayout() {
                 Каталог
               </Link>
               <Link 
+                to="/properties" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Бренди
+              </Link>
+              <Link 
                 to="#" 
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
