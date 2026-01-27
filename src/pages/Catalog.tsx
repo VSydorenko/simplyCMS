@@ -131,7 +131,7 @@ export default function Catalog() {
         .select(`
           property:property_id (
             id,
-            code,
+            slug,
             property_type,
             is_filterable
           )
@@ -139,8 +139,8 @@ export default function Catalog() {
         .eq("section_id", selectedSectionId);
       if (error) throw error;
       return data
-        .map(a => a.property as { id: string; code: string; property_type: string; is_filterable: boolean } | null)
-        .filter((p): p is { id: string; code: string; property_type: string; is_filterable: boolean } => 
+        .map(a => a.property as { id: string; slug: string; property_type: string; is_filterable: boolean } | null)
+        .filter((p): p is { id: string; slug: string; property_type: string; is_filterable: boolean } => 
           Boolean(p && p.is_filterable && (p.property_type === "number" || p.property_type === "range"))
         );
     },
@@ -169,7 +169,7 @@ export default function Catalog() {
       });
       
       if (values.length > 0) {
-        ranges[prop.code] = {
+        ranges[prop.slug] = {
           min: Math.min(...values),
           max: Math.max(...values),
         };
@@ -215,8 +215,8 @@ export default function Catalog() {
 
     // Apply numeric property filters
     numericProperties?.forEach(prop => {
-      const minKey = `${prop.code}Min`;
-      const maxKey = `${prop.code}Max`;
+      const minKey = `${prop.slug}Min`;
+      const maxKey = `${prop.slug}Max`;
       const minVal = filters[minKey];
       const maxVal = filters[maxKey];
       
@@ -297,7 +297,7 @@ export default function Catalog() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("property_options")
-        .select("id, name, property_id, section_properties(name, code)");
+        .select("id, name, property_id, section_properties(name, slug)");
       if (error) throw error;
       return data;
     },
@@ -336,18 +336,18 @@ export default function Catalog() {
 
       // Numeric range filters
       if (key.endsWith("Min") || key.endsWith("Max")) {
-        const propCode = key.replace(/Min$|Max$/, "");
-        const existingRange = result.find(f => f.key === propCode && f.type === "range");
+        const propSlug = key.replace(/Min$|Max$/, "");
+        const existingRange = result.find(f => f.key === propSlug && f.type === "range");
         if (!existingRange) {
-          const min = filters[`${propCode}Min`];
-          const max = filters[`${propCode}Max`];
+          const min = filters[`${propSlug}Min`];
+          const max = filters[`${propSlug}Max`];
           if (min !== undefined || max !== undefined) {
-            const prop = numericProperties?.find(p => p.code === propCode);
-            const propName = prop?.code || propCode;
+            const prop = numericProperties?.find(p => p.slug === propSlug);
+            const propName = prop?.slug || propSlug;
             result.push({
-              key: propCode,
+              key: propSlug,
               label: propName,
-              value: `${min ?? numericPropertyRanges[propCode]?.min ?? 0} - ${max ?? numericPropertyRanges[propCode]?.max ?? "∞"}`,
+              value: `${min ?? numericPropertyRanges[propSlug]?.min ?? 0} - ${max ?? numericPropertyRanges[propSlug]?.max ?? "∞"}`,
               type: "range",
             });
           }

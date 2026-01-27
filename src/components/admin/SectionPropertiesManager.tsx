@@ -61,7 +61,7 @@ export function SectionPropertiesManager({ sectionId }: SectionPropertiesManager
           property:property_id (
             id,
             name,
-            code,
+            slug,
             property_type,
             is_filterable,
             is_required
@@ -81,7 +81,7 @@ export function SectionPropertiesManager({ sectionId }: SectionPropertiesManager
     queryFn: async () => {
       const { data, error } = await supabase
         .from("section_properties")
-        .select("id, name, code, property_type")
+        .select("id, name, slug, property_type")
         .order("name", { ascending: true });
       if (error) throw error;
       return data;
@@ -183,7 +183,7 @@ export function SectionPropertiesManager({ sectionId }: SectionPropertiesManager
           <TableHeader>
             <TableRow>
               <TableHead>Назва</TableHead>
-              <TableHead>Код</TableHead>
+              <TableHead>Slug</TableHead>
               <TableHead>Тип</TableHead>
               <TableHead>Фільтр</TableHead>
               <TableHead className="w-16"></TableHead>
@@ -202,7 +202,7 @@ export function SectionPropertiesManager({ sectionId }: SectionPropertiesManager
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {property.code}
+                    {property.slug}
                   </TableCell>
                   <TableCell>
                     {propertyTypes[property.property_type] || property.property_type}

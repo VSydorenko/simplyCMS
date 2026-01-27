@@ -100,7 +100,7 @@ export default function Properties() {
 
     const data = {
       name: formData.get("name") as string,
-      code: formData.get("code") as string,
+      slug: formData.get("slug") as string,
       property_type: propertyType as any,
       is_required: formData.get("is_required") === "on",
       is_filterable: formData.get("is_filterable") === "on",
@@ -159,11 +159,11 @@ export default function Properties() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="code">Код</Label>
+              <div className="space-y-2">
+                  <Label htmlFor="slug">Slug</Label>
                   <Input
-                    id="code"
-                    name="code"
+                    id="slug"
+                    name="slug"
                     placeholder="manufacturer"
                     required
                   />
@@ -236,7 +236,7 @@ export default function Properties() {
             <TableHeader>
               <TableRow>
                 <TableHead>Назва</TableHead>
-                <TableHead>Код</TableHead>
+                <TableHead>Slug</TableHead>
                 <TableHead>Тип</TableHead>
                 <TableHead>Фільтр</TableHead>
                 <TableHead className="text-right">Дії</TableHead>
@@ -256,7 +256,7 @@ export default function Properties() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {property.code}
+                    {property.slug}
                   </TableCell>
                   <TableCell>
                     {propertyTypes.find(t => t.value === property.property_type)?.label}

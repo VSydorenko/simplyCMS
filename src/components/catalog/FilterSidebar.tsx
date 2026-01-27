@@ -17,7 +17,7 @@ import { X } from "lucide-react";
 interface Property {
   id: string;
   name: string;
-  code: string;
+  slug: string;
   property_type: string;
   is_filterable: boolean;
 }
@@ -79,7 +79,7 @@ export function FilterSidebar({
           property:property_id (
             id,
             name,
-            code,
+            slug,
             property_type,
             is_filterable
           )
@@ -147,15 +147,15 @@ export function FilterSidebar({
     setLocalNumericRanges(newRanges);
   }, [numericPropertyRanges]);
 
-  const handleCheckboxChange = (propertyCode: string, optionId: string, checked: boolean) => {
-    const current = filters[propertyCode] || [];
+  const handleCheckboxChange = (propertySlug: string, optionId: string, checked: boolean) => {
+    const current = filters[propertySlug] || [];
     const updated = checked
       ? [...current, optionId]
       : current.filter((v: string) => v !== optionId);
     
     onFilterChange({
       ...filters,
-      [propertyCode]: updated.length > 0 ? updated : undefined,
+      [propertySlug]: updated.length > 0 ? updated : undefined,
     });
   };
 
@@ -171,20 +171,20 @@ export function FilterSidebar({
     });
   };
 
-  const handleNumericRangeChange = (propertyCode: string, values: number[]) => {
+  const handleNumericRangeChange = (propertySlug: string, values: number[]) => {
     setLocalNumericRanges(prev => ({
       ...prev,
-      [propertyCode]: [values[0], values[1]],
+      [propertySlug]: [values[0], values[1]],
     }));
   };
 
-  const handleNumericRangeCommit = (propertyCode: string) => {
-    const range = localNumericRanges[propertyCode];
+  const handleNumericRangeCommit = (propertySlug: string) => {
+    const range = localNumericRanges[propertySlug];
     if (range) {
       onFilterChange({
         ...filters,
-        [`${propertyCode}Min`]: range[0],
-        [`${propertyCode}Max`]: range[1],
+        [`${propertySlug}Min`]: range[0],
+        [`${propertySlug}Max`]: range[1],
       });
     }
   };
@@ -193,8 +193,8 @@ export function FilterSidebar({
     setLocalPriceRange([priceRange?.min || 0, priceRange?.max || 100000]);
     // Reset numeric ranges
     const newRanges: Record<string, [number, number]> = {};
-    Object.entries(numericPropertyRanges).forEach(([code, range]) => {
-      newRanges[code] = [range.min, range.max];
+    Object.entries(numericPropertyRanges).forEach(([slug, range]) => {
+      newRanges[slug] = [range.min, range.max];
     });
     setLocalNumericRanges(newRanges);
     onFilterChange({});
@@ -302,15 +302,15 @@ export function FilterSidebar({
                         const count = getOptionCount(option.id);
                         return (
                           <div key={option.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`${property.code}-${option.id}`}
-                              checked={(filters[property.code] || []).includes(option.id)}
-                              onCheckedChange={(checked) =>
-                                handleCheckboxChange(property.code, option.id, !!checked)
-                              }
+                          <Checkbox
+                            id={`${property.slug}-${option.id}`}
+                            checked={(filters[property.slug] || []).includes(option.id)}
+                            onCheckedChange={(checked) =>
+                              handleCheckboxChange(property.slug, option.id, !!checked)
+                            }
                             />
-                            <Label
-                              htmlFor={`${property.code}-${option.id}`}
+                          <Label
+                            htmlFor={`${property.slug}-${option.id}`}
                               className="text-sm font-normal cursor-pointer flex-1"
                             >
                               {option.name}
@@ -327,17 +327,17 @@ export function FilterSidebar({
                   ) : property.property_type === "boolean" ? (
                     <div className="flex items-center gap-2">
                       <Checkbox
-                        id={`${property.code}-true`}
-                        checked={filters[property.code] === true}
+                        id={`${property.slug}-true`}
+                        checked={filters[property.slug] === true}
                         onCheckedChange={(checked) =>
                           onFilterChange({
                             ...filters,
-                            [property.code]: checked ? true : undefined,
+                            [property.slug]: checked ? true : undefined,
                           })
                         }
                       />
                       <Label
-                        htmlFor={`${property.code}-true`}
+                        htmlFor={`${property.slug}-true`}
                         className="text-sm font-normal cursor-pointer"
                       >
                         Так
@@ -349,10 +349,10 @@ export function FilterSidebar({
                       return (
                         <div key={option.id} className="flex items-center gap-2">
                           <Checkbox
-                            id={`${property.code}-${option.id}`}
-                            checked={(filters[property.code] || []).includes(option.id)}
+                            id={`${property.slug}-${option.id}`}
+                            checked={(filters[property.slug] || []).includes(option.id)}
                             onCheckedChange={(checked) =>
-                              handleCheckboxChange(property.code, option.id, !!checked)
+                              handleCheckboxChange(property.slug, option.id, !!checked)
                             }
                           />
                           <div
@@ -360,7 +360,7 @@ export function FilterSidebar({
                             style={{ backgroundColor: option.name }}
                           />
                           <Label
-                            htmlFor={`${property.code}-${option.id}`}
+                            htmlFor={`${property.slug}-${option.id}`}
                             className="text-sm font-normal cursor-pointer flex-1"
                           >
                             {option.name}
@@ -371,37 +371,37 @@ export function FilterSidebar({
                         </div>
                       );
                     })
-                  ) : (property.property_type === "number" || property.property_type === "range") && numericPropertyRanges[property.code] ? (
+                  ) : (property.property_type === "number" || property.property_type === "range") && numericPropertyRanges[property.slug] ? (
                     <div className="space-y-4">
                       <Slider
-                        min={numericPropertyRanges[property.code].min}
-                        max={numericPropertyRanges[property.code].max}
+                        min={numericPropertyRanges[property.slug].min}
+                        max={numericPropertyRanges[property.slug].max}
                         step={1}
-                        value={localNumericRanges[property.code] || [numericPropertyRanges[property.code].min, numericPropertyRanges[property.code].max]}
-                        onValueChange={(values) => handleNumericRangeChange(property.code, values)}
-                        onValueCommit={() => handleNumericRangeCommit(property.code)}
+                        value={localNumericRanges[property.slug] || [numericPropertyRanges[property.slug].min, numericPropertyRanges[property.slug].max]}
+                        onValueChange={(values) => handleNumericRangeChange(property.slug, values)}
+                        onValueCommit={() => handleNumericRangeCommit(property.slug)}
                         className="w-full"
                       />
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
-                          value={localNumericRanges[property.code]?.[0] ?? numericPropertyRanges[property.code].min}
+                          value={localNumericRanges[property.slug]?.[0] ?? numericPropertyRanges[property.slug].min}
                           onChange={(e) => {
-                            const val = parseInt(e.target.value) || numericPropertyRanges[property.code].min;
-                            handleNumericRangeChange(property.code, [val, localNumericRanges[property.code]?.[1] ?? numericPropertyRanges[property.code].max]);
+                            const val = parseInt(e.target.value) || numericPropertyRanges[property.slug].min;
+                            handleNumericRangeChange(property.slug, [val, localNumericRanges[property.slug]?.[1] ?? numericPropertyRanges[property.slug].max]);
                           }}
-                          onBlur={() => handleNumericRangeCommit(property.code)}
+                          onBlur={() => handleNumericRangeCommit(property.slug)}
                           className="h-8 text-sm"
                         />
                         <span className="text-muted-foreground">—</span>
                         <Input
                           type="number"
-                          value={localNumericRanges[property.code]?.[1] ?? numericPropertyRanges[property.code].max}
+                          value={localNumericRanges[property.slug]?.[1] ?? numericPropertyRanges[property.slug].max}
                           onChange={(e) => {
-                            const val = parseInt(e.target.value) || numericPropertyRanges[property.code].max;
-                            handleNumericRangeChange(property.code, [localNumericRanges[property.code]?.[0] ?? numericPropertyRanges[property.code].min, val]);
+                            const val = parseInt(e.target.value) || numericPropertyRanges[property.slug].max;
+                            handleNumericRangeChange(property.slug, [localNumericRanges[property.slug]?.[0] ?? numericPropertyRanges[property.slug].min, val]);
                           }}
-                          onBlur={() => handleNumericRangeCommit(property.code)}
+                          onBlur={() => handleNumericRangeCommit(property.slug)}
                           className="h-8 text-sm"
                         />
                       </div>
