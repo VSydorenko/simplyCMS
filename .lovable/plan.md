@@ -1,137 +1,105 @@
 
-# План: Прості товари без модифікацій
 
-## Опис завдання
+## Огляд завдання
 
-Реалізувати можливість створювати "прості товари" без обов'язкового створення модифікацій. Для простих товарів ціна, наявність і властивості вказуються безпосередньо в картці товару.
-
-## Зміни в базі даних
-
-Додати нові поля до таблиці `products`:
-
-| Поле | Тип | Опис |
-|------|-----|------|
-| `has_modifications` | boolean | Чи має товар модифікації (false = простий товар) |
-| `price` | numeric | Ціна простого товару |
-| `old_price` | numeric | Стара ціна (для знижки) |
-| `sku` | varchar | Артикул простого товару |
-| `stock_quantity` | integer | Кількість на складі |
-| `is_in_stock` | boolean | Чи є в наявності |
-
-## Зміни в адмін-панелі
-
-### Сторінка редагування товару (`ProductEdit.tsx`)
-
-1. **Перемикач типу товару** в секції "Налаштування":
-   - "Простий товар" / "Товар з модифікаціями"
-
-2. **Для простого товару** відображати:
-   - Поля ціни, старої ціни, артикулу, кількості, наявності
-   - ВСІ властивості розділу (і "product", і "modification" рівня) об'єднані в одному блоці
-
-3. **Для товару з модифікаціями**:
-   - Залишити поточну логіку з таблицею модифікацій
-
-4. **Розділ стає обов'язковим** для заповнення властивостей
-
-### Схема інтерфейсу
-
-```text
-+------------------------+
-|    НАЛАШТУВАННЯ        |
-+------------------------+
-| Розділ: [Інвертори ▼]  |
-+------------------------+
-| ○ Простий товар        |
-| ● Товар з модифікаціями|
-+------------------------+
-| [✓] Активний           |
-| [ ] Рекомендований     |
-+------------------------+
-
-Для простого товару:
-+------------------------+
-|    ЦІНА ТА НАЯВНІСТЬ   |
-+------------------------+
-| Ціна*:    [5000]       |
-| Стара ціна: [6000]     |
-| Артикул:  [INV-001]    |
-| Кількість: [10]        |
-| [✓] В наявності        |
-+------------------------+
-
-+------------------------+
-|    ВЛАСТИВОСТІ         |
-+------------------------+
-| (Об'єднані product +   |
-|  modification рівня)   |
-+------------------------+
-```
-
-## Зміни в каталозі
-
-### ProductCard
-
-```text
-if (product.has_modifications) {
-  // Використовувати ціну з першої модифікації (як зараз)
-  price = defaultMod?.price
-} else {
-  // Використовувати ціну безпосередньо з товару
-  price = product.price
-}
-```
-
-### ProductDetail
-
-1. Якщо `has_modifications = false`:
-   - Не показувати селектор модифікацій
-   - Брати ціну, наявність, артикул з самого товару
-
-2. Якщо `has_modifications = true`:
-   - Залишити поточну логіку
-
-### Catalog / CatalogSection
-
-Оновити логіку отримання цін для фільтрів:
-- Для простих товарів брати `product.price`
-- Для товарів з модифікаціями брати `modifications[].price`
-
-### FilterSidebar
-
-Для простих товарів враховувати властивості з `product_property_values`, де можуть бути властивості з `applies_to = 'modification'`.
+Перейменувати колонку `code` на `slug` у таблиці `section_properties` та оновити всі посилання в коді. Slug буде використовуватися як URL-friendly ідентифікатор для сторінок властивостей.
 
 ---
 
-## Технічні деталі
+## Зміни в базі даних
 
-### Міграція бази даних
+Перейменування колонки замість додавання нової:
 
 ```sql
-ALTER TABLE products 
-  ADD COLUMN has_modifications boolean DEFAULT true,
-  ADD COLUMN price numeric DEFAULT NULL,
-  ADD COLUMN old_price numeric DEFAULT NULL,
-  ADD COLUMN sku varchar DEFAULT NULL,
-  ADD COLUMN stock_quantity integer DEFAULT 0,
-  ADD COLUMN is_in_stock boolean DEFAULT true;
+ALTER TABLE public.section_properties 
+  RENAME COLUMN code TO slug;
 ```
 
-### Компоненти для створення/оновлення
+Це автоматично збереже всі існуючі значення та оновить усі посилання на колонку.
 
-1. `src/pages/admin/ProductEdit.tsx` - основні зміни
-2. `src/components/admin/SimpleProductFields.tsx` - новий компонент для полів простого товару  
-3. `src/components/admin/AllProductProperties.tsx` - об'єднані властивості
-4. `src/components/catalog/ProductCard.tsx` - підтримка простих товарів
-5. `src/pages/ProductDetail.tsx` - підтримка простих товарів
-6. `src/pages/Catalog.tsx` та `src/pages/CatalogSection.tsx` - оновити логіку фільтрів
+---
 
-### Послідовність реалізації
+## Файли для оновлення
 
-1. Міграція бази даних (додати нові колонки)
-2. Оновити `ProductEdit.tsx` з перемикачем і умовним рендерингом
-3. Створити компонент для полів простого товару
-4. Оновити компонент властивостей для об'єднання обох рівнів
-5. Оновити `ProductCard.tsx` для відображення цін
-6. Оновити `ProductDetail.tsx` для простих товарів
-7. Оновити каталоги для фільтрації за цінами
+### 1. Адмін-панель
+
+| Файл | Зміни |
+|------|-------|
+| `src/pages/admin/PropertyEdit.tsx` | Перейменувати `code` на `slug` у формі та стейті |
+| `src/pages/admin/Properties.tsx` | Оновити створення властивості та відображення в таблиці |
+| `src/components/admin/SectionPropertiesManager.tsx` | Оновити select та відображення slug |
+| `src/components/admin/SectionPropertiesTable.tsx` | Оновити заголовок та дані таблиці |
+
+### 2. Каталог та фільтри
+
+| Файл | Зміни |
+|------|-------|
+| `src/components/catalog/FilterSidebar.tsx` | Використовувати `slug` замість `code` як ключ |
+| `src/pages/Catalog.tsx` | Оновити логіку фільтрації |
+| `src/pages/CatalogSection.tsx` | Оновити логіку фільтрації |
+
+### 3. Публічні сторінки
+
+| Файл | Зміни |
+|------|-------|
+| `src/pages/PropertyPage.tsx` | Шукати властивість за `slug` замість `code` |
+| `src/pages/ProductDetail.tsx` | Оновити запит для отримання slug |
+| `src/components/catalog/ProductCharacteristics.tsx` | Оновити інтерфейс та використання slug |
+
+### 4. Нові файли для системи сторінок властивостей
+
+| Файл | Опис |
+|------|------|
+| `src/pages/Properties.tsx` | Список властивостей з `has_page=true` |
+| `src/pages/PropertyDetail.tsx` | Сторінка властивості зі списком значень |
+
+### 5. Маршрутизація та навігація
+
+| Файл | Зміни |
+|------|-------|
+| `src/App.tsx` | Нові маршрути `/properties/*`, видалити старий `/:propertyCode/:optionSlug` |
+| `src/components/catalog/CatalogLayout.tsx` | Додати посилання "Бренди" або "Властивості" в меню |
+
+---
+
+## Структура URL
+
+```text
+/properties                              -> Список властивостей з has_page=true
+/properties/torgovaya-marka              -> Сторінка властивості "Торгова марка"  
+/properties/torgovaya-marka/huawei       -> Сторінка значення "Huawei"
+```
+
+---
+
+## Логіка пошуку товарів на сторінці значення
+
+Розширений пошук для включення товарів з значеннями на рівні модифікацій:
+
+```text
+1. Знайти product_id з product_property_values де option_id = обраний
+2. Знайти modification_id з modification_property_values де option_id = обраний
+3. За modification_id знайти product_id
+4. Об'єднати унікальні product_id та завантажити товари
+```
+
+---
+
+## Клікабельні характеристики
+
+На сторінці товару у характеристиках:
+- Якщо властивість має `has_page = true` та є slug опції
+- Рендерити значення як `<Link to="/properties/{propertySlug}/{optionSlug}">`
+
+---
+
+## Послідовність реалізації
+
+1. Міграція бази даних (перейменувати `code` на `slug`)
+2. Оновити адмін-панель (PropertyEdit, Properties, SectionPropertiesManager, SectionPropertiesTable)
+3. Оновити каталог та фільтри (FilterSidebar, Catalog, CatalogSection)
+4. Оновити публічні сторінки (PropertyPage, ProductDetail, ProductCharacteristics)
+5. Створити нові сторінки (Properties, PropertyDetail)
+6. Оновити маршрутизацію (App.tsx)
+7. Додати навігацію (CatalogLayout)
+
