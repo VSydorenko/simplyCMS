@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CartButton } from "@/components/cart/CartButton";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -137,12 +139,12 @@ export default function Index() {
                 )}
               </>
             )}
-            <Button size="sm" className="gradient-brand text-white border-0">
-              Кошик
-            </Button>
+            <CartButton />
           </div>
         </div>
       </header>
+
+      <CartDrawer />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 md:py-32">

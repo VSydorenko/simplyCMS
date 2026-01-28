@@ -1,10 +1,12 @@
 import { Link, useNavigate, Outlet } from "react-router-dom";
-import { Sun, User, Settings, LogOut, ShoppingCart, Search } from "lucide-react";
+import { Sun, User, Settings, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CartButton } from "@/components/cart/CartButton";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,14 +127,12 @@ export function CatalogLayout() {
                 )}
               </>
             )}
-            <Button size="sm" className="gradient-brand text-white border-0 gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">Кошик</span>
-            </Button>
+            <CartButton />
           </div>
         </div>
       </header>
 
+      <CartDrawer />
       {/* Content */}
       <main className="flex-1">
         <Outlet />

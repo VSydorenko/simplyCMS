@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductGallery } from "@/components/catalog/ProductGallery";
 import { ModificationSelector } from "@/components/catalog/ModificationSelector";
 import { ProductCharacteristics } from "@/components/catalog/ProductCharacteristics";
+import { useCart } from "@/hooks/useCart";
+import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
   ChevronRight,
@@ -26,6 +28,8 @@ export default function ProductDetail() {
   }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { addItem } = useCart();
+  const { toast } = useToast();
 
   // Fetch product with all related data
   const { data: product, isLoading } = useQuery({
@@ -349,7 +353,29 @@ export default function ProductDetail() {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3">
-            <Button size="lg" className="flex-1 min-w-[200px]" disabled={!isInStock}>
+            <Button
+              size="lg"
+              className="flex-1 min-w-[200px]"
+              disabled={!isInStock || price === undefined}
+              onClick={() => {
+                if (price === undefined) return;
+                
+                addItem({
+                  productId: product.id,
+                  modificationId: hasModifications ? selectedModId : null,
+                  name: product.name,
+                  modificationName: hasModifications ? selectedMod?.name : undefined,
+                  price: price,
+                  image: allImages[0],
+                  sku: sku || undefined,
+                });
+                
+                toast({
+                  title: "Додано в кошик",
+                  description: `${product.name}${hasModifications && selectedMod ? ` (${selectedMod.name})` : ""}`,
+                });
+              }}
+            >
               <ShoppingCart className="h-5 w-5 mr-2" />
               Додати в кошик
             </Button>
