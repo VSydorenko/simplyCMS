@@ -1,105 +1,245 @@
 
 
-## Огляд завдання
+## Система замовлень - Комплексний план реалізації
 
-Перейменувати колонку `code` на `slug` у таблиці `section_properties` та оновити всі посилання в коді. Slug буде використовуватися як URL-friendly ідентифікатор для сторінок властивостей.
+### Поточний стан
+
+**Вже реалізовано:**
+- Таблиці `orders`, `order_items`, `order_statuses` в базі даних
+- 6 статусів замовлень (Новий, Підтверджено, В обробці, Відправлено, Доставлено, Скасовано)
+- Edge-функція `get-guest-order` для гостьових замовлень з токеном доступу
+- Базова сторінка `/admin/orders` з таблицею замовлень
+- Аутентифікація користувачів (email/пароль + Google OAuth)
+- Профілі користувачів з категоріями ціноутворення
+
+**Потрібно реалізувати:**
+- Кошик (cart) - зберігання та управління
+- Сторінка оформлення замовлення (Checkout)
+- Детальна сторінка замовлення в адмінці з редагуванням
+- Особистий кабінет з історією замовлень
+- Управління статусами замовлень
 
 ---
 
-## Зміни в базі даних
+### Архітектура рішення
 
-Перейменування колонки замість додавання нової:
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     FRONTEND                                 │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────────┐  │
+│  │ Кошик   │→ │ Checkout │→ │ Success │  │ Особистий     │  │
+│  │(Cart)   │  │  Page    │  │  Page   │  │ кабінет       │  │
+│  └─────────┘  └──────────┘  └─────────┘  └───────────────┘  │
+│       ↑                          ↓               ↓          │
+│  ┌─────────┐              ┌───────────┐  ┌───────────────┐  │
+│  │Product  │              │ Order API │  │ Orders List   │  │
+│  │Detail   │              │           │  │ + Detail      │  │
+│  └─────────┘              └───────────┘  └───────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│                      ADMIN PANEL                             │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
+│  │ Orders List  │→ │ Order Detail  │  │ Order Statuses   │  │
+│  │ (improved)   │  │ + Edit Items  │  │ Management       │  │
+│  └──────────────┘  └───────────────┘  └──────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
 
+---
+
+### Частина 1: Кошик (Cart)
+
+**Підхід:** LocalStorage + React Context для швидкодії та роботи без авторизації
+
+**Нові файли:**
+
+| Файл | Призначення |
+|------|-------------|
+| `src/hooks/useCart.tsx` | Context + hook для управління кошиком |
+| `src/components/cart/CartDrawer.tsx` | Бокова панель кошика (Sheet) |
+| `src/components/cart/CartItem.tsx` | Компонент одного товару в кошику |
+| `src/pages/Cart.tsx` | Повноекранна сторінка кошика |
+
+**Структура даних кошика:**
+```typescript
+interface CartItem {
+  productId: string;
+  modificationId: string | null;
+  name: string;
+  modificationName?: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  sku?: string;
+}
+```
+
+**Функціонал:**
+- Додавання товару з ProductDetail (з обраною модифікацією)
+- Зміна кількості (+/-)
+- Видалення товару
+- Підрахунок загальної суми
+- Збереження в localStorage
+- Badge з кількістю товарів на іконці кошика
+
+---
+
+### Частина 2: Оформлення замовлення (Checkout)
+
+**Нові файли:**
+
+| Файл | Призначення |
+|------|-------------|
+| `src/pages/Checkout.tsx` | Головна сторінка оформлення |
+| `src/components/checkout/CheckoutForm.tsx` | Форма контактних даних |
+| `src/components/checkout/DeliveryForm.tsx` | Вибір способу доставки |
+| `src/components/checkout/PaymentForm.tsx` | Вибір способу оплати |
+| `src/components/checkout/OrderSummary.tsx` | Підсумок замовлення |
+| `src/pages/OrderSuccess.tsx` | Сторінка успішного замовлення |
+
+**Потік оформлення:**
+1. Перевірка наявності товарів у кошику
+2. Заповнення контактних даних (автозаповнення для залогінених)
+3. Вибір способу доставки (Самовивіз / Нова Пошта / Кур'єр)
+4. Вибір способу оплати (Оплата при отриманні / Онлайн)
+5. Підтвердження замовлення
+
+**Зміни в базі даних:**
 ```sql
-ALTER TABLE public.section_properties 
-  RENAME COLUMN code TO slug;
+-- Функція для генерації номера замовлення
+CREATE OR REPLACE FUNCTION generate_order_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.order_number := 'ORD-' || TO_CHAR(NOW(), 'YYMMDD') || '-' || 
+    LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_order_number
+  BEFORE INSERT ON orders
+  FOR EACH ROW
+  WHEN (NEW.order_number IS NULL OR NEW.order_number = '')
+  EXECUTE FUNCTION generate_order_number();
 ```
 
-Це автоматично збереже всі існуючі значення та оновить усі посилання на колонку.
+---
+
+### Частина 3: Особистий кабінет користувача
+
+**Нові файли:**
+
+| Файл | Призначення |
+|------|-------------|
+| `src/pages/Profile.tsx` | Головна сторінка кабінету |
+| `src/pages/ProfileOrders.tsx` | Список замовлень користувача |
+| `src/pages/ProfileOrderDetail.tsx` | Деталі конкретного замовлення |
+| `src/pages/ProfileSettings.tsx` | Налаштування профілю |
+| `src/components/profile/ProfileLayout.tsx` | Layout з навігацією |
+
+**Функціонал:**
+- Перегляд та редагування профілю (ім'я, телефон)
+- Список замовлень з фільтрацією за статусом
+- Детальний перегляд замовлення
+- Можливість скасування (тільки для статусу "Новий")
 
 ---
 
-## Файли для оновлення
+### Частина 4: Адмін-панель замовлень (розширення)
 
-### 1. Адмін-панель
-
-| Файл | Зміни |
-|------|-------|
-| `src/pages/admin/PropertyEdit.tsx` | Перейменувати `code` на `slug` у формі та стейті |
-| `src/pages/admin/Properties.tsx` | Оновити створення властивості та відображення в таблиці |
-| `src/components/admin/SectionPropertiesManager.tsx` | Оновити select та відображення slug |
-| `src/components/admin/SectionPropertiesTable.tsx` | Оновити заголовок та дані таблиці |
-
-### 2. Каталог та фільтри
+**Оновлені/нові файли:**
 
 | Файл | Зміни |
 |------|-------|
-| `src/components/catalog/FilterSidebar.tsx` | Використовувати `slug` замість `code` як ключ |
-| `src/pages/Catalog.tsx` | Оновити логіку фільтрації |
-| `src/pages/CatalogSection.tsx` | Оновити логіку фільтрації |
+| `src/pages/admin/Orders.tsx` | Фільтри, пошук, пагінація |
+| `src/pages/admin/OrderDetail.tsx` | Детальна сторінка замовлення |
+| `src/components/admin/OrderItems.tsx` | Таблиця товарів замовлення |
+| `src/components/admin/OrderItemEditor.tsx` | Редагування/додавання товарів |
+| `src/components/admin/OrderStatusChanger.tsx` | Зміна статусу |
+| `src/pages/admin/OrderStatuses.tsx` | Управління статусами |
 
-### 3. Публічні сторінки
+**Функціонал OrderDetail:**
+- Повна інформація про клієнта
+- Таблиця товарів з можливістю:
+  - Зміни кількості
+  - Видалення позиції
+  - Додавання нового товару/модифікації
+  - Автоматичний перерахунок суми
+- Історія змін статусу
+- Зміна статусу з коментарем
+- Додавання нотаток
 
-| Файл | Зміни |
-|------|-------|
-| `src/pages/PropertyPage.tsx` | Шукати властивість за `slug` замість `code` |
-| `src/pages/ProductDetail.tsx` | Оновити запит для отримання slug |
-| `src/components/catalog/ProductCharacteristics.tsx` | Оновити інтерфейс та використання slug |
-
-### 4. Нові файли для системи сторінок властивостей
-
-| Файл | Опис |
-|------|------|
-| `src/pages/Properties.tsx` | Список властивостей з `has_page=true` |
-| `src/pages/PropertyDetail.tsx` | Сторінка властивості зі списком значень |
-
-### 5. Маршрутизація та навігація
-
-| Файл | Зміни |
-|------|-------|
-| `src/App.tsx` | Нові маршрути `/properties/*`, видалити старий `/:propertyCode/:optionSlug` |
-| `src/components/catalog/CatalogLayout.tsx` | Додати посилання "Бренди" або "Властивості" в меню |
+**Функціонал OrderStatuses:**
+- Таблиця статусів з drag-and-drop сортуванням
+- Редагування назви, коду, кольору
+- Встановлення статусу за замовчуванням
 
 ---
 
-## Структура URL
+### Частина 5: Маршрутизація
 
+**Оновлення App.tsx:**
 ```text
-/properties                              -> Список властивостей з has_page=true
-/properties/torgovaya-marka              -> Сторінка властивості "Торгова марка"  
-/properties/torgovaya-marka/huawei       -> Сторінка значення "Huawei"
+/cart                           → Сторінка кошика
+/checkout                       → Оформлення замовлення  
+/order-success/:orderId         → Успішне замовлення
+/order/:orderId/:token          → Перегляд гостьового замовлення
+
+/profile                        → Особистий кабінет (захищено)
+/profile/orders                 → Мої замовлення
+/profile/orders/:orderId        → Деталі замовлення
+/profile/settings               → Налаштування
+
+/admin/orders                   → Список замовлень (покращено)
+/admin/orders/:orderId          → Редагування замовлення
+/admin/order-statuses           → Управління статусами
 ```
 
 ---
 
-## Логіка пошуку товарів на сторінці значення
+### Послідовність реалізації
 
-Розширений пошук для включення товарів з значеннями на рівні модифікацій:
+**Етап 1: Кошик**
+1. Створити `useCart` context та hook
+2. Інтегрувати з ProductDetail (кнопка "Додати в кошик")
+3. Створити CartDrawer
+4. Оновити header з badge
 
-```text
-1. Знайти product_id з product_property_values де option_id = обраний
-2. Знайти modification_id з modification_property_values де option_id = обраний
-3. За modification_id знайти product_id
-4. Об'єднати унікальні product_id та завантажити товари
-```
+**Етап 2: Checkout**
+1. Створити сторінку Checkout з формою
+2. Додати тригер для генерації order_number
+3. Інтегрувати створення замовлення
+4. Створити OrderSuccess сторінку
+5. Очищення кошика після замовлення
+
+**Етап 3: Особистий кабінет**
+1. Створити ProfileLayout
+2. Реалізувати ProfileOrders з фільтрацією
+3. Реалізувати ProfileOrderDetail
+4. Додати ProfileSettings
+
+**Етап 4: Адмін-панель**
+1. Покращити Orders.tsx (пошук, фільтри)
+2. Створити OrderDetail з редагуванням
+3. Реалізувати OrderItemEditor
+4. Створити OrderStatuses управління
 
 ---
 
-## Клікабельні характеристики
+### Технічні деталі
 
-На сторінці товару у характеристиках:
-- Якщо властивість має `has_page = true` та є slug опції
-- Рендерити значення як `<Link to="/properties/{propertySlug}/{optionSlug}">`
+**Валідація форми (Checkout):**
+- Ім'я/Прізвище: 2-100 символів
+- Email: валідний формат
+- Телефон: українский формат
+- Адреса: обов'язкова при кур'єрській доставці
 
----
+**RLS політики (вже налаштовані):**
+- Users INSERT: `(auth.uid() = user_id) OR (user_id IS NULL)`
+- Users SELECT: `(auth.uid() = user_id) AND (auth.uid() IS NOT NULL)`
+- Admins: повний доступ через `is_admin()`
 
-## Послідовність реалізації
-
-1. Міграція бази даних (перейменувати `code` на `slug`)
-2. Оновити адмін-панель (PropertyEdit, Properties, SectionPropertiesManager, SectionPropertiesTable)
-3. Оновити каталог та фільтри (FilterSidebar, Catalog, CatalogSection)
-4. Оновити публічні сторінки (PropertyPage, ProductDetail, ProductCharacteristics)
-5. Створити нові сторінки (Properties, PropertyDetail)
-6. Оновити маршрутизацію (App.tsx)
-7. Додати навігацію (CatalogLayout)
+**Edge-функція (вже є):**
+- `get-guest-order` - отримання гостьового замовлення за токеном
 
