@@ -13,6 +13,8 @@ import Catalog from "./pages/Catalog";
 import CatalogSection from "./pages/CatalogSection";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
 import NotFound from "./pages/NotFound";
 
 // Catalog layout
@@ -65,6 +67,8 @@ function App() {
                     <Route path="/catalog/:sectionSlug" element={<CatalogSection />} />
                     <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductDetail />} />
                     <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/order-success/:orderId" element={<OrderSuccess />} />
                     
                     {/* Property pages */}
                     <Route path="/properties" element={<Properties />} />
