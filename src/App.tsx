@@ -38,6 +38,13 @@ import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import PropertyPage from "./pages/PropertyPage";
 
+// Profile pages
+import { ProfileLayout } from "./components/profile/ProfileLayout";
+import Profile from "./pages/Profile";
+import ProfileOrders from "./pages/ProfileOrders";
+import ProfileOrderDetail from "./pages/ProfileOrderDetail";
+import ProfileSettings from "./pages/ProfileSettings";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -74,6 +81,14 @@ function App() {
                     <Route path="/properties" element={<Properties />} />
                     <Route path="/properties/:propertySlug" element={<PropertyDetail />} />
                     <Route path="/properties/:propertySlug/:optionSlug" element={<PropertyPage />} />
+                  </Route>
+                  
+                  {/* Profile routes (protected) */}
+                  <Route path="/profile" element={<ProfileLayout />}>
+                    <Route index element={<Profile />} />
+                    <Route path="orders" element={<ProfileOrders />} />
+                    <Route path="orders/:orderId" element={<ProfileOrderDetail />} />
+                    <Route path="settings" element={<ProfileSettings />} />
                   </Route>
                   
                   {/* Admin routes */}
