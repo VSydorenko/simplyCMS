@@ -31,6 +31,7 @@ import PropertyOptionEdit from "./pages/admin/PropertyOptionEdit";
 import Products from "./pages/admin/Products";
 import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
+import OrderDetail from "./pages/admin/OrderDetail";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 
 // Public property pages
@@ -103,6 +104,7 @@ function App() {
                     <Route path="products" element={<Products />} />
                     <Route path="products/:productId" element={<ProductEdit />} />
                     <Route path="orders" element={<Orders />} />
+                    <Route path="orders/:orderId" element={<OrderDetail />} />
                     <Route path="order-statuses" element={<PlaceholderPage />} />
                     <Route path="services" element={<PlaceholderPage />} />
                     <Route path="service-requests" element={<PlaceholderPage />} />

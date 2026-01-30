@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -15,6 +16,8 @@ import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 
 export default function Orders() {
+  const navigate = useNavigate();
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
@@ -59,7 +62,11 @@ export default function Orders() {
             </TableHeader>
             <TableBody>
               {orders?.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow
+                  key={order.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                >
                   <TableCell className="font-medium">{order.order_number}</TableCell>
                   <TableCell>
                     <div>
