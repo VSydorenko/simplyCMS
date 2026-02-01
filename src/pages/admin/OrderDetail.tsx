@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { AddProductToOrder } from "@/components/admin/AddProductToOrder";
 
 interface OrderItem {
   id: string;
@@ -210,6 +211,63 @@ export default function OrderDetail() {
     },
   });
 
+  // Add item mutation
+  const addItemMutation = useMutation({
+    mutationFn: async (newItem: {
+      name: string;
+      price: number;
+      quantity: number;
+      product_id: string | null;
+      modification_id: string | null;
+    }) => {
+      const total = newItem.price * newItem.quantity;
+      const { error } = await supabase.from("order_items").insert({
+        order_id: orderId!,
+        name: newItem.name,
+        price: newItem.price,
+        quantity: newItem.quantity,
+        total,
+        product_id: newItem.product_id,
+        modification_id: newItem.modification_id,
+      });
+      if (error) throw error;
+
+      // Recalculate order totals
+      const { data: updatedItems } = await supabase
+        .from("order_items")
+        .select("total")
+        .eq("order_id", orderId!);
+
+      const newSubtotal = updatedItems?.reduce((sum, item) => sum + item.total, 0) || 0;
+
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({
+          subtotal: newSubtotal,
+          total: newSubtotal,
+        })
+        .eq("id", orderId!);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-order-items", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast({
+        title: "Товар додано",
+        description: "Товар успішно додано до замовлення",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося додати товар",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     setEditedItems((prev) => ({ ...prev, [itemId]: newQuantity }));
@@ -289,8 +347,12 @@ export default function OrderDetail() {
         {/* Order Items */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle>Товари замовлення</CardTitle>
+              <AddProductToOrder
+                onAddProduct={(product) => addItemMutation.mutate(product)}
+                isAdding={addItemMutation.isPending}
+              />
             </CardHeader>
             <CardContent>
               <Table>
