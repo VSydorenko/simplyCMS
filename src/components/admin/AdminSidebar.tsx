@@ -12,6 +12,7 @@ import {
   Globe,
   Tags,
   ListChecks,
+  Puzzle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,7 @@ const servicesItems = [
 ];
 
 const settingsItems = [
+  { title: "Розширення", url: "/admin/plugins", icon: Puzzle },
   { title: "Користувачі", url: "/admin/users", icon: Users },
   { title: "Категорії користувачів", url: "/admin/user-categories", icon: Tags },
   { title: "Мови", url: "/admin/languages", icon: Globe },

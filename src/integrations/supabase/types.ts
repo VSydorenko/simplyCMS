@@ -291,6 +291,81 @@ export type Database = {
           },
         ]
       }
+      plugin_events: {
+        Row: {
+          error: string | null
+          executed_at: string | null
+          hook_name: string
+          id: string
+          payload: Json | null
+          plugin_name: string
+          result: Json | null
+        }
+        Insert: {
+          error?: string | null
+          executed_at?: string | null
+          hook_name: string
+          id?: string
+          payload?: Json | null
+          plugin_name: string
+          result?: Json | null
+        }
+        Update: {
+          error?: string | null
+          executed_at?: string | null
+          hook_name?: string
+          id?: string
+          payload?: Json | null
+          plugin_name?: string
+          result?: Json | null
+        }
+        Relationships: []
+      }
+      plugins: {
+        Row: {
+          author: string | null
+          config: Json | null
+          description: string | null
+          display_name: string
+          hooks: Json | null
+          id: string
+          installed_at: string | null
+          is_active: boolean | null
+          migrations_applied: Json | null
+          name: string
+          updated_at: string | null
+          version: string
+        }
+        Insert: {
+          author?: string | null
+          config?: Json | null
+          description?: string | null
+          display_name: string
+          hooks?: Json | null
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          migrations_applied?: Json | null
+          name: string
+          updated_at?: string | null
+          version?: string
+        }
+        Update: {
+          author?: string | null
+          config?: Json | null
+          description?: string | null
+          display_name?: string
+          hooks?: Json | null
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          migrations_applied?: Json | null
+          name?: string
+          updated_at?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       product_modifications: {
         Row: {
           created_at: string

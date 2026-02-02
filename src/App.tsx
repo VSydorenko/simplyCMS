@@ -33,6 +33,7 @@ import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
 import OrderDetail from "./pages/admin/OrderDetail";
 import OrderStatuses from "./pages/admin/OrderStatuses";
+import Plugins from "./pages/admin/Plugins";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 
 // Public property pages
@@ -107,6 +108,7 @@ function App() {
                     <Route path="orders" element={<Orders />} />
                     <Route path="orders/:orderId" element={<OrderDetail />} />
                     <Route path="order-statuses" element={<OrderStatuses />} />
+                    <Route path="plugins" element={<Plugins />} />
                     <Route path="services" element={<PlaceholderPage />} />
                     <Route path="service-requests" element={<PlaceholderPage />} />
                     <Route path="users" element={<PlaceholderPage />} />
