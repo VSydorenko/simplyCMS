@@ -1,245 +1,345 @@
 
+# Система розширень (Plugin System) для CMS
 
-## Система замовлень - Комплексний план реалізації
+## Огляд концепції
 
-### Поточний стан
-
-**Вже реалізовано:**
-- Таблиці `orders`, `order_items`, `order_statuses` в базі даних
-- 6 статусів замовлень (Новий, Підтверджено, В обробці, Відправлено, Доставлено, Скасовано)
-- Edge-функція `get-guest-order` для гостьових замовлень з токеном доступу
-- Базова сторінка `/admin/orders` з таблицею замовлень
-- Аутентифікація користувачів (email/пароль + Google OAuth)
-- Профілі користувачів з категоріями ціноутворення
-
-**Потрібно реалізувати:**
-- Кошик (cart) - зберігання та управління
-- Сторінка оформлення замовлення (Checkout)
-- Детальна сторінка замовлення в адмінці з редагуванням
-- Особистий кабінет з історією замовлень
-- Управління статусами замовлень
+Система розширень дозволить додавати нову функціональність без модифікації основного коду. Розширення зможуть:
+- Додавати нові сторінки в адмін-панель
+- Розширювати існуючі форми новими полями
+- Додавати нові типи віджетів на сайт
+- Створювати власні таблиці в базі даних
+- Додавати серверну логіку через Edge Functions
 
 ---
 
-### Архітектура рішення
+## Архітектура системи
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                     FRONTEND                                 │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────────┐  │
-│  │ Кошик   │→ │ Checkout │→ │ Success │  │ Особистий     │  │
-│  │(Cart)   │  │  Page    │  │  Page   │  │ кабінет       │  │
-│  └─────────┘  └──────────┘  └─────────┘  └───────────────┘  │
-│       ↑                          ↓               ↓          │
-│  ┌─────────┐              ┌───────────┐  ┌───────────────┐  │
-│  │Product  │              │ Order API │  │ Orders List   │  │
-│  │Detail   │              │           │  │ + Detail      │  │
-│  └─────────┘              └───────────┘  └───────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│                      ADMIN PANEL                             │
-├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ Orders List  │→ │ Order Detail  │  │ Order Statuses   │  │
-│  │ (improved)   │  │ + Edit Items  │  │ Management       │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+### 1. Реєстр розширень (Plugin Registry)
+
+Центральна таблиця в базі даних для відстеження встановлених розширень:
+
+```
+plugins (таблиця)
+├── id: uuid
+├── name: string (унікальна назва, напр. "seo-module")
+├── display_name: string ("SEO Модуль")
+├── version: string ("1.0.0")
+├── is_active: boolean
+├── config: jsonb (налаштування плагіна)
+├── hooks: jsonb (зареєстровані hooks)
+├── migrations_applied: jsonb (виконані міграції)
+├── installed_at: timestamp
+└── updated_at: timestamp
 ```
 
----
+### 2. Система хуків (Hooks System)
 
-### Частина 1: Кошик (Cart)
+Визначені точки розширення в коді:
 
-**Підхід:** LocalStorage + React Context для швидкодії та роботи без авторизації
+**Frontend Hooks (React):**
+- `admin.sidebar.items` - додавання пунктів меню
+- `admin.dashboard.widgets` - віджети на дашборді
+- `product.form.fields` - додаткові поля товару
+- `product.card.badges` - бейджі на картці товару
+- `checkout.steps` - кроки оформлення замовлення
+- `order.actions` - дії над замовленням
 
-**Нові файли:**
+**Backend Hooks (Edge Functions):**
+- `order.created` - після створення замовлення
+- `order.status_changed` - зміна статусу
+- `product.before_save` - перед збереженням товару
+- `user.registered` - реєстрація користувача
 
-| Файл | Призначення |
-|------|-------------|
-| `src/hooks/useCart.tsx` | Context + hook для управління кошиком |
-| `src/components/cart/CartDrawer.tsx` | Бокова панель кошика (Sheet) |
-| `src/components/cart/CartItem.tsx` | Компонент одного товару в кошику |
-| `src/pages/Cart.tsx` | Повноекранна сторінка кошика |
+### 3. Структура розширення
 
-**Структура даних кошика:**
-```typescript
-interface CartItem {
-  productId: string;
-  modificationId: string | null;
-  name: string;
-  modificationName?: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  sku?: string;
+Кожне розширення - окрема папка:
+
+```
+src/plugins/
+├── seo-module/
+│   ├── manifest.json          # Метадані плагіна
+│   ├── index.ts               # Точка входу
+│   ├── components/            # React компоненти
+│   │   ├── SeoFields.tsx
+│   │   └── SeoSidebar.tsx
+│   ├── hooks/                 # Реєстрація хуків
+│   │   └── register.ts
+│   └── migrations/            # SQL міграції
+│       └── 001_create_seo_metadata.sql
+│
+├── nova-poshta/
+│   ├── manifest.json
+│   ├── index.ts
+│   ├── components/
+│   │   └── DeliverySelector.tsx
+│   ├── hooks/
+│   │   └── register.ts
+│   └── edge-functions/
+│       └── nova-poshta-api/
+│           └── index.ts
+│
+└── reviews/
+    ├── manifest.json
+    ├── index.ts
+    ├── components/
+    │   ├── ReviewForm.tsx
+    │   ├── ReviewsList.tsx
+    │   └── AdminReviews.tsx
+    ├── hooks/
+    │   └── register.ts
+    └── migrations/
+        └── 001_create_reviews_table.sql
+```
+
+### 4. Manifest файл
+
+```json
+{
+  "name": "seo-module",
+  "displayName": "SEO Модуль",
+  "version": "1.0.0",
+  "description": "Розширені SEO можливості для товарів та розділів",
+  "author": "Your Company",
+  "dependencies": [],
+  "hooks": [
+    {
+      "name": "admin.sidebar.items",
+      "priority": 100
+    },
+    {
+      "name": "product.form.fields",
+      "priority": 50
+    }
+  ],
+  "migrations": [
+    "migrations/001_create_seo_metadata.sql"
+  ],
+  "settings": {
+    "enableOpenGraph": {
+      "type": "boolean",
+      "default": true,
+      "label": "Увімкнути Open Graph теги"
+    }
+  }
 }
 ```
 
-**Функціонал:**
-- Додавання товару з ProductDetail (з обраною модифікацією)
-- Зміна кількості (+/-)
-- Видалення товару
-- Підрахунок загальної суми
-- Збереження в localStorage
-- Badge з кількістю товарів на іконці кошика
-
 ---
 
-### Частина 2: Оформлення замовлення (Checkout)
+## Технічна реалізація
 
-**Нові файли:**
+### Крок 1: Створення інфраструктури хуків
 
-| Файл | Призначення |
-|------|-------------|
-| `src/pages/Checkout.tsx` | Головна сторінка оформлення |
-| `src/components/checkout/CheckoutForm.tsx` | Форма контактних даних |
-| `src/components/checkout/DeliveryForm.tsx` | Вибір способу доставки |
-| `src/components/checkout/PaymentForm.tsx` | Вибір способу оплати |
-| `src/components/checkout/OrderSummary.tsx` | Підсумок замовлення |
-| `src/pages/OrderSuccess.tsx` | Сторінка успішного замовлення |
+**HookRegistry** - центральний клас для управління хуками:
 
-**Потік оформлення:**
-1. Перевірка наявності товарів у кошику
-2. Заповнення контактних даних (автозаповнення для залогінених)
-3. Вибір способу доставки (Самовивіз / Нова Пошта / Кур'єр)
-4. Вибір способу оплати (Оплата при отриманні / Онлайн)
-5. Підтвердження замовлення
+```typescript
+// src/lib/plugins/HookRegistry.ts
+class HookRegistry {
+  private hooks: Map<string, HookHandler[]>;
+  
+  register(hookName: string, handler: HookHandler, priority: number);
+  execute(hookName: string, context: any): Promise<any>;
+  getHandlers(hookName: string): HookHandler[];
+}
+```
 
-**Зміни в базі даних:**
+**SlotComponent** - компонент для вставки UI плагінів:
+
+```typescript
+// src/components/plugins/Slot.tsx
+<PluginSlot name="product.form.fields" context={{ product, form }} />
+```
+
+### Крок 2: Таблиці в базі даних
+
 ```sql
--- Функція для генерації номера замовлення
-CREATE OR REPLACE FUNCTION generate_order_number()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.order_number := 'ORD-' || TO_CHAR(NOW(), 'YYMMDD') || '-' || 
-    LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Реєстр плагінів
+CREATE TABLE plugins (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name varchar UNIQUE NOT NULL,
+  display_name text NOT NULL,
+  version varchar NOT NULL,
+  is_active boolean DEFAULT false,
+  config jsonb DEFAULT '{}',
+  hooks jsonb DEFAULT '[]',
+  migrations_applied jsonb DEFAULT '[]',
+  installed_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-CREATE TRIGGER set_order_number
-  BEFORE INSERT ON orders
-  FOR EACH ROW
-  WHEN (NEW.order_number IS NULL OR NEW.order_number = '')
-  EXECUTE FUNCTION generate_order_number();
+-- Логи подій для хуків
+CREATE TABLE plugin_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  plugin_name varchar NOT NULL,
+  hook_name varchar NOT NULL,
+  payload jsonb,
+  result jsonb,
+  executed_at timestamptz DEFAULT now()
+);
+```
+
+### Крок 3: Завантажувач плагінів
+
+```typescript
+// src/lib/plugins/PluginLoader.ts
+export async function loadPlugins() {
+  const { data: plugins } = await supabase
+    .from('plugins')
+    .select('*')
+    .eq('is_active', true);
+    
+  for (const plugin of plugins) {
+    const module = await import(`@/plugins/${plugin.name}`);
+    module.register(hookRegistry);
+  }
+}
+```
+
+### Крок 4: Адмін-панель для управління плагінами
+
+Нова сторінка `/admin/plugins`:
+- Список встановлених плагінів
+- Активація/деактивація
+- Налаштування кожного плагіна
+- Встановлення нових (завантаження архіву)
+- Виконання міграцій
+
+---
+
+## Приклад розширення: Модуль відгуків
+
+### manifest.json
+```json
+{
+  "name": "reviews",
+  "displayName": "Відгуки та рейтинги",
+  "version": "1.0.0",
+  "hooks": [
+    {"name": "admin.sidebar.items", "priority": 80},
+    {"name": "product.detail.after", "priority": 50},
+    {"name": "product.card.badges", "priority": 30}
+  ]
+}
+```
+
+### Реєстрація хуків
+```typescript
+// src/plugins/reviews/hooks/register.ts
+export function register(registry: HookRegistry) {
+  registry.register('admin.sidebar.items', () => ({
+    title: 'Відгуки',
+    url: '/admin/reviews',
+    icon: Star
+  }), 80);
+  
+  registry.register('product.detail.after', ({ product }) => (
+    <ReviewsList productId={product.id} />
+  ), 50);
+}
+```
+
+### Міграція
+```sql
+-- src/plugins/reviews/migrations/001_create_reviews.sql
+CREATE TABLE product_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id uuid REFERENCES products(id),
+  user_id uuid,
+  rating integer CHECK (rating >= 1 AND rating <= 5),
+  title text,
+  content text,
+  is_approved boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
 ```
 
 ---
 
-### Частина 3: Особистий кабінет користувача
+## Процес встановлення розширення
 
-**Нові файли:**
-
-| Файл | Призначення |
-|------|-------------|
-| `src/pages/Profile.tsx` | Головна сторінка кабінету |
-| `src/pages/ProfileOrders.tsx` | Список замовлень користувача |
-| `src/pages/ProfileOrderDetail.tsx` | Деталі конкретного замовлення |
-| `src/pages/ProfileSettings.tsx` | Налаштування профілю |
-| `src/components/profile/ProfileLayout.tsx` | Layout з навігацією |
-
-**Функціонал:**
-- Перегляд та редагування профілю (ім'я, телефон)
-- Список замовлень з фільтрацією за статусом
-- Детальний перегляд замовлення
-- Можливість скасування (тільки для статусу "Новий")
-
----
-
-### Частина 4: Адмін-панель замовлень (розширення)
-
-**Оновлені/нові файли:**
-
-| Файл | Зміни |
-|------|-------|
-| `src/pages/admin/Orders.tsx` | Фільтри, пошук, пагінація |
-| `src/pages/admin/OrderDetail.tsx` | Детальна сторінка замовлення |
-| `src/components/admin/OrderItems.tsx` | Таблиця товарів замовлення |
-| `src/components/admin/OrderItemEditor.tsx` | Редагування/додавання товарів |
-| `src/components/admin/OrderStatusChanger.tsx` | Зміна статусу |
-| `src/pages/admin/OrderStatuses.tsx` | Управління статусами |
-
-**Функціонал OrderDetail:**
-- Повна інформація про клієнта
-- Таблиця товарів з можливістю:
-  - Зміни кількості
-  - Видалення позиції
-  - Додавання нового товару/модифікації
-  - Автоматичний перерахунок суми
-- Історія змін статусу
-- Зміна статусу з коментарем
-- Додавання нотаток
-
-**Функціонал OrderStatuses:**
-- Таблиця статусів з drag-and-drop сортуванням
-- Редагування назви, коду, кольору
-- Встановлення статусу за замовчуванням
-
----
-
-### Частина 5: Маршрутизація
-
-**Оновлення App.tsx:**
 ```text
-/cart                           → Сторінка кошика
-/checkout                       → Оформлення замовлення  
-/order-success/:orderId         → Успішне замовлення
-/order/:orderId/:token          → Перегляд гостьового замовлення
-
-/profile                        → Особистий кабінет (захищено)
-/profile/orders                 → Мої замовлення
-/profile/orders/:orderId        → Деталі замовлення
-/profile/settings               → Налаштування
-
-/admin/orders                   → Список замовлень (покращено)
-/admin/orders/:orderId          → Редагування замовлення
-/admin/order-statuses           → Управління статусами
+1. Адмін завантажує архів плагіна
+         ↓
+2. Система розпаковує в src/plugins/{name}/
+         ↓
+3. Валідація manifest.json
+         ↓
+4. Запис в таблицю plugins (is_active: false)
+         ↓
+5. Адмін активує плагін
+         ↓
+6. Виконання міграцій (якщо є)
+         ↓
+7. Rebuild проекту (vite)
+         ↓
+8. Плагін готовий до роботи
 ```
 
 ---
 
-### Послідовність реалізації
+## Обмеження та особливості
 
-**Етап 1: Кошик**
-1. Створити `useCart` context та hook
-2. Інтегрувати з ProductDetail (кнопка "Додати в кошик")
-3. Створити CartDrawer
-4. Оновити header з badge
+### Що можливо:
+- Додавання нових сторінок та компонентів
+- Розширення існуючих форм через slots
+- Створення таблиць в базі даних
+- Серверна логіка через Edge Functions
+- Налаштування через адмін-панель
 
-**Етап 2: Checkout**
-1. Створити сторінку Checkout з формою
-2. Додати тригер для генерації order_number
-3. Інтегрувати створення замовлення
-4. Створити OrderSuccess сторінку
-5. Очищення кошика після замовлення
+### Що потребує rebuild:
+- Нові React компоненти
+- Зміни в маршрутизації
+- Нові TypeScript типи
 
-**Етап 3: Особистий кабінет**
-1. Створити ProfileLayout
-2. Реалізувати ProfileOrders з фільтрацією
-3. Реалізувати ProfileOrderDetail
-4. Додати ProfileSettings
-
-**Етап 4: Адмін-панель**
-1. Покращити Orders.tsx (пошук, фільтри)
-2. Створити OrderDetail з редагуванням
-3. Реалізувати OrderItemEditor
-4. Створити OrderStatuses управління
+### Що працює в runtime:
+- Зміна конфігурації плагіна
+- Активація/деактивація
+- Виконання backend хуків
 
 ---
 
-### Технічні деталі
+## Порядок реалізації
 
-**Валідація форми (Checkout):**
-- Ім'я/Прізвище: 2-100 символів
-- Email: валідний формат
-- Телефон: українский формат
-- Адреса: обов'язкова при кур'єрській доставці
+1. **Фаза 1: Інфраструктура**
+   - Створення таблиць plugins, plugin_events
+   - HookRegistry клас
+   - PluginSlot компонент
+   - PluginLoader
 
-**RLS політики (вже налаштовані):**
-- Users INSERT: `(auth.uid() = user_id) OR (user_id IS NULL)`
-- Users SELECT: `(auth.uid() = user_id) AND (auth.uid() IS NOT NULL)`
-- Admins: повний доступ через `is_admin()`
+2. **Фаза 2: Адмін-панель**
+   - Сторінка /admin/plugins
+   - Список плагінів з активацією
+   - Налаштування плагінів
+   - Виконання міграцій
 
-**Edge-функція (вже є):**
-- `get-guest-order` - отримання гостьового замовлення за токеном
+3. **Фаза 3: Точки розширення**
+   - Додавання PluginSlot в ключові місця UI
+   - Документування доступних хуків
+   - Типізація контекстів
 
+4. **Фаза 4: Приклад плагіна**
+   - Створення модуля відгуків як reference
+   - Документація для розробників
+
+---
+
+## Технічні деталі
+
+### Файли для створення:
+- `src/lib/plugins/HookRegistry.ts` - реєстр хуків
+- `src/lib/plugins/PluginLoader.ts` - завантажувач
+- `src/lib/plugins/types.ts` - TypeScript типи
+- `src/components/plugins/PluginSlot.tsx` - слот компонент
+- `src/pages/admin/Plugins.tsx` - сторінка управління
+- `src/pages/admin/PluginSettings.tsx` - налаштування плагіна
+
+### Зміни в існуючих файлах:
+- `src/App.tsx` - ініціалізація плагінів
+- `src/components/admin/AdminSidebar.tsx` - слот для меню
+- `src/pages/admin/ProductEdit.tsx` - слоти для полів
+- `src/pages/ProductDetail.tsx` - слоти для контенту
+
+### Таблиці в базі даних:
+- `plugins` - реєстр плагінів
+- `plugin_events` - логи виконання хуків
+- `plugin_settings` - налаштування (опціонально)
