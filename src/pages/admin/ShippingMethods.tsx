@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,15 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Plus, MoreHorizontal, Pencil, Trash2, Truck, Building, Puzzle } from "lucide-react";
+import { Plus, Trash2, Truck } from "lucide-react";
 import { ShippingMethod } from "@/lib/shipping/types";
 import { icons } from "lucide-react";
 
@@ -44,6 +39,7 @@ const methodTypeBadge = (type: string) => {
 };
 
 export default function ShippingMethods() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: methods, isLoading } = useQuery({
@@ -131,14 +127,18 @@ export default function ShippingMethods() {
                   <TableHead>Код</TableHead>
                   <TableHead>Тип</TableHead>
                   <TableHead className="text-center">Активна</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="text-right">Дії</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {methods.map((method) => {
                   const IconComponent = getMethodIcon(method.icon);
                   return (
-                    <TableRow key={method.id}>
+                    <TableRow
+                      key={method.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/admin/shipping/methods/${method.id}`)}
+                    >
                       <TableCell>
                         <IconComponent className="h-5 w-5 text-muted-foreground" />
                       </TableCell>
@@ -171,37 +171,24 @@ export default function ShippingMethods() {
                           onCheckedChange={(checked) =>
                             toggleActive.mutate({ id: method.id, is_active: checked })
                           }
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link to={`/admin/shipping/methods/${method.id}`}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Редагувати
-                              </Link>
-                            </DropdownMenuItem>
-                            {method.type !== "system" && (
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => {
-                                  if (confirm("Видалити цю службу доставки?")) {
-                                    deleteMethod.mutate(method.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Видалити
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell className="text-right">
+                        {method.type !== "system" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Видалити цю службу доставки?")) {
+                                deleteMethod.mutate(method.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,18 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Plus, MoreHorizontal, Pencil, Trash2, Building, Clock } from "lucide-react";
-import { PickupPoint } from "@/lib/shipping/types";
+import { Plus, Trash2, Building } from "lucide-react";
 
 export default function PickupPoints() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: points, isLoading } = useQuery({
@@ -111,12 +106,16 @@ export default function PickupPoints() {
                   <TableHead>Адреса</TableHead>
                   <TableHead>Зона</TableHead>
                   <TableHead className="text-center">Активна</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="text-right">Дії</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {points.map((point: any) => (
-                  <TableRow key={point.id}>
+                  <TableRow
+                    key={point.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/admin/shipping/pickup-points/${point.id}`)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-muted-foreground" />
@@ -142,35 +141,22 @@ export default function PickupPoints() {
                         onCheckedChange={(checked) =>
                           toggleActive.mutate({ id: point.id, is_active: checked })
                         }
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/admin/shipping/pickup-points/${point.id}`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Редагувати
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => {
-                              if (confirm("Видалити цю точку самовивозу?")) {
-                                deletePoint.mutate(point.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Видалити
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm("Видалити цю точку самовивозу?")) {
+                            deletePoint.mutate(point.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

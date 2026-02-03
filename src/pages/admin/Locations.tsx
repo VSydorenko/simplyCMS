@@ -180,16 +180,16 @@ export default function Locations() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Батьківська локація</label>
                 <Select
-                  value={newLocation.parent_id}
+                  value={newLocation.parent_id || "none"}
                   onValueChange={(v) =>
-                    setNewLocation({ ...newLocation, parent_id: v })
+                    setNewLocation({ ...newLocation, parent_id: v === "none" ? "" : v })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Без батька (коренева)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Без батька (коренева)</SelectItem>
+                    <SelectItem value="none">Без батька (коренева)</SelectItem>
                     {locations?.map((loc) => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name} ({locationTypeLabels[loc.type]})
