@@ -28,7 +28,6 @@ export default function ShippingZones() {
         .from("shipping_zones")
         .select(`
           *,
-          shipping_zone_locations (count),
           shipping_rates (count)
         `)
         .order("sort_order");
@@ -106,7 +105,7 @@ export default function ShippingZones() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Назва</TableHead>
-                  <TableHead className="text-center">Локації</TableHead>
+                  <TableHead>Міста</TableHead>
                   <TableHead className="text-center">Тарифи</TableHead>
                   <TableHead className="text-center">Активна</TableHead>
                   <TableHead className="text-right">Дії</TableHead>
@@ -139,10 +138,12 @@ export default function ShippingZones() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">
-                        {zone.shipping_zone_locations?.[0]?.count || 0}
-                      </Badge>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {zone.cities?.length > 0 
+                          ? zone.cities.slice(0, 3).join(", ") + (zone.cities.length > 3 ? ` +${zone.cities.length - 3}` : "")
+                          : "—"}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline">
