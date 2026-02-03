@@ -115,13 +115,22 @@ export interface OrderActionsContext {
 
 // Available hook names
 export type HookName =
+  // Admin hooks
   | "admin.sidebar.items"
+  | "admin.dashboard.stats"
   | "admin.dashboard.widgets"
-  | "product.form.fields"
-  | "product.card.badges"
+  | "admin.product.form.before"
+  | "admin.product.form.fields"
+  | "admin.product.form.after"
+  | "admin.product.form.sidebar"
+  // Public product hooks
+  | "product.detail.before"
   | "product.detail.after"
+  | "product.card.badges"
+  // Checkout & order hooks
   | "checkout.steps"
   | "order.actions"
+  // Backend hooks
   | "order.created"
   | "order.status_changed"
   | "product.before_save"
