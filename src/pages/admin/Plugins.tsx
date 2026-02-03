@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { InstallPluginDialog } from "@/components/admin/InstallPluginDialog";
 
 export default function Plugins() {
   const { toast } = useToast();
@@ -107,6 +108,7 @@ export default function Plugins() {
             </p>
           </div>
         </div>
+        <InstallPluginDialog />
       </div>
 
       {isLoading ? (
