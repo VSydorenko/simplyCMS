@@ -16,6 +16,7 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 import { FilterSidebar } from "@/components/catalog/FilterSidebar";
 import { ActiveFilters } from "@/components/catalog/ActiveFilters";
 import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "lucide-react";
+import { fetchModificationStockData, fetchModificationPropertyValues, enrichProductsWithAvailability } from "@/hooks/useProductsWithStock";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
@@ -60,40 +61,12 @@ export default function Catalog() {
         (p.product_modifications || []).map((m: any) => m.id)
       );
       
-      let modPropertyValues: Record<string, any[]> = {};
-      let modStockData: Record<string, number> = {};
-      
-      if (modificationIds.length > 0) {
-        const [modPropResult, modStockResult] = await Promise.all([
-          supabase
-            .from("modification_property_values")
-            .select("modification_id, property_id, value, numeric_value, option_id")
-            .in("modification_id", modificationIds),
-          supabase
-            .from("stock_by_pickup_point")
-            .select("modification_id, quantity")
-            .in("modification_id", modificationIds)
-        ]);
-        
-        if (modPropResult.data) {
-          modPropResult.data.forEach(v => {
-            if (!modPropertyValues[v.modification_id]) {
-              modPropertyValues[v.modification_id] = [];
-            }
-            modPropertyValues[v.modification_id].push(v);
-          });
-        }
-        
-        if (modStockResult.data) {
-          modStockResult.data.forEach(s => {
-            if (s.modification_id) {
-              modStockData[s.modification_id] = (modStockData[s.modification_id] || 0) + s.quantity;
-            }
-          });
-        }
-      }
+      const [modPropertyValues, modStockData] = await Promise.all([
+        fetchModificationPropertyValues(modificationIds),
+        fetchModificationStockData(modificationIds),
+      ]);
 
-      return data.map((product) => {
+      const rawProducts = data.map((product) => {
         const mods = product.product_modifications || [];
         const defaultMod =
           mods.find((m: any) => m.is_default) ||
@@ -107,22 +80,6 @@ export default function Catalog() {
           ...mods.flatMap((m: any) => modPropertyValues[m.id] || [])
         ];
         
-        // Calculate stock availability using same logic as RPC get_stock_info
-        // is_available = total_quantity > 0 OR stock_status = 'on_order'
-        let isAvailable = false;
-        if (hasModifications && mods.length > 0) {
-          // For products with modifications: check if ANY modification is available
-          isAvailable = mods.some((m: any) => {
-            const modQty = modStockData[m.id] || 0;
-            return modQty > 0 || m.stock_status === 'on_order';
-          });
-        } else {
-          // For simple products: check product stock
-          const productStock = (product.stock_by_pickup_point || [])
-            .reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
-          isAvailable = productStock > 0 || product.stock_status === 'on_order';
-        }
-        
         return {
           ...product,
           images: Array.isArray(images) ? images : [],
@@ -130,9 +87,11 @@ export default function Catalog() {
           has_modifications: hasModifications,
           modifications: defaultMod ? [defaultMod] : [],
           propertyValues: allPropertyValues,
-          isAvailable,
         };
       });
+
+      // Enrich products with availability using shared logic
+      return enrichProductsWithAvailability(rawProducts, modStockData);
     },
   });
 
