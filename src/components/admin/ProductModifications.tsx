@@ -22,13 +22,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Loader2, Image } from "lucide-react";
+import { Plus, Trash2, Loader2, Image, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { ProductPropertyValues } from "./ProductPropertyValues";
 import { StockStatusSelect } from "./StockStatusSelect";
@@ -48,6 +47,8 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
   const [editingModification, setEditingModification] = useState<ProductModification | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [stockStatus, setStockStatus] = useState<StockStatus>("in_stock");
+  const [stockOpen, setStockOpen] = useState(true);
+  const [propertiesOpen, setPropertiesOpen] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -66,9 +67,12 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<ProductModification>) => {
+      // Get max sort_order
+      const maxSortOrder = modifications?.reduce((max, m) => Math.max(max, m.sort_order), -1) ?? -1;
+      
       const { error } = await supabase
         .from("product_modifications")
-        .insert([{ ...data, product_id: productId } as any]);
+        .insert([{ ...data, product_id: productId, sort_order: maxSortOrder + 1 } as any]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -116,6 +120,38 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async ({ id, direction }: { id: string; direction: "up" | "down" }) => {
+      if (!modifications) return;
+
+      const currentIndex = modifications.findIndex((m) => m.id === id);
+      if (currentIndex === -1) return;
+
+      const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (swapIndex < 0 || swapIndex >= modifications.length) return;
+
+      const currentMod = modifications[currentIndex];
+      const swapMod = modifications[swapIndex];
+
+      // Swap sort_order values
+      await supabase
+        .from("product_modifications")
+        .update({ sort_order: swapMod.sort_order })
+        .eq("id", currentMod.id);
+
+      await supabase
+        .from("product_modifications")
+        .update({ sort_order: currentMod.sort_order })
+        .eq("id", swapMod.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-modifications", productId] });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Помилка зміни порядку", description: error.message });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -128,7 +164,6 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
       stock_status: stockStatus,
       is_default: formData.get("is_default") === "on",
-      sort_order: parseInt(formData.get("sort_order") as string) || 0,
       images: images,
     };
 
@@ -144,6 +179,8 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     const existingImages = Array.isArray(modification.images) ? modification.images as string[] : [];
     setImages(existingImages);
     setStockStatus(modification.stock_status as StockStatus || "in_stock");
+    setStockOpen(true);
+    setPropertiesOpen(true);
     setIsOpen(true);
   };
 
@@ -151,6 +188,8 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     setEditingModification(null);
     setImages([]);
     setStockStatus("in_stock");
+    setStockOpen(true);
+    setPropertiesOpen(true);
     setIsOpen(true);
   };
 
@@ -191,6 +230,13 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       default:
         return null;
     }
+  };
+
+  const handleRowClick = (mod: ProductModification, e: React.MouseEvent) => {
+    // Don't trigger if clicking on action buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    openEdit(mod);
   };
 
   if (isLoading) {
@@ -278,22 +324,10 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <StockStatusSelect
-                    value={stockStatus}
-                    onChange={setStockStatus}
-                  />
-                  <div className="space-y-2">
-                    <Label htmlFor="mod-sort">Порядок сортування</Label>
-                    <Input
-                      id="mod-sort"
-                      name="sort_order"
-                      type="number"
-                      min="0"
-                      defaultValue={editingModification?.sort_order ?? 0}
-                    />
-                  </div>
-                </div>
+                <StockStatusSelect
+                  value={stockStatus}
+                  onChange={setStockStatus}
+                />
 
                 <div className="flex items-center gap-2">
                   <Switch
@@ -315,34 +349,56 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                   />
                 </div>
 
-                {/* Stock by point for existing modifications */}
+                {/* Stock by point for existing modifications - expanded by default */}
                 {editingModification && (
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="stock">
-                      <AccordionTrigger>Залишки по складах</AccordionTrigger>
-                      <AccordionContent>
-                        <StockByPointManager
-                          modificationId={editingModification.id}
-                          showCard={false}
-                        />
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <Collapsible open={stockOpen} onOpenChange={setStockOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50"
+                      >
+                        <span className="font-medium">Залишки по складах</span>
+                        {stockOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3">
+                      <StockByPointManager
+                        modificationId={editingModification.id}
+                        showCard={false}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
 
-                {/* Properties section for existing modifications */}
+                {/* Properties section for existing modifications - expanded by default */}
                 {editingModification && sectionId && (
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="properties">
-                      <AccordionTrigger>Властивості модифікації</AccordionTrigger>
-                      <AccordionContent>
-                        <ProductPropertyValues
-                          modificationId={editingModification.id}
-                          sectionId={sectionId}
-                        />
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <Collapsible open={propertiesOpen} onOpenChange={setPropertiesOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50"
+                      >
+                        <span className="font-medium">Властивості модифікації</span>
+                        {propertiesOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3">
+                      <ProductPropertyValues
+                        modificationId={editingModification.id}
+                        sectionId={sectionId}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
 
                 <div className="flex justify-end gap-2 pt-4">
@@ -369,19 +425,52 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">Порядок</TableHead>
                 <TableHead className="w-12"></TableHead>
                 <TableHead>Назва</TableHead>
                 <TableHead>Артикул</TableHead>
                 <TableHead>Ціна</TableHead>
                 <TableHead>Статус</TableHead>
-                <TableHead className="text-right">Дії</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {modifications.map((mod) => {
+              {modifications.map((mod, index) => {
                 const modImages = Array.isArray(mod.images) ? mod.images as string[] : [];
                 return (
-                  <TableRow key={mod.id}>
+                  <TableRow 
+                    key={mod.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={(e) => handleRowClick(mod, e)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={index === 0 || reorderMutation.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            reorderMutation.mutate({ id: mod.id, direction: "up" });
+                          }}
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={index === modifications.length - 1 || reorderMutation.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            reorderMutation.mutate({ id: mod.id, direction: "down" });
+                          }}
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {modImages.length > 0 ? (
                         <img
@@ -422,20 +511,18 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                     <TableCell>
                       {getStatusBadge(mod.stock_status)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(mod)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteMutation.mutate(mod.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteMutation.mutate(mod.id);
+                        }}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
