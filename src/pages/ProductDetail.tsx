@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductGallery } from "@/components/catalog/ProductGallery";
-import { ModificationSelector } from "@/components/catalog/ModificationSelector";
+import { ModificationSelector, type ModificationStockInfo } from "@/components/catalog/ModificationSelector";
 import { ProductCharacteristics } from "@/components/catalog/ProductCharacteristics";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +106,40 @@ export default function ProductDetail() {
       return grouped;
     },
     enabled: modificationIds.length > 0,
+  });
+
+  // Fetch stock info for all modifications
+  const { data: modificationsStockData } = useQuery({
+    queryKey: ["modifications-stock", modificationIds],
+    queryFn: async () => {
+      if (modificationIds.length === 0) return {};
+      
+      const stockMap: Record<string, ModificationStockInfo> = {};
+      
+      // Fetch stock data for all modifications in parallel
+      await Promise.all(
+        modificationIds.map(async (modId: string) => {
+          const { data, error } = await supabase.rpc("get_stock_info", {
+            p_product_id: null,
+            p_modification_id: modId,
+          });
+          
+          if (!error && data?.[0]) {
+            const row = data[0];
+            stockMap[modId] = {
+              totalQuantity: row.total_quantity ?? 0,
+              isAvailable: row.is_available ?? false,
+            };
+          } else {
+            stockMap[modId] = { totalQuantity: 0, isAvailable: false };
+          }
+        })
+      );
+      
+      return stockMap;
+    },
+    enabled: modificationIds.length > 0,
+    staleTime: 30000,
   });
 
   // Get sorted modifications
@@ -353,6 +387,7 @@ export default function ProductDetail() {
               selectedId={selectedModId}
               onSelect={handleModificationSelect}
               formatPrice={formatPrice}
+              stockByModification={modificationsStockData}
             />
           )}
 
