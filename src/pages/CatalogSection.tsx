@@ -54,7 +54,7 @@ export default function CatalogSection() {
     },
   });
 
-  // Fetch products with modifications and property values (both product and modification level)
+  // Fetch products with modifications, property values, and stock data
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["section-products", section?.id],
     queryFn: async () => {
@@ -65,30 +65,47 @@ export default function CatalogSection() {
           *,
           sections(id, slug, name),
           product_modifications(id, price, old_price, stock_status, is_default, sort_order),
-          product_property_values(property_id, value, numeric_value, option_id)
+          product_property_values(property_id, value, numeric_value, option_id),
+          stock_by_pickup_point(quantity)
         `)
         .eq("section_id", section.id)
         .eq("is_active", true);
       if (error) throw error;
 
-      // Fetch modification property values
+      // Fetch modification property values and stock
       const modificationIds = data.flatMap(p => 
         (p.product_modifications || []).map((m: any) => m.id)
       );
       
       let modPropertyValues: Record<string, any[]> = {};
+      let modStockData: Record<string, number> = {};
+      
       if (modificationIds.length > 0) {
-        const { data: modPropValues } = await supabase
-          .from("modification_property_values")
-          .select("modification_id, property_id, value, numeric_value, option_id")
-          .in("modification_id", modificationIds);
+        const [modPropResult, modStockResult] = await Promise.all([
+          supabase
+            .from("modification_property_values")
+            .select("modification_id, property_id, value, numeric_value, option_id")
+            .in("modification_id", modificationIds),
+          supabase
+            .from("stock_by_pickup_point")
+            .select("modification_id, quantity")
+            .in("modification_id", modificationIds)
+        ]);
         
-        if (modPropValues) {
-          modPropValues.forEach(v => {
+        if (modPropResult.data) {
+          modPropResult.data.forEach(v => {
             if (!modPropertyValues[v.modification_id]) {
               modPropertyValues[v.modification_id] = [];
             }
             modPropertyValues[v.modification_id].push(v);
+          });
+        }
+        
+        if (modStockResult.data) {
+          modStockResult.data.forEach(s => {
+            if (s.modification_id) {
+              modStockData[s.modification_id] = (modStockData[s.modification_id] || 0) + s.quantity;
+            }
           });
         }
       }
@@ -107,6 +124,22 @@ export default function CatalogSection() {
           ...mods.flatMap((m: any) => modPropertyValues[m.id] || [])
         ];
         
+        // Calculate stock availability using same logic as RPC get_stock_info
+        // is_available = total_quantity > 0 OR stock_status = 'on_order'
+        let isAvailable = false;
+        if (hasModifications && mods.length > 0) {
+          // For products with modifications: check if ANY modification is available
+          isAvailable = mods.some((m: any) => {
+            const modQty = modStockData[m.id] || 0;
+            return modQty > 0 || m.stock_status === 'on_order';
+          });
+        } else {
+          // For simple products: check product stock
+          const productStock = (product.stock_by_pickup_point || [])
+            .reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
+          isAvailable = productStock > 0 || product.stock_status === 'on_order';
+        }
+        
         return {
           ...product,
           images: Array.isArray(images) ? images : [],
@@ -114,6 +147,7 @@ export default function CatalogSection() {
           has_modifications: hasModifications,
           modifications: defaultMod ? [defaultMod] : [],
           propertyValues: allPropertyValues,
+          isAvailable,
         };
       });
     },
@@ -198,9 +232,14 @@ export default function CatalogSection() {
 
     let result = [...products];
 
+    // Apply "In Stock Only" filter using same logic as RPC get_stock_info
+    if (filters.inStockOnly) {
+      result = result.filter((product) => product.isAvailable);
+    }
+
     // Apply property filters (by option_id)
     Object.entries(filters).forEach(([key, value]) => {
-      if (key === "priceMin" || key === "priceMax") return;
+      if (key === "priceMin" || key === "priceMax" || key === "inStockOnly") return;
       // Skip numeric range filters (they end with Min or Max)
       if (key.endsWith("Min") || key.endsWith("Max")) return;
       if (!value || (Array.isArray(value) && value.length === 0)) return;

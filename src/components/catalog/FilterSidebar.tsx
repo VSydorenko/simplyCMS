@@ -238,6 +238,23 @@ export function FilterSidebar({
         )}
       </div>
 
+      {/* In Stock Only filter */}
+      <div className="flex items-center gap-2 py-2 border-b">
+        <Checkbox
+          id="inStockOnly"
+          checked={filters.inStockOnly === true}
+          onCheckedChange={(checked) =>
+            onFilterChange({
+              ...filters,
+              inStockOnly: checked ? true : undefined,
+            })
+          }
+        />
+        <Label htmlFor="inStockOnly" className="text-sm font-normal cursor-pointer">
+          Тільки в наявності
+        </Label>
+      </div>
+
       <Accordion type="multiple" defaultValue={["price", ...filterableProperties.map(p => p.id)]} className="w-full">
         {/* Price filter */}
         {priceRange && (
