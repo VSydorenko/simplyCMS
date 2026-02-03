@@ -64,6 +64,7 @@ export interface PickupPoint {
   working_hours: WorkingHours;
   phone: string | null;
   is_active: boolean;
+  is_system: boolean;
   sort_order: number;
   coordinates: Coordinates | null;
   created_at: string;

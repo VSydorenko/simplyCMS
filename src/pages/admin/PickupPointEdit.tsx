@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -25,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Shield } from "lucide-react";
 import { PickupPoint, ShippingMethod, ShippingZone } from "@/lib/shipping/types";
 
 const formSchema = z.object({
@@ -162,13 +163,23 @@ export default function PickupPointEdit() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">
-            {isNew ? "Нова точка самовивозу" : point?.name}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">
+              {isNew ? "Нова точка самовивозу" : point?.name}
+            </h1>
+            {point?.is_system && (
+              <Badge variant="secondary" className="gap-1">
+                <Shield className="h-3 w-3" />
+                Системна
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1">
             {isNew
               ? "Додайте нову адресу для самовивозу"
-              : "Редагування точки самовивозу"}
+              : point?.is_system
+                ? "Системна точка — не може бути видалена"
+                : "Редагування точки самовивозу"}
           </p>
         </div>
       </div>
