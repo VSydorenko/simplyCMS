@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface PropertyValue {
   property_id: string;
@@ -61,23 +60,16 @@ export function ProductCharacteristics({ propertyValues }: ProductCharacteristic
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Характеристики</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="divide-y">
-          {displayableValues.map((pv) => (
-            <div
-              key={pv.property_id}
-              className="flex justify-between py-3 first:pt-0 last:pb-0"
-            >
-              <dt className="text-muted-foreground">{pv.property?.name}</dt>
-              <dd className="font-medium text-right">{renderValue(pv)}</dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
+    <dl className="divide-y">
+      {displayableValues.map((pv) => (
+        <div
+          key={pv.property_id}
+          className="flex justify-between py-3 first:pt-0 last:pb-0"
+        >
+          <dt className="text-muted-foreground">{pv.property?.name}</dt>
+          <dd className="font-medium text-right">{renderValue(pv)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
