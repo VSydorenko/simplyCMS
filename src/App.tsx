@@ -36,6 +36,14 @@ import OrderStatuses from "./pages/admin/OrderStatuses";
 import Plugins from "./pages/admin/Plugins";
 import PluginSettings from "./pages/admin/PluginSettings";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
+import Shipping from "./pages/admin/Shipping";
+import ShippingMethods from "./pages/admin/ShippingMethods";
+import ShippingMethodEdit from "./pages/admin/ShippingMethodEdit";
+import ShippingZones from "./pages/admin/ShippingZones";
+import ShippingZoneEdit from "./pages/admin/ShippingZoneEdit";
+import PickupPoints from "./pages/admin/PickupPoints";
+import PickupPointEdit from "./pages/admin/PickupPointEdit";
+import Locations from "./pages/admin/Locations";
 
 // Public property pages
 import Properties from "./pages/Properties";
@@ -111,6 +119,14 @@ function App() {
                     <Route path="order-statuses" element={<OrderStatuses />} />
                     <Route path="plugins" element={<Plugins />} />
                     <Route path="plugins/:pluginId" element={<PluginSettings />} />
+                    <Route path="shipping" element={<Shipping />} />
+                    <Route path="shipping/methods" element={<ShippingMethods />} />
+                    <Route path="shipping/methods/:methodId" element={<ShippingMethodEdit />} />
+                    <Route path="shipping/zones" element={<ShippingZones />} />
+                    <Route path="shipping/zones/:zoneId" element={<ShippingZoneEdit />} />
+                    <Route path="shipping/pickup-points" element={<PickupPoints />} />
+                    <Route path="shipping/pickup-points/:pointId" element={<PickupPointEdit />} />
+                    <Route path="shipping/locations" element={<Locations />} />
                     <Route path="services" element={<PlaceholderPage />} />
                     <Route path="service-requests" element={<PlaceholderPage />} />
                     <Route path="users" element={<PlaceholderPage />} />

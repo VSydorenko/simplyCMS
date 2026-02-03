@@ -70,6 +70,50 @@ export type Database = {
         }
         Relationships: []
       }
+      locations: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          meta: Json | null
+          name: string
+          parent_id: string | null
+          sort_order: number
+          type: Database["public"]["Enums"]["location_type"]
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meta?: Json | null
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["location_type"]
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meta?: Json | null
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["location_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modification_property_values: {
         Row: {
           created_at: string
@@ -235,6 +279,12 @@ export type Database = {
           order_number: string
           payment_method: string
           phone: string
+          pickup_point_id: string | null
+          shipping_cost: number | null
+          shipping_data: Json | null
+          shipping_method_id: string | null
+          shipping_rate_id: string | null
+          shipping_zone_id: string | null
           status_id: string | null
           subtotal: number
           total: number
@@ -255,6 +305,12 @@ export type Database = {
           order_number: string
           payment_method: string
           phone: string
+          pickup_point_id?: string | null
+          shipping_cost?: number | null
+          shipping_data?: Json | null
+          shipping_method_id?: string | null
+          shipping_rate_id?: string | null
+          shipping_zone_id?: string | null
           status_id?: string | null
           subtotal: number
           total: number
@@ -275,6 +331,12 @@ export type Database = {
           order_number?: string
           payment_method?: string
           phone?: string
+          pickup_point_id?: string | null
+          shipping_cost?: number | null
+          shipping_data?: Json | null
+          shipping_method_id?: string | null
+          shipping_rate_id?: string | null
+          shipping_zone_id?: string | null
           status_id?: string | null
           subtotal?: number
           total?: number
@@ -283,10 +345,98 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_rate_id_fkey"
+            columns: ["shipping_rate_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_zone_id_fkey"
+            columns: ["shipping_zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_status_id_fkey"
             columns: ["status_id"]
             isOneToOne: false
             referencedRelation: "order_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pickup_points: {
+        Row: {
+          address: string
+          city: string
+          coordinates: Json | null
+          created_at: string
+          id: string
+          is_active: boolean
+          method_id: string
+          name: string
+          phone: string | null
+          sort_order: number
+          working_hours: Json | null
+          zone_id: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          method_id: string
+          name: string
+          phone?: string | null
+          sort_order?: number
+          working_hours?: Json | null
+          zone_id?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          method_id?: string
+          name?: string
+          phone?: string | null
+          sort_order?: number
+          working_hours?: Json | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_points_method_id_fkey"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_points_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -867,6 +1017,201 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_methods: {
+        Row: {
+          code: string
+          config: Json | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          plugin_name: string | null
+          sort_order: number
+          type: Database["public"]["Enums"]["shipping_method_type"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          config?: Json | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          plugin_name?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["shipping_method_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          config?: Json | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          plugin_name?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["shipping_method_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_rates: {
+        Row: {
+          base_cost: number
+          calculation_type: Database["public"]["Enums"]["shipping_calculation_type"]
+          config: Json | null
+          created_at: string
+          estimated_days: string | null
+          free_from_amount: number | null
+          id: string
+          is_active: boolean
+          max_order_amount: number | null
+          method_id: string
+          min_order_amount: number | null
+          min_weight: number | null
+          name: string
+          per_kg_cost: number | null
+          sort_order: number
+          zone_id: string
+        }
+        Insert: {
+          base_cost?: number
+          calculation_type?: Database["public"]["Enums"]["shipping_calculation_type"]
+          config?: Json | null
+          created_at?: string
+          estimated_days?: string | null
+          free_from_amount?: number | null
+          id?: string
+          is_active?: boolean
+          max_order_amount?: number | null
+          method_id: string
+          min_order_amount?: number | null
+          min_weight?: number | null
+          name: string
+          per_kg_cost?: number | null
+          sort_order?: number
+          zone_id: string
+        }
+        Update: {
+          base_cost?: number
+          calculation_type?: Database["public"]["Enums"]["shipping_calculation_type"]
+          config?: Json | null
+          created_at?: string
+          estimated_days?: string | null
+          free_from_amount?: number | null
+          id?: string
+          is_active?: boolean
+          max_order_amount?: number | null
+          method_id?: string
+          min_order_amount?: number | null
+          min_weight?: number | null
+          name?: string
+          per_kg_cost?: number | null
+          sort_order?: number
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_rates_method_id_fkey"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_rates_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_zone_locations: {
+        Row: {
+          created_at: string
+          id: string
+          location_code: string | null
+          location_id: string | null
+          location_type: Database["public"]["Enums"]["zone_location_type"]
+          postcode_from: string | null
+          postcode_to: string | null
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_code?: string | null
+          location_id?: string | null
+          location_type?: Database["public"]["Enums"]["zone_location_type"]
+          postcode_from?: string | null
+          postcode_to?: string | null
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_code?: string | null
+          location_id?: string | null
+          location_type?: Database["public"]["Enums"]["zone_location_type"]
+          postcode_from?: string | null
+          postcode_to?: string | null
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_zone_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_zone_locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_zones: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       user_categories: {
         Row: {
           code: string
@@ -967,6 +1312,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      location_type: "country" | "region" | "city" | "district" | "street"
       property_type:
         | "text"
         | "number"
@@ -975,6 +1321,14 @@ export type Database = {
         | "range"
         | "color"
         | "boolean"
+      shipping_calculation_type:
+        | "flat"
+        | "weight"
+        | "order_total"
+        | "free_from"
+        | "plugin"
+      shipping_method_type: "system" | "manual" | "plugin"
+      zone_location_type: "all" | "country" | "region" | "city" | "postcode"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1103,6 +1457,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      location_type: ["country", "region", "city", "district", "street"],
       property_type: [
         "text",
         "number",
@@ -1112,6 +1467,15 @@ export const Constants = {
         "color",
         "boolean",
       ],
+      shipping_calculation_type: [
+        "flat",
+        "weight",
+        "order_total",
+        "free_from",
+        "plugin",
+      ],
+      shipping_method_type: ["system", "manual", "plugin"],
+      zone_location_type: ["all", "country", "region", "city", "postcode"],
     },
   },
 } as const

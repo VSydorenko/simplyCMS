@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/form";
 import { CartItem } from "@/hooks/useCart";
 import { ShoppingBag, Loader2 } from "lucide-react";
+import { formatShippingCost } from "@/lib/shipping";
 
 interface CheckoutOrderSummaryProps {
   items: CartItem[];
   totalPrice: number;
+  shippingCost?: number;
   form: UseFormReturn<any>;
   isSubmitting: boolean;
 }
@@ -22,6 +24,7 @@ interface CheckoutOrderSummaryProps {
 export function CheckoutOrderSummary({
   items,
   totalPrice,
+  shippingCost = 0,
   form,
   isSubmitting,
 }: CheckoutOrderSummaryProps) {
@@ -32,6 +35,8 @@ export function CheckoutOrderSummary({
       minimumFractionDigits: 0,
     }).format(value);
   };
+
+  const totalWithShipping = totalPrice + shippingCost;
 
   return (
     <Card className="sticky top-24">
@@ -77,7 +82,7 @@ export function CheckoutOrderSummary({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Доставка</span>
-            <span className="text-muted-foreground">За тарифами</span>
+            <span>{formatShippingCost(shippingCost)}</span>
           </div>
         </div>
 
@@ -85,7 +90,7 @@ export function CheckoutOrderSummary({
 
         <div className="flex justify-between font-semibold text-lg">
           <span>Разом</span>
-          <span className="text-primary">{formatPrice(totalPrice)}</span>
+          <span className="text-primary">{formatPrice(totalWithShipping)}</span>
         </div>
 
         {/* Notes */}
