@@ -133,15 +133,19 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       const currentMod = modifications[currentIndex];
       const swapMod = modifications[swapIndex];
 
-      // Swap sort_order values
+      // Use index-based sort_order to handle cases where all values are the same
+      // Assign new unique sort_order values based on their new positions
+      const newCurrentSortOrder = swapIndex;
+      const newSwapSortOrder = currentIndex;
+
       await supabase
         .from("product_modifications")
-        .update({ sort_order: swapMod.sort_order })
+        .update({ sort_order: newCurrentSortOrder })
         .eq("id", currentMod.id);
 
       await supabase
         .from("product_modifications")
-        .update({ sort_order: currentMod.sort_order })
+        .update({ sort_order: newSwapSortOrder })
         .eq("id", swapMod.id);
     },
     onSuccess: () => {
