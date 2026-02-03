@@ -48,8 +48,7 @@ export default function ProductEdit() {
     price: null as number | null,
     old_price: null as number | null,
     sku: "",
-    stock_quantity: 0,
-    is_in_stock: true,
+    stock_status: "in_stock" as "in_stock" | "out_of_stock" | "on_order",
   });
   const [images, setImages] = useState<string[]>([]);
 
@@ -96,8 +95,7 @@ export default function ProductEdit() {
         price: (product as any).price ?? null,
         old_price: (product as any).old_price ?? null,
         sku: (product as any).sku || "",
-        stock_quantity: (product as any).stock_quantity ?? 0,
-        is_in_stock: (product as any).is_in_stock ?? true,
+        stock_status: (product as any).stock_status || "in_stock",
       });
       const productImages = (product as any).images;
       setImages(Array.isArray(productImages) ? productImages : []);
@@ -163,15 +161,13 @@ export default function ProductEdit() {
       data.price = formData.price;
       data.old_price = formData.old_price;
       data.sku = formData.sku || null;
-      data.stock_quantity = formData.stock_quantity;
-      data.is_in_stock = formData.is_in_stock;
+      data.stock_status = formData.stock_status;
     } else {
       // Clear simple product fields when switching to modifications
       data.price = null;
       data.old_price = null;
       data.sku = null;
-      data.stock_quantity = 0;
-      data.is_in_stock = true;
+      data.stock_status = "in_stock";
     }
 
     if (isNew) {
@@ -325,16 +321,15 @@ export default function ProductEdit() {
           {/* Simple product fields - only for simple products */}
           {!isNew && !formData.has_modifications && (
             <SimpleProductFields
+              productId={productId!}
               price={formData.price}
               oldPrice={formData.old_price}
               sku={formData.sku}
-              stockQuantity={formData.stock_quantity}
-              isInStock={formData.is_in_stock}
+              stockStatus={formData.stock_status}
               onPriceChange={(v) => handleChange("price", v)}
               onOldPriceChange={(v) => handleChange("old_price", v)}
               onSkuChange={(v) => handleChange("sku", v)}
-              onStockQuantityChange={(v) => handleChange("stock_quantity", v)}
-              onIsInStockChange={(v) => handleChange("is_in_stock", v)}
+              onStockStatusChange={(v) => handleChange("stock_status", v)}
             />
           )}
 

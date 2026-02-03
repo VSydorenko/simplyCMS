@@ -18,8 +18,9 @@ interface ProductCardProps {
     modifications?: Array<{
       price: number;
       old_price?: number | null;
-      is_in_stock: boolean;
+      stock_status?: string | null;
     }>;
+    stock_status?: string | null;
   };
 }
 
@@ -32,16 +33,20 @@ export function ProductCard({ product }: ProductCardProps) {
   let oldPrice: number | undefined | null;
   let isInStock: boolean;
 
+  let stockStatus: string | null = null;
+  
   if (hasModifications) {
     const defaultMod = product.modifications?.[0];
     price = defaultMod?.price;
     oldPrice = defaultMod?.old_price;
-    isInStock = defaultMod?.is_in_stock ?? true;
+    stockStatus = defaultMod?.stock_status ?? "in_stock";
   } else {
     price = product.price ?? undefined;
     oldPrice = product.old_price;
-    isInStock = product.is_in_stock ?? true;
+    stockStatus = product.stock_status ?? "in_stock";
   }
+
+  isInStock = stockStatus === "in_stock" || stockStatus === "on_order";
 
   const sectionSlug = product.section?.slug || "";
 
@@ -71,7 +76,12 @@ export function ProductCard({ product }: ProductCardProps) {
               <Image className="h-12 w-12 text-muted-foreground" />
             </div>
           )}
-          {!isInStock && (
+          {stockStatus === "on_order" && (
+            <Badge variant="outline" className="absolute top-2 right-2 border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+              Під замовлення
+            </Badge>
+          )}
+          {stockStatus === "out_of_stock" && (
             <Badge variant="secondary" className="absolute top-2 right-2">
               Немає в наявності
             </Badge>

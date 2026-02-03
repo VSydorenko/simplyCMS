@@ -230,22 +230,24 @@ export default function ProductDetail() {
   const section = product.sections;
   
   // Get price, stock, and SKU based on product type
-  let isInStock: boolean;
+  let stockStatus: string | null;
   let price: number | undefined;
   let oldPrice: number | null | undefined;
   let sku: string | null | undefined;
 
   if (hasModifications) {
-    isInStock = selectedMod?.is_in_stock ?? true;
+    stockStatus = selectedMod?.stock_status ?? "in_stock";
     price = selectedMod?.price;
     oldPrice = selectedMod?.old_price;
     sku = selectedMod?.sku;
   } else {
-    isInStock = (product as any).is_in_stock ?? true;
+    stockStatus = (product as any).stock_status ?? "in_stock";
     price = (product as any).price ?? undefined;
     oldPrice = (product as any).old_price;
     sku = (product as any).sku;
   }
+  
+  const isInStock = stockStatus === "in_stock" || stockStatus === "on_order";
 
   const discountPercent =
     oldPrice && price && oldPrice > price
@@ -294,6 +296,11 @@ export default function ProductDetail() {
             <div className="flex items-start gap-3 mb-2">
               {discountPercent && (
                 <Badge variant="destructive">-{discountPercent}%</Badge>
+              )}
+              {stockStatus === "on_order" && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                  Під замовлення
+                </Badge>
               )}
               {!isInStock && (
                 <Badge variant="secondary">Немає в наявності</Badge>

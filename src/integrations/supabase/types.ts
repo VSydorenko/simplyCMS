@@ -345,6 +345,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_system: boolean
           method_id: string
           name: string
           phone: string | null
@@ -359,6 +360,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_system?: boolean
           method_id: string
           name: string
           phone?: string | null
@@ -373,6 +375,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_system?: boolean
           method_id?: string
           name?: string
           phone?: string | null
@@ -478,7 +481,6 @@ export type Database = {
           id: string
           images: Json | null
           is_default: boolean
-          is_in_stock: boolean
           name: string
           old_price: number | null
           price: number
@@ -486,7 +488,7 @@ export type Database = {
           sku: string | null
           slug: string
           sort_order: number
-          stock_quantity: number
+          stock_status: Database["public"]["Enums"]["stock_status"] | null
           updated_at: string
         }
         Insert: {
@@ -494,7 +496,6 @@ export type Database = {
           id?: string
           images?: Json | null
           is_default?: boolean
-          is_in_stock?: boolean
           name: string
           old_price?: number | null
           price: number
@@ -502,7 +503,7 @@ export type Database = {
           sku?: string | null
           slug: string
           sort_order?: number
-          stock_quantity?: number
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           updated_at?: string
         }
         Update: {
@@ -510,7 +511,6 @@ export type Database = {
           id?: string
           images?: Json | null
           is_default?: boolean
-          is_in_stock?: boolean
           name?: string
           old_price?: number | null
           price?: number
@@ -518,7 +518,7 @@ export type Database = {
           sku?: string | null
           slug?: string
           sort_order?: number
-          stock_quantity?: number
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           updated_at?: string
         }
         Relationships: [
@@ -592,7 +592,6 @@ export type Database = {
           images: Json | null
           is_active: boolean
           is_featured: boolean
-          is_in_stock: boolean | null
           meta_description: string | null
           meta_title: string | null
           name: string
@@ -602,7 +601,7 @@ export type Database = {
           short_description: string | null
           sku: string | null
           slug: string
-          stock_quantity: number | null
+          stock_status: Database["public"]["Enums"]["stock_status"] | null
           updated_at: string
         }
         Insert: {
@@ -613,7 +612,6 @@ export type Database = {
           images?: Json | null
           is_active?: boolean
           is_featured?: boolean
-          is_in_stock?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
@@ -623,7 +621,7 @@ export type Database = {
           short_description?: string | null
           sku?: string | null
           slug: string
-          stock_quantity?: number | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           updated_at?: string
         }
         Update: {
@@ -634,7 +632,6 @@ export type Database = {
           images?: Json | null
           is_active?: boolean
           is_featured?: boolean
-          is_in_stock?: boolean | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
@@ -644,7 +641,7 @@ export type Database = {
           short_description?: string | null
           sku?: string | null
           slug?: string
-          stock_quantity?: number | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
           updated_at?: string
         }
         Relationships: [
@@ -1126,6 +1123,85 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_by_pickup_point: {
+        Row: {
+          created_at: string | null
+          id: string
+          modification_id: string | null
+          pickup_point_id: string
+          product_id: string | null
+          quantity: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          modification_id?: string | null
+          pickup_point_id: string
+          product_id?: string | null
+          quantity?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          modification_id?: string | null
+          pickup_point_id?: string
+          product_id?: string | null
+          quantity?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_by_pickup_point_modification_id_fkey"
+            columns: ["modification_id"]
+            isOneToOne: false
+            referencedRelation: "product_modifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_by_pickup_point_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_by_pickup_point_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       user_categories: {
         Row: {
           code: string
@@ -1215,6 +1291,16 @@ export type Database = {
         Args: { new_category_id: string; target_user_id: string }
         Returns: undefined
       }
+      get_active_pickup_points_count: { Args: never; Returns: number }
+      get_stock_info: {
+        Args: { p_modification_id?: string; p_product_id?: string }
+        Returns: {
+          by_point: Json
+          is_available: boolean
+          stock_status: Database["public"]["Enums"]["stock_status"]
+          total_quantity: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1241,6 +1327,7 @@ export type Database = {
         | "free_from"
         | "plugin"
       shipping_method_type: "system" | "manual" | "plugin"
+      stock_status: "in_stock" | "out_of_stock" | "on_order"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1386,6 +1473,7 @@ export const Constants = {
         "plugin",
       ],
       shipping_method_type: ["system", "manual", "plugin"],
+      stock_status: ["in_stock", "out_of_stock", "on_order"],
     },
   },
 } as const
