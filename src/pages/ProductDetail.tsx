@@ -20,6 +20,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { PluginSlot } from "@/components/plugins/PluginSlot";
 
 export default function ProductDetail() {
   const { sectionSlug, productSlug } = useParams<{
@@ -285,6 +286,9 @@ export default function ProductDetail() {
 
         {/* Product info */}
         <div className="space-y-6">
+          {/* Plugin slot: before product info */}
+          <PluginSlot name="product.detail.before" context={{ product, selectedMod }} />
+
           {/* Title and badges */}
           <div>
             <div className="flex items-start gap-3 mb-2">
@@ -294,6 +298,12 @@ export default function ProductDetail() {
               {!isInStock && (
                 <Badge variant="secondary">Немає в наявності</Badge>
               )}
+              {/* Plugin slot: product badges */}
+              <PluginSlot 
+                name="product.card.badges" 
+                context={{ product, selectedMod }} 
+                wrapper={(children) => <>{children}</>}
+              />
             </div>
             <h1 className="text-3xl font-bold">{product.name}</h1>
             {sku && (
@@ -421,6 +431,9 @@ export default function ProductDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Plugin slot: after product content */}
+      <PluginSlot name="product.detail.after" context={{ product, selectedMod, propertyValues }} />
     </div>
   );
 }

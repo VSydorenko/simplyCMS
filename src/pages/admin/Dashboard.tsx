@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Package, FolderTree, ShoppingCart, Users, Wrench, FileText } from "lucide-react";
+import { PluginSlot } from "@/components/plugins/PluginSlot";
 
 export default function Dashboard() {
   const { data: stats } = useQuery({
@@ -55,6 +56,13 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ))}
+        
+        {/* Plugin slot: additional stat cards from plugins */}
+        <PluginSlot 
+          name="admin.dashboard.stats" 
+          context={{ stats }}
+          wrapper={(children) => <>{children}</>}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -118,6 +126,15 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Plugin slot: dashboard widgets from plugins */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <PluginSlot 
+          name="admin.dashboard.widgets" 
+          context={{ stats }}
+          wrapper={(children) => <>{children}</>}
+        />
       </div>
     </div>
   );
