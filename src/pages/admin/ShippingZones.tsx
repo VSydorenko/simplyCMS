@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,18 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Plus, MoreHorizontal, Pencil, Trash2, Globe } from "lucide-react";
-import { ShippingZone } from "@/lib/shipping/types";
+import { Plus, Trash2, Globe } from "lucide-react";
 
 export default function ShippingZones() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: zones, isLoading } = useQuery({
@@ -114,12 +109,16 @@ export default function ShippingZones() {
                   <TableHead className="text-center">Локації</TableHead>
                   <TableHead className="text-center">Тарифи</TableHead>
                   <TableHead className="text-center">Активна</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="text-right">Дії</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {zones.map((zone: any) => (
-                  <TableRow key={zone.id}>
+                  <TableRow
+                    key={zone.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/admin/shipping/zones/${zone.id}`)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4 text-muted-foreground" />
@@ -156,37 +155,24 @@ export default function ShippingZones() {
                         onCheckedChange={(checked) =>
                           toggleActive.mutate({ id: zone.id, is_active: checked })
                         }
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/admin/shipping/zones/${zone.id}`}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Редагувати
-                            </Link>
-                          </DropdownMenuItem>
-                          {!zone.is_default && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => {
-                                if (confirm("Видалити цю зону доставки?")) {
-                                  deleteZone.mutate(zone.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Видалити
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-right">
+                      {!zone.is_default && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Видалити цю зону доставки?")) {
+                              deleteZone.mutate(zone.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
