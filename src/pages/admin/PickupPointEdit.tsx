@@ -248,8 +248,8 @@ export default function PickupPointEdit() {
                         <FormItem>
                           <FormLabel>Зона доставки</FormLabel>
                           <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
+                            onValueChange={(val) => field.onChange(val === "none" ? "" : val)}
+                            value={field.value || "none"}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -257,7 +257,7 @@ export default function PickupPointEdit() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Без зони</SelectItem>
+                              <SelectItem value="none">Без зони</SelectItem>
                               {zones?.map((zone) => (
                                 <SelectItem key={zone.id} value={zone.id}>
                                   {zone.name}
