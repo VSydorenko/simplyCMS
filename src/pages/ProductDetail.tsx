@@ -17,9 +17,8 @@ import {
   ShoppingCart,
   Heart,
   Share2,
-  Check,
-  X,
 } from "lucide-react";
+import { StockDisplay } from "@/components/catalog/StockDisplay";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 
 export default function ProductDetail() {
@@ -335,21 +334,10 @@ export default function ProductDetail() {
           </div>
 
           {/* Stock status */}
-          <div className="flex items-center gap-2">
-            {isInStock ? (
-              <>
-                <Check className="h-5 w-5 text-green-500" />
-                <span className="text-green-600 font-medium">В наявності</span>
-              </>
-            ) : (
-              <>
-                <X className="h-5 w-5 text-destructive" />
-                <span className="text-destructive font-medium">
-                  Немає в наявності
-                </span>
-              </>
-            )}
-          </div>
+          <StockDisplay
+            productId={hasModifications ? null : product.id}
+            modificationId={hasModifications ? selectedModId : null}
+          />
 
           <Separator />
 
