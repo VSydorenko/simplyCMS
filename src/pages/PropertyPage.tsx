@@ -84,7 +84,7 @@ export default function PropertyPage() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(price, old_price, is_in_stock, is_default, sort_order)
+          product_modifications(price, old_price, stock_status, is_default, sort_order)
         `)
         .in("id", Array.from(productIds))
         .eq("is_active", true);

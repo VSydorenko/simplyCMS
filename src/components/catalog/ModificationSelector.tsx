@@ -3,13 +3,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type StockStatus = 'in_stock' | 'out_of_stock' | 'on_order';
+
 interface Modification {
   id: string;
   name: string;
   slug: string;
   price: number;
   old_price?: number | null;
-  is_in_stock: boolean;
+  stock_status?: StockStatus | null;
   sku?: string | null;
 }
 
@@ -47,7 +49,7 @@ export function ModificationSelector({
               selectedId === mod.id
                 ? "border-primary bg-primary/5"
                 : "border-border hover:border-muted-foreground/50",
-              !mod.is_in_stock && "opacity-60"
+              mod.stock_status === "out_of_stock" && "opacity-60"
             )}
           >
             <div className="flex items-center gap-3">
@@ -62,8 +64,13 @@ export function ModificationSelector({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {!mod.is_in_stock && (
+              {mod.stock_status === "out_of_stock" && (
                 <Badge variant="secondary">Немає в наявності</Badge>
+              )}
+              {mod.stock_status === "on_order" && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                  Під замовлення
+                </Badge>
               )}
               <div className="text-right">
                 <div className="font-bold text-primary">

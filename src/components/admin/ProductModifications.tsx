@@ -31,7 +31,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Loader2, Image } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { ProductPropertyValues } from "./ProductPropertyValues";
+import { StockStatusSelect } from "./StockStatusSelect";
+import { StockByPointManager } from "./StockByPointManager";
 import type { Tables } from "@/integrations/supabase/types";
+import type { StockStatus } from "@/hooks/useStock";
 
 type ProductModification = Tables<"product_modifications">;
 
@@ -44,6 +47,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
   const [isOpen, setIsOpen] = useState(false);
   const [editingModification, setEditingModification] = useState<ProductModification | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [stockStatus, setStockStatus] = useState<StockStatus>("in_stock");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -122,7 +126,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       sku: (formData.get("sku") as string) || null,
       price: parseFloat(formData.get("price") as string) || 0,
       old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
-      stock_quantity: parseInt(formData.get("stock_quantity") as string) || 0,
+      stock_status: stockStatus,
       is_default: formData.get("is_default") === "on",
       sort_order: parseInt(formData.get("sort_order") as string) || 0,
       images: images,
@@ -139,12 +143,14 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     setEditingModification(modification);
     const existingImages = Array.isArray(modification.images) ? modification.images as string[] : [];
     setImages(existingImages);
+    setStockStatus(modification.stock_status as StockStatus || "in_stock");
     setIsOpen(true);
   };
 
   const openCreate = () => {
     setEditingModification(null);
     setImages([]);
+    setStockStatus("in_stock");
     setIsOpen(true);
   };
 
@@ -152,6 +158,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
     setIsOpen(false);
     setEditingModification(null);
     setImages([]);
+    setStockStatus("in_stock");
   };
 
   const formatPrice = (price: number) => {
@@ -159,6 +166,31 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       style: "currency",
       currency: "UAH",
     }).format(price);
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case "in_stock":
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            В наявності
+          </span>
+        );
+      case "out_of_stock":
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+            Немає
+          </span>
+        );
+      case "on_order":
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+            Під замовлення
+          </span>
+        );
+      default:
+        return null;
+    }
   };
 
   if (isLoading) {
@@ -247,16 +279,10 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="mod-stock">Кількість на складі</Label>
-                    <Input
-                      id="mod-stock"
-                      name="stock_quantity"
-                      type="number"
-                      min="0"
-                      defaultValue={editingModification?.stock_quantity ?? 0}
-                    />
-                  </div>
+                  <StockStatusSelect
+                    value={stockStatus}
+                    onChange={setStockStatus}
+                  />
                   <div className="space-y-2">
                     <Label htmlFor="mod-sort">Порядок сортування</Label>
                     <Input
@@ -269,23 +295,13 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="mod-in-stock"
-                      name="is_in_stock"
-                      defaultChecked={editingModification?.is_in_stock ?? true}
-                    />
-                    <Label htmlFor="mod-in-stock">В наявності</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="mod-default"
-                      name="is_default"
-                      defaultChecked={editingModification?.is_default ?? false}
-                    />
-                    <Label htmlFor="mod-default">За замовчуванням</Label>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="mod-default"
+                    name="is_default"
+                    defaultChecked={editingModification?.is_default ?? false}
+                  />
+                  <Label htmlFor="mod-default">За замовчуванням</Label>
                 </div>
 
                 {/* Images section */}
@@ -298,6 +314,21 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                     maxImages={10}
                   />
                 </div>
+
+                {/* Stock by point for existing modifications */}
+                {editingModification && (
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="stock">
+                      <AccordionTrigger>Залишки по складах</AccordionTrigger>
+                      <AccordionContent>
+                        <StockByPointManager
+                          modificationId={editingModification.id}
+                          showCard={false}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
 
                 {/* Properties section for existing modifications */}
                 {editingModification && sectionId && (
@@ -342,20 +373,19 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                 <TableHead>Назва</TableHead>
                 <TableHead>Артикул</TableHead>
                 <TableHead>Ціна</TableHead>
-                <TableHead>Залишок</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead className="text-right">Дії</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {modifications.map((mod) => {
-                const images = Array.isArray(mod.images) ? mod.images as string[] : [];
+                const modImages = Array.isArray(mod.images) ? mod.images as string[] : [];
                 return (
                   <TableRow key={mod.id}>
                     <TableCell>
-                      {images.length > 0 ? (
+                      {modImages.length > 0 ? (
                         <img
-                          src={images[0]}
+                          src={modImages[0]}
                           alt={mod.name}
                           className="h-10 w-10 object-cover rounded"
                           onError={(e) => {
@@ -390,20 +420,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={mod.stock_quantity > 0 ? "text-green-600" : "text-red-600"}>
-                        {mod.stock_quantity} шт.
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          mod.is_in_stock
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
-                      >
-                        {mod.is_in_stock ? "В наявності" : "Немає"}
-                      </span>
+                      {getStatusBadge(mod.stock_status)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

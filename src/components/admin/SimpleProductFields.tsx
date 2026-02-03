@@ -1,32 +1,32 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StockStatusSelect } from "./StockStatusSelect";
+import { StockByPointManager } from "./StockByPointManager";
+import type { StockStatus } from "@/hooks/useStock";
 
 interface SimpleProductFieldsProps {
+  productId: string;
   price: number | null;
   oldPrice: number | null;
   sku: string;
-  stockQuantity: number;
-  isInStock: boolean;
+  stockStatus: StockStatus;
   onPriceChange: (value: number | null) => void;
   onOldPriceChange: (value: number | null) => void;
   onSkuChange: (value: string) => void;
-  onStockQuantityChange: (value: number) => void;
-  onIsInStockChange: (value: boolean) => void;
+  onStockStatusChange: (value: StockStatus) => void;
 }
 
 export function SimpleProductFields({
+  productId,
   price,
   oldPrice,
   sku,
-  stockQuantity,
-  isInStock,
+  stockStatus,
   onPriceChange,
   onOldPriceChange,
   onSkuChange,
-  onStockQuantityChange,
-  onIsInStockChange,
+  onStockStatusChange,
 }: SimpleProductFieldsProps) {
   return (
     <Card>
@@ -77,27 +77,13 @@ export function SimpleProductFields({
               placeholder="INV-001"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="stock_quantity">Кількість на складі</Label>
-            <Input
-              id="stock_quantity"
-              type="number"
-              min={0}
-              value={stockQuantity}
-              onChange={(e) => onStockQuantityChange(parseInt(e.target.value) || 0)}
-              placeholder="0"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <Label htmlFor="is_in_stock">В наявності</Label>
-          <Switch
-            id="is_in_stock"
-            checked={isInStock}
-            onCheckedChange={onIsInStockChange}
+          <StockStatusSelect
+            value={stockStatus}
+            onChange={onStockStatusChange}
           />
         </div>
+
+        <StockByPointManager productId={productId} showCard={false} />
       </CardContent>
     </Card>
   );

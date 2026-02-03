@@ -48,7 +48,7 @@ export default function Catalog() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(id, price, old_price, is_in_stock, is_default, sort_order),
+          product_modifications(id, price, old_price, stock_status, is_default, sort_order),
           product_property_values(property_id, value, numeric_value, option_id)
         `)
         .eq("is_active", true);
