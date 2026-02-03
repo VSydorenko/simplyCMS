@@ -14,6 +14,7 @@ import {
   ListChecks,
   Puzzle,
 } from "lucide-react";
+import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
   Sidebar,
   SidebarContent,
@@ -153,6 +154,26 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Plugin slot: sidebar items from plugins */}
+        <PluginSlot 
+          name="admin.sidebar.items" 
+          context={{ collapsed }}
+          wrapper={(children) => (
+            <SidebarGroup>
+              <SidebarGroupLabel>{!collapsed && "Розширення"}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {children.map((child, index) => (
+                    <SidebarMenuItem key={`plugin-item-${index}`}>
+                      {child}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        />
 
         {/* Settings */}
         <SidebarGroup>
