@@ -42,6 +42,8 @@ import { formatShippingCost } from "@/lib/shipping";
 const formSchema = z.object({
   name: z.string().min(1, "Назва обов'язкова"),
   description: z.string().optional(),
+  cities: z.string().optional(),
+  regions: z.string().optional(),
   is_active: z.boolean(),
   is_default: z.boolean(),
   sort_order: z.number().int().min(0),
@@ -56,6 +58,21 @@ const calculationTypeLabels: Record<ShippingCalculationType, string> = {
   free_from: "Безкоштовно від суми",
   plugin: "Розрахунок плагіном",
 };
+
+// Parse comma/newline separated string into array
+function parseStringToArray(str: string | undefined): string[] {
+  if (!str) return [];
+  return str
+    .split(/[,\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+// Convert array to comma-separated string
+function arrayToString(arr: string[] | undefined): string {
+  if (!arr || arr.length === 0) return "";
+  return arr.join(", ");
+}
 
 export default function ShippingZoneEdit() {
   const { zoneId } = useParams();
@@ -111,6 +128,8 @@ export default function ShippingZoneEdit() {
     defaultValues: {
       name: "",
       description: "",
+      cities: "",
+      regions: "",
       is_active: true,
       is_default: false,
       sort_order: 0,
@@ -119,6 +138,8 @@ export default function ShippingZoneEdit() {
       ? {
           name: zone.name,
           description: zone.description || "",
+          cities: arrayToString(zone.cities),
+          regions: arrayToString(zone.regions),
           is_active: zone.is_active,
           is_default: zone.is_default,
           sort_order: zone.sort_order,
@@ -131,6 +152,8 @@ export default function ShippingZoneEdit() {
       const payload = {
         name: values.name,
         description: values.description || null,
+        cities: parseStringToArray(values.cities),
+        regions: parseStringToArray(values.regions),
         is_active: values.is_active,
         is_default: values.is_default,
         sort_order: values.sort_order,
@@ -175,7 +198,6 @@ export default function ShippingZoneEdit() {
 
   const addRate = useMutation({
     mutationFn: async (methodId: string) => {
-      const method = methods?.find((m) => m.id === methodId);
       const { error } = await supabase.from("shipping_rates").insert([{
         method_id: methodId,
         zone_id: zoneId,
@@ -278,6 +300,56 @@ export default function ShippingZoneEdit() {
                         </FormControl>
                         <FormDescription>
                           Менший номер = вищий пріоритет при визначенні зони
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Cities and Regions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Географія</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="cities"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Міста</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Київ, Бровари, Вишневе, Ірпінь"
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Введіть назви міст через кому або кожне місто з нового рядка
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="regions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Регіони (опціонально)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Київська область"
+                            className="min-h-[60px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Якщо потрібно, вкажіть регіони/області
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -397,7 +469,7 @@ export default function ShippingZoneEdit() {
                         <div>
                           <FormLabel>За замовчуванням</FormLabel>
                           <FormDescription>
-                            Fallback для невизначених локацій
+                            Застосовується, якщо місто не знайдено
                           </FormDescription>
                         </div>
                         <FormControl>

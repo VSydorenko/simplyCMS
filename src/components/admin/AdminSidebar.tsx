@@ -16,7 +16,6 @@ import {
   Truck,
   Map,
   Building,
-  MapPin,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -50,7 +49,6 @@ const shippingItems = [
   { title: "Служби доставки", url: "/admin/shipping/methods", icon: Truck },
   { title: "Зони доставки", url: "/admin/shipping/zones", icon: Map },
   { title: "Точки самовивозу", url: "/admin/shipping/pickup-points", icon: Building },
-  { title: "Локації", url: "/admin/shipping/locations", icon: MapPin },
 ];
 
 const settingsItems = [

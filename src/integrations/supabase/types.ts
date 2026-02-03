@@ -70,50 +70,6 @@ export type Database = {
         }
         Relationships: []
       }
-      locations: {
-        Row: {
-          code: string | null
-          created_at: string
-          id: string
-          is_active: boolean
-          meta: Json | null
-          name: string
-          parent_id: string | null
-          sort_order: number
-          type: Database["public"]["Enums"]["location_type"]
-        }
-        Insert: {
-          code?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          meta?: Json | null
-          name: string
-          parent_id?: string | null
-          sort_order?: number
-          type?: Database["public"]["Enums"]["location_type"]
-        }
-        Update: {
-          code?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          meta?: Json | null
-          name?: string
-          parent_id?: string | null
-          sort_order?: number
-          type?: Database["public"]["Enums"]["location_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "locations_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       modification_property_values: {
         Row: {
           created_at: string
@@ -1134,80 +1090,38 @@ export type Database = {
           },
         ]
       }
-      shipping_zone_locations: {
-        Row: {
-          created_at: string
-          id: string
-          location_code: string | null
-          location_id: string | null
-          location_type: Database["public"]["Enums"]["zone_location_type"]
-          postcode_from: string | null
-          postcode_to: string | null
-          zone_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          location_code?: string | null
-          location_id?: string | null
-          location_type?: Database["public"]["Enums"]["zone_location_type"]
-          postcode_from?: string | null
-          postcode_to?: string | null
-          zone_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          location_code?: string | null
-          location_id?: string | null
-          location_type?: Database["public"]["Enums"]["zone_location_type"]
-          postcode_from?: string | null
-          postcode_to?: string | null
-          zone_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shipping_zone_locations_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shipping_zone_locations_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "shipping_zones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       shipping_zones: {
         Row: {
+          cities: string[] | null
           created_at: string
           description: string | null
           id: string
           is_active: boolean
           is_default: boolean
           name: string
+          regions: string[] | null
           sort_order: number
         }
         Insert: {
+          cities?: string[] | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
           name: string
+          regions?: string[] | null
           sort_order?: number
         }
         Update: {
+          cities?: string[] | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
           name?: string
+          regions?: string[] | null
           sort_order?: number
         }
         Relationships: []
@@ -1312,7 +1226,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      location_type: "country" | "region" | "city" | "district" | "street"
       property_type:
         | "text"
         | "number"
@@ -1328,7 +1241,6 @@ export type Database = {
         | "free_from"
         | "plugin"
       shipping_method_type: "system" | "manual" | "plugin"
-      zone_location_type: "all" | "country" | "region" | "city" | "postcode"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1457,7 +1369,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      location_type: ["country", "region", "city", "district", "street"],
       property_type: [
         "text",
         "number",
@@ -1475,7 +1386,6 @@ export const Constants = {
         "plugin",
       ],
       shipping_method_type: ["system", "manual", "plugin"],
-      zone_location_type: ["all", "country", "region", "city", "postcode"],
     },
   },
 } as const
