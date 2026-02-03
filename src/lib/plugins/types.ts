@@ -123,16 +123,25 @@ export type HookName =
   | "admin.product.form.fields"
   | "admin.product.form.after"
   | "admin.product.form.sidebar"
+  | "admin.shipping.method.settings"
   // Public product hooks
   | "product.detail.before"
   | "product.detail.after"
   | "product.card.badges"
-  // Checkout & order hooks
+  // Checkout & shipping hooks
   | "checkout.steps"
+  | "checkout.shipping.before"
+  | "checkout.shipping.methods"
+  | "checkout.shipping.rates"
+  | "checkout.shipping.form"
+  | "checkout.shipping.validate"
+  | "checkout.shipping.after"
+  // Order hooks
   | "order.actions"
-  // Backend hooks
   | "order.created"
   | "order.status_changed"
+  | "order.shipping.process"
+  // Backend hooks
   | "product.before_save"
   | "user.registered";
 

@@ -13,6 +13,10 @@ import {
   Tags,
   ListChecks,
   Puzzle,
+  Truck,
+  Map,
+  Building,
+  MapPin,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -40,6 +44,13 @@ const ordersItems = [
 const servicesItems = [
   { title: "Послуги", url: "/admin/services", icon: Wrench },
   { title: "Заявки", url: "/admin/service-requests", icon: FileText },
+];
+
+const shippingItems = [
+  { title: "Служби доставки", url: "/admin/shipping/methods", icon: Truck },
+  { title: "Зони доставки", url: "/admin/shipping/zones", icon: Map },
+  { title: "Точки самовивозу", url: "/admin/shipping/pickup-points", icon: Building },
+  { title: "Локації", url: "/admin/shipping/locations", icon: MapPin },
 ];
 
 const settingsItems = [
@@ -138,6 +149,29 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {servicesItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Shipping */}
+        <SidebarGroup>
+          <SidebarGroupLabel>{!collapsed && "Доставка"}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {shippingItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
