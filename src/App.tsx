@@ -43,7 +43,7 @@ import ShippingZones from "./pages/admin/ShippingZones";
 import ShippingZoneEdit from "./pages/admin/ShippingZoneEdit";
 import PickupPoints from "./pages/admin/PickupPoints";
 import PickupPointEdit from "./pages/admin/PickupPointEdit";
-import Locations from "./pages/admin/Locations";
+
 
 // Public property pages
 import Properties from "./pages/Properties";
@@ -126,7 +126,6 @@ function App() {
                     <Route path="shipping/zones/:zoneId" element={<ShippingZoneEdit />} />
                     <Route path="shipping/pickup-points" element={<PickupPoints />} />
                     <Route path="shipping/pickup-points/:pointId" element={<PickupPointEdit />} />
-                    <Route path="shipping/locations" element={<Locations />} />
                     <Route path="services" element={<PlaceholderPage />} />
                     <Route path="service-requests" element={<PlaceholderPage />} />
                     <Route path="users" element={<PlaceholderPage />} />

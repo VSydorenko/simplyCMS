@@ -2,8 +2,6 @@
 
 export type ShippingMethodType = 'system' | 'manual' | 'plugin';
 export type ShippingCalculationType = 'flat' | 'weight' | 'order_total' | 'free_from' | 'plugin';
-export type LocationType = 'country' | 'region' | 'city' | 'district' | 'street';
-export type ZoneLocationType = 'all' | 'country' | 'region' | 'city' | 'postcode';
 
 export interface ShippingMethod {
   id: string;
@@ -20,45 +18,18 @@ export interface ShippingMethod {
   updated_at: string;
 }
 
-export interface Location {
-  id: string;
-  parent_id: string | null;
-  name: string;
-  type: LocationType;
-  code: string | null;
-  sort_order: number;
-  is_active: boolean;
-  meta: Record<string, unknown>;
-  created_at: string;
-  // For hierarchical display
-  children?: Location[];
-  level?: number;
-}
-
 export interface ShippingZone {
   id: string;
   name: string;
   description: string | null;
+  cities: string[];
+  regions: string[];
   is_active: boolean;
   is_default: boolean;
   sort_order: number;
   created_at: string;
   // Joined data
-  locations?: ShippingZoneLocation[];
   rates?: ShippingRate[];
-}
-
-export interface ShippingZoneLocation {
-  id: string;
-  zone_id: string;
-  location_id: string | null;
-  location_type: ZoneLocationType;
-  location_code: string | null;
-  postcode_from: string | null;
-  postcode_to: string | null;
-  created_at: string;
-  // Joined data
-  location?: Location;
 }
 
 export interface ShippingRate {
