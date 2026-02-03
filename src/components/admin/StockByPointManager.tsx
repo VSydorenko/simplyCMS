@@ -78,32 +78,39 @@ export function StockByPointManager({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const records: StockRecord[] = Object.entries(stockData).map(
-        ([pointId, quantity]) => ({
-          pickup_point_id: pointId,
-          quantity,
-        })
-      );
+      for (const [pointId, quantity] of Object.entries(stockData)) {
+        // Find existing record for this point
+        const existingRecord = existingStock?.find(
+          (s) => s.pickup_point_id === pointId
+        );
 
-      for (const record of records) {
-        const payload: any = {
-          pickup_point_id: record.pickup_point_id,
-          quantity: record.quantity,
-        };
+        if (existingRecord) {
+          // Update existing record
+          const { error } = await supabase
+            .from("stock_by_pickup_point")
+            .update({ quantity, updated_at: new Date().toISOString() })
+            .eq("id", existingRecord.id);
 
-        if (modificationId) {
-          payload.modification_id = modificationId;
-        } else if (productId) {
-          payload.product_id = productId;
+          if (error) throw error;
+        } else {
+          // Insert new record
+          const payload: any = {
+            pickup_point_id: pointId,
+            quantity,
+          };
+
+          if (modificationId) {
+            payload.modification_id = modificationId;
+          } else if (productId) {
+            payload.product_id = productId;
+          }
+
+          const { error } = await supabase
+            .from("stock_by_pickup_point")
+            .insert(payload);
+
+          if (error) throw error;
         }
-
-        const { error } = await supabase
-          .from("stock_by_pickup_point")
-          .upsert(payload, {
-            onConflict: "pickup_point_id,product_id,modification_id",
-          });
-
-        if (error) throw error;
       }
     },
     onSuccess: () => {
