@@ -138,6 +138,7 @@ export type HookName =
 
 // Plugin module interface
 export interface PluginModule {
+  manifest?: PluginManifest;
   register: (registry: HookRegistryInterface) => void;
   unregister?: (registry: HookRegistryInterface) => void;
 }
