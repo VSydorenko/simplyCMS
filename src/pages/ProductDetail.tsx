@@ -326,26 +326,28 @@ export default function ProductDetail() {
 
           {/* Title and badges */}
           <div>
-            <div className="flex items-start gap-3 mb-2">
-              {discountPercent && (
-                <Badge variant="destructive">-{discountPercent}%</Badge>
-              )}
-              {stockStatus === "on_order" && (
-                <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
-                  Під замовлення
-                </Badge>
-              )}
-              {!isInStock && (
-                <Badge variant="secondary">Немає в наявності</Badge>
-              )}
-              {/* Plugin slot: product badges */}
-              <PluginSlot 
-                name="product.card.badges" 
-                context={{ product, selectedMod }} 
-                wrapper={(children) => <>{children}</>}
-              />
+            {discountPercent && (
+              <Badge variant="destructive" className="mb-2">-{discountPercent}%</Badge>
+            )}
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl font-bold">{product.name}</h1>
+              <div className="flex items-center gap-2 flex-shrink-0 pt-1">
+                {stockStatus === "on_order" && (
+                  <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                    Під замовлення
+                  </Badge>
+                )}
+                {!isInStock && stockStatus !== "on_order" && (
+                  <Badge variant="secondary">Немає в наявності</Badge>
+                )}
+                {/* Plugin slot: product badges */}
+                <PluginSlot 
+                  name="product.card.badges" 
+                  context={{ product, selectedMod }} 
+                  wrapper={(children) => <>{children}</>}
+                />
+              </div>
             </div>
-            <h1 className="text-3xl font-bold">{product.name}</h1>
             {sku && (
               <p className="text-sm text-muted-foreground mt-1">
                 Артикул: {sku}
@@ -460,14 +462,18 @@ export default function ProductDetail() {
         )}
       </section>
 
+      <Separator className="my-8" />
+
       {/* Characteristics section */}
-      <section id="section-characteristics" className="mt-12 scroll-mt-16">
+      <section id="section-characteristics" className="scroll-mt-16">
         <h2 className="text-xl font-semibold mb-4">Характеристики</h2>
         <ProductCharacteristics propertyValues={propertyValues} />
       </section>
 
+      <Separator className="my-8" />
+
       {/* Availability section */}
-      <section id="section-availability" className="mt-12 scroll-mt-16">
+      <section id="section-availability" className="scroll-mt-16">
         <h2 className="text-xl font-semibold mb-4">Наявність на складах</h2>
         <StockDisplay
           productId={hasModifications ? null : product.id}
