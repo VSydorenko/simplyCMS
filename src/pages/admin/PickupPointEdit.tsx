@@ -140,6 +140,9 @@ export default function PickupPointEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pickup-points"] });
+      if (!isNew) {
+        queryClient.invalidateQueries({ queryKey: ["pickup-point", pointId] });
+      }
       toast.success(isNew ? "Точку створено" : "Зміни збережено");
       navigate("/admin/shipping/pickup-points");
     },
