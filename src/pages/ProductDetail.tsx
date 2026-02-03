@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { ProductGallery } from "@/components/catalog/ProductGallery";
 import { ModificationSelector, type ModificationStockInfo } from "@/components/catalog/ModificationSelector";
 import { ProductCharacteristics } from "@/components/catalog/ProductCharacteristics";
@@ -367,12 +367,6 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Stock status */}
-          <StockDisplay
-            productId={hasModifications ? null : product.id}
-            modificationId={hasModifications ? selectedModId : null}
-          />
-
           <Separator />
 
           {/* Short description */}
@@ -429,38 +423,57 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Tabs section */}
-      <div className="mt-12">
-        <Tabs defaultValue="description">
-          <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
-            <TabsTrigger
-              value="description"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-            >
-              Опис
-            </TabsTrigger>
-            <TabsTrigger
-              value="characteristics"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-            >
-              Характеристики
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="description" className="mt-6">
-            {product.description ? (
-              <div
-                className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
-            ) : (
-              <p className="text-muted-foreground">Опис товару відсутній</p>
-            )}
-          </TabsContent>
-          <TabsContent value="characteristics" className="mt-6">
-            <ProductCharacteristics propertyValues={propertyValues} />
-          </TabsContent>
-        </Tabs>
+      {/* Section navigation */}
+      <div className="mt-12 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <nav className="flex gap-1">
+          <button
+            onClick={() => document.getElementById('section-description')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent hover:border-primary"
+          >
+            Опис
+          </button>
+          <button
+            onClick={() => document.getElementById('section-characteristics')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent hover:border-primary"
+          >
+            Характеристики
+          </button>
+          <button
+            onClick={() => document.getElementById('section-availability')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent hover:border-primary"
+          >
+            Наявність
+          </button>
+        </nav>
       </div>
+
+      {/* Description section */}
+      <section id="section-description" className="mt-8 scroll-mt-16">
+        <h2 className="text-xl font-semibold mb-4">Опис</h2>
+        {product.description ? (
+          <div
+            className="prose prose-sm max-w-none dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: product.description }}
+          />
+        ) : (
+          <p className="text-muted-foreground">Опис товару відсутній</p>
+        )}
+      </section>
+
+      {/* Characteristics section */}
+      <section id="section-characteristics" className="mt-12 scroll-mt-16">
+        <h2 className="text-xl font-semibold mb-4">Характеристики</h2>
+        <ProductCharacteristics propertyValues={propertyValues} />
+      </section>
+
+      {/* Availability section */}
+      <section id="section-availability" className="mt-12 scroll-mt-16">
+        <h2 className="text-xl font-semibold mb-4">Наявність на складах</h2>
+        <StockDisplay
+          productId={hasModifications ? null : product.id}
+          modificationId={hasModifications ? selectedModId : null}
+        />
+      </section>
 
       {/* Plugin slot: after product content */}
       <PluginSlot name="product.detail.after" context={{ product, selectedMod, propertyValues }} />
