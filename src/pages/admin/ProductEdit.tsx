@@ -25,6 +25,7 @@ import { ProductPropertyValues } from "@/components/admin/ProductPropertyValues"
 import { ProductModifications } from "@/components/admin/ProductModifications";
 import { SimpleProductFields } from "@/components/admin/SimpleProductFields";
 import { AllProductProperties } from "@/components/admin/AllProductProperties";
+import { PluginSlot } from "@/components/plugins/PluginSlot";
 
 export default function ProductEdit() {
   const { productId } = useParams<{ productId: string }>();
@@ -221,6 +222,12 @@ export default function ProductEdit() {
         </Button>
       </div>
 
+      {/* Plugin slot: before product form */}
+      <PluginSlot 
+        name="admin.product.form.before" 
+        context={{ product, formData, isNew, productId }} 
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
@@ -309,6 +316,12 @@ export default function ProductEdit() {
             </CardContent>
           </Card>
 
+          {/* Plugin slot: additional form fields from plugins */}
+          <PluginSlot 
+            name="admin.product.form.fields" 
+            context={{ product, formData, isNew, productId, handleChange }} 
+          />
+
           {/* Simple product fields - only for simple products */}
           {!isNew && !formData.has_modifications && (
             <SimpleProductFields
@@ -345,6 +358,12 @@ export default function ProductEdit() {
           {!isNew && formData.has_modifications && (
             <ProductModifications productId={productId!} sectionId={formData.section_id} />
           )}
+
+          {/* Plugin slot: after main form content */}
+          <PluginSlot 
+            name="admin.product.form.after" 
+            context={{ product, formData, isNew, productId }} 
+          />
         </div>
 
         {/* Sidebar */}
@@ -418,6 +437,12 @@ export default function ProductEdit() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Plugin slot: sidebar items from plugins */}
+          <PluginSlot 
+            name="admin.product.form.sidebar" 
+            context={{ product, formData, isNew, productId }} 
+          />
 
           {!isNew && (
             <Card>
