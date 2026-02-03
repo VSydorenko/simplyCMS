@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, Building } from "lucide-react";
+import { Plus, Trash2, Building, Shield } from "lucide-react";
 
 export default function PickupPoints() {
   const navigate = useNavigate();
@@ -120,6 +120,12 @@ export default function PickupPoints() {
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-muted-foreground" />
                         <div className="font-medium">{point.name}</div>
+                        {point.is_system && (
+                          <Badge variant="secondary" className="gap-1">
+                            <Shield className="h-3 w-3" />
+                            Системна
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{point.city}</TableCell>
@@ -145,18 +151,20 @@ export default function PickupPoints() {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm("Видалити цю точку самовивозу?")) {
-                            deletePoint.mutate(point.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {!point.is_system && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Видалити цю точку самовивозу?")) {
+                              deletePoint.mutate(point.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
