@@ -1,419 +1,412 @@
 
-# План: Інтеграція управління залишками по точках самовивозу (складах)
+# План: Система управління користувачами з підтримкою отримувачів
 
-## Огляд
+## Загальний огляд
+Реалізація повноцінної системи управління користувачами в адмін-панелі з можливістю призначення ролей, автоматичної та ручної зміни категорій, управління профілями (включаючи аватари), збереження адрес доставки та контактних осіб (отримувачів). Особлива увага приділяється інтеграції отримувачів у процес оформлення замовлення.
 
-Повна переробка системи обліку залишків товарів: замість простого поля `stock_quantity` та прапорця `is_in_stock` у товарах/модифікаціях, залишки будуть зберігатись по кожній точці самовивозу (складу) окремо.
+---
 
-## Концепція
+## Частина 1: База даних
+
+### Нові таблиці
+
+**1. `user_category_history`** - історія зміни категорій
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid | PK |
+| user_id | uuid | FK до auth.users |
+| from_category_id | uuid | Попередня категорія (nullable) |
+| to_category_id | uuid | Нова категорія |
+| reason | text | Причина зміни |
+| rule_id | uuid | FK до правила (nullable) |
+| changed_by | uuid | Хто змінив (null = автоматично) |
+| created_at | timestamp | Час зміни |
+
+**2. `category_rules`** - правила автоматичного переходу
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid | PK |
+| name | text | Назва правила |
+| description | text | Опис |
+| from_category_id | uuid | З якої категорії (null = всі) |
+| to_category_id | uuid | До якої категорії |
+| conditions | jsonb | Умови у структурованому форматі |
+| is_active | boolean | Активне правило |
+| priority | integer | Пріоритет виконання |
+| created_at | timestamp | |
+
+Приклад conditions:
+```json
+{
+  "type": "all",
+  "rules": [
+    {"field": "total_purchases", "operator": ">=", "value": 50000},
+    {"field": "registration_days", "operator": ">=", "value": 30}
+  ]
+}
+```
+
+Підтримувані поля умов:
+- `total_purchases` - сума всіх покупок
+- `registration_days` - кількість днів з реєстрації
+- `utm_source` / `utm_campaign` - UTM мітки
+- `email_domain` - домен email
+- `auth_provider` - провайдер авторизації (google, email)
+
+**3. `user_addresses`** - збережені адреси користувача
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid | PK |
+| user_id | uuid | FK до auth.users |
+| name | text | Назва адреси ("Дім", "Робота") |
+| city | text | Місто |
+| address | text | Повна адреса |
+| is_default | boolean | Адреса за замовчуванням |
+| created_at | timestamp | |
+
+**4. `user_recipients`** - контактні особи (отримувачі)
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid | PK |
+| user_id | uuid | FK до auth.users |
+| first_name | text | Ім'я |
+| last_name | text | Прізвище |
+| phone | text | Телефон |
+| email | text | Email (optional) |
+| city | text | Місто |
+| address | text | Адреса доставки |
+| notes | text | Нотатки |
+| is_default | boolean | Основний отримувач |
+| created_at | timestamp | |
+
+### Зміни в існуючих таблицях
+
+**`profiles`** - додати поля:
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| avatar_url | text | URL аватара |
+| default_shipping_method_id | uuid | Метод доставки за замовчуванням |
+| default_pickup_point_id | uuid | Точка самовивозу за замовчуванням |
+| auth_provider | text | google, email тощо |
+| registration_utm | jsonb | UTM мітки при реєстрації |
+
+**`orders`** - додати поля для отримувача:
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| has_different_recipient | boolean | Чи є інший отримувач |
+| recipient_first_name | text | Ім'я отримувача |
+| recipient_last_name | text | Прізвище отримувача |
+| recipient_phone | text | Телефон отримувача |
+| recipient_email | text | Email отримувача (optional) |
+| saved_recipient_id | uuid | FK до user_recipients (якщо збережено) |
+
+---
+
+## Частина 2: Механізм отримувачів при оформленні замовлення
+
+### Логіка роботи на Checkout
 
 ```text
-БУЛО:
-  product_modifications.stock_quantity = 10
-  product_modifications.is_in_stock = true
++---------------------------------------------+
+|          Контактні дані замовника           |
+|  [Ім'я] [Прізвище] [Email] [Телефон]        |
++---------------------------------------------+
 
-СТАНЕ:
-  stock_by_pickup_point:
-    - modification_id, pickup_point_id = "Склад Київ", quantity = 7
-    - modification_id, pickup_point_id = "Склад Львів", quantity = 3
-
-  Загальний залишок = 10 (сума)
-  Статус наявності = обчислюється автоматично або вручну ("під замовлення")
++---------------------------------------------+
+|  [ ] Інший отримувач                        |
+|                                             |
+|  Якщо галочка активна:                      |
+|  +---------------------------------------+  |
+|  | Дані отримувача                       |  |
+|  | [Ім'я] [Прізвище] [Телефон]           |  |
+|  | [Email - optional]                    |  |
+|  | [Місто] [Адреса]                      |  |
+|  | [Нотатки]                             |  |
+|  |                                       |  |
+|  | [ ] Запам'ятати отримувача            |  |
+|  +---------------------------------------+  |
+|                                             |
+|  Або вибрати збереженого (якщо є):          |
+|  [Select: Мама (Київ), Друг (Львів)]        |
++---------------------------------------------+
 ```
 
-## Ключові вимоги (з відповідей користувача)
+### Сценарії роботи:
 
-1. **Налаштування системи**: Галочка "Зменшувати залишок при оформленні замовлення"
-2. **Відображення залишків**: По кожній точці окремо; загальна кількість у списках/фільтрах
-3. **Статус наявності**: Enum з трьома значеннями: `in_stock`, `out_of_stock`, `on_order`
-4. **Fallback для однієї точки**: Спрощений інтерфейс без деталізації, якщо склад один
-5. **Системна точка**: Завжди є мінімум одна точка (системна), яку не можна видалити
-6. **Фільтри**: Враховувати наявність модифікацій при фільтрації
+**Сценарій 1: Замовник = Отримувач**
+- Галочка "Інший отримувач" не активна
+- В замовлення записуються тільки дані замовника
+- `has_different_recipient = false`
+- Поля `recipient_*` залишаються NULL
 
----
+**Сценарій 2: Інший отримувач (без збереження)**
+- Галочка "Інший отримувач" активна
+- Заповнюються поля отримувача
+- Галочка "Запам'ятати" не активна
+- `has_different_recipient = true`
+- Поля `recipient_*` заповнюються
+- `saved_recipient_id = NULL`
+- Запис в `user_recipients` НЕ створюється
 
-## Частина 1: Зміни в базі даних
+**Сценарій 3: Інший отримувач (зі збереженням)**
+- Галочка "Інший отримувач" активна
+- Заповнюються поля отримувача
+- Галочка "Запам'ятати" активна
+- При сабміті:
+  1. Створюється запис в `user_recipients`
+  2. `saved_recipient_id` = ID нового запису
+  3. `has_different_recipient = true`
+  4. Поля `recipient_*` також заповнюються (дублювання для історії)
 
-### 1.1. Нова таблиця `system_settings`
-```sql
-CREATE TABLE system_settings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  key varchar(100) UNIQUE NOT NULL,
-  value jsonb NOT NULL DEFAULT '{}',
-  description text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+**Сценарій 4: Вибір збереженого отримувача**
+- Галочка "Інший отримувач" активна
+- Користувач обирає зі списку збережених отримувачів
+- Поля автозаповнюються даними обраного отримувача
+- `saved_recipient_id` = ID обраного
+- Поля `recipient_*` заповнюються (копія на момент замовлення)
 
--- Початкове налаштування
-INSERT INTO system_settings (key, value, description)
-VALUES ('stock_management', '{"decrease_on_order": false}', 
-        'Налаштування управління залишками');
-```
+### Відображення в замовленні (адмін + профіль)
 
-### 1.2. Нова таблиця `stock_by_pickup_point`
-```sql
-CREATE TABLE stock_by_pickup_point (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  pickup_point_id uuid NOT NULL REFERENCES pickup_points(id) ON DELETE CASCADE,
-  product_id uuid REFERENCES products(id) ON DELETE CASCADE,
-  modification_id uuid REFERENCES product_modifications(id) ON DELETE CASCADE,
-  quantity integer NOT NULL DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  
-  -- Один запис на комбінацію точка + товар/модифікація
-  UNIQUE (pickup_point_id, product_id, modification_id),
-  
-  -- Або товар, або модифікація (не обидва)
-  CHECK (
-    (product_id IS NOT NULL AND modification_id IS NULL) OR
-    (product_id IS NULL AND modification_id IS NOT NULL)
-  )
-);
-```
-
-### 1.3. Новий тип enum для статусу наявності
-```sql
-CREATE TYPE stock_status AS ENUM ('in_stock', 'out_of_stock', 'on_order');
-```
-
-### 1.4. Зміни в таблиці `products`
-```sql
--- Замінити is_in_stock (boolean) на stock_status (enum)
-ALTER TABLE products 
-  ADD COLUMN stock_status stock_status DEFAULT 'in_stock';
-
--- Міграція існуючих даних
-UPDATE products SET stock_status = CASE 
-  WHEN is_in_stock = true THEN 'in_stock'::stock_status
-  ELSE 'out_of_stock'::stock_status
-END;
-
--- Видалити старі поля (пізніше, після міграції UI)
-ALTER TABLE products DROP COLUMN is_in_stock;
-ALTER TABLE products DROP COLUMN stock_quantity;
-```
-
-### 1.5. Зміни в таблиці `product_modifications`
-```sql
-ALTER TABLE product_modifications 
-  ADD COLUMN stock_status stock_status DEFAULT 'in_stock';
-
-UPDATE product_modifications SET stock_status = CASE 
-  WHEN is_in_stock = true THEN 'in_stock'::stock_status
-  ELSE 'out_of_stock'::stock_status
-END;
-
-ALTER TABLE product_modifications DROP COLUMN is_in_stock;
-ALTER TABLE product_modifications DROP COLUMN stock_quantity;
-```
-
-### 1.6. Зміни в таблиці `pickup_points`
-```sql
--- Додати прапорець системної точки
-ALTER TABLE pickup_points 
-  ADD COLUMN is_system boolean DEFAULT false;
-
--- Створити системну точку, якщо немає жодної
-INSERT INTO pickup_points (name, city, address, method_id, is_system, is_active)
-SELECT 'Основний склад', 'Київ', 'Системна точка', 
-  (SELECT id FROM shipping_methods WHERE code = 'pickup' LIMIT 1),
-  true, true
-WHERE NOT EXISTS (SELECT 1 FROM pickup_points);
-```
-
-### 1.7. RPC функція для швидкого розрахунку наявності
-```sql
-CREATE OR REPLACE FUNCTION get_stock_info(p_modification_id uuid DEFAULT NULL, p_product_id uuid DEFAULT NULL)
-RETURNS TABLE (
-  total_quantity integer,
-  is_available boolean,
-  stock_status stock_status,
-  by_point jsonb
-) AS $$
-BEGIN
-  RETURN QUERY
-  WITH stock_data AS (
-    SELECT 
-      sbpp.pickup_point_id,
-      pp.name as point_name,
-      sbpp.quantity
-    FROM stock_by_pickup_point sbpp
-    JOIN pickup_points pp ON pp.id = sbpp.pickup_point_id AND pp.is_active = true
-    WHERE 
-      (p_modification_id IS NOT NULL AND sbpp.modification_id = p_modification_id)
-      OR (p_product_id IS NOT NULL AND sbpp.product_id = p_product_id)
-  ),
-  aggregated AS (
-    SELECT 
-      COALESCE(SUM(quantity), 0)::integer as total_qty,
-      jsonb_agg(jsonb_build_object(
-        'point_id', pickup_point_id,
-        'point_name', point_name,
-        'quantity', quantity
-      )) as points_data
-    FROM stock_data
-  ),
-  status_info AS (
-    SELECT 
-      CASE 
-        WHEN p_modification_id IS NOT NULL THEN 
-          (SELECT pm.stock_status FROM product_modifications pm WHERE pm.id = p_modification_id)
-        ELSE 
-          (SELECT p.stock_status FROM products p WHERE p.id = p_product_id)
-      END as current_status
-  )
-  SELECT 
-    a.total_qty,
-    (a.total_qty > 0 OR s.current_status = 'on_order') as is_available,
-    s.current_status,
-    COALESCE(a.points_data, '[]'::jsonb)
-  FROM aggregated a, status_info s;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-### 1.8. Тригер для зменшення залишків при замовленні
-```sql
-CREATE OR REPLACE FUNCTION decrease_stock_on_order()
-RETURNS TRIGGER AS $$
-DECLARE
-  should_decrease boolean;
-  point_id uuid;
-BEGIN
-  -- Перевірити налаштування
-  SELECT (value->>'decrease_on_order')::boolean INTO should_decrease
-  FROM system_settings WHERE key = 'stock_management';
-  
-  IF NOT should_decrease THEN
-    RETURN NEW;
-  END IF;
-  
-  -- Отримати точку самовивозу з замовлення
-  SELECT pickup_point_id INTO point_id FROM orders WHERE id = NEW.order_id;
-  
-  -- Якщо немає конкретної точки, використати першу з залишком
-  IF point_id IS NULL THEN
-    SELECT sbpp.pickup_point_id INTO point_id
-    FROM stock_by_pickup_point sbpp
-    WHERE 
-      (NEW.modification_id IS NOT NULL AND sbpp.modification_id = NEW.modification_id)
-      OR (NEW.product_id IS NOT NULL AND sbpp.product_id = NEW.product_id)
-    AND sbpp.quantity > 0
-    ORDER BY sbpp.quantity DESC
-    LIMIT 1;
-  END IF;
-  
-  IF point_id IS NOT NULL THEN
-    UPDATE stock_by_pickup_point
-    SET quantity = GREATEST(0, quantity - NEW.quantity),
-        updated_at = now()
-    WHERE pickup_point_id = point_id
-    AND (
-      (NEW.modification_id IS NOT NULL AND modification_id = NEW.modification_id)
-      OR (NEW.product_id IS NOT NULL AND product_id = NEW.product_id)
-    );
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER tr_decrease_stock_on_order_item
-AFTER INSERT ON order_items
-FOR EACH ROW EXECUTE FUNCTION decrease_stock_on_order();
+Якщо `has_different_recipient = true`:
+```text
+Замовник: Іван Петренко, +380501234567
+Отримувач: Марія Коваленко, +380671234567
+           м. Київ, вул. Хрещатик, 1
+           (Мама)
 ```
 
 ---
 
-## Частина 2: Зміни в UI (Адмін-панель)
+## Частина 3: Адмін-панель - Користувачі
 
-### 2.1. Сторінка налаштувань системи
-Новий файл: `src/pages/admin/Settings.tsx`
-- Галочка "Зменшувати залишок при оформленні замовлення"
-- Додати пункт меню "Налаштування" в AdminSidebar
+### Сторінка `/admin/users` - Список користувачів
+- Таблиця з колонками: Аватар, Ім'я, Email, Телефон, Категорія, Адмін, Сума покупок, Дата реєстрації
+- Фільтри: за категорією, за роллю (адмін/користувач), за періодом реєстрації
+- Пошук за email, ім'ям, телефоном
+- Клікабельний рядок відкриває детальну картку
 
-### 2.2. Редагування точки самовивозу
-Оновити `src/pages/admin/PickupPointEdit.tsx`:
-- Показати прапорець `is_system` (тільки для перегляду)
-- Заборонити видалення системної точки
+### Сторінка `/admin/users/:userId` - Картка користувача
 
-### 2.3. Список точок самовивозу
-Оновити `src/pages/admin/PickupPoints.tsx`:
-- Показати бейдж "Системна" для системної точки
-- Сховати кнопку видалення для системної точки
+**Секція 1: Основна інформація**
+- Аватар (з можливістю завантаження нового адміном)
+- ПІБ, Email, Телефон
+- Дата реєстрації
+- Провайдер авторизації (Google, Email тощо)
+- UTM мітки при реєстрації
 
-### 2.4. Компонент управління залишками
-Новий файл: `src/components/admin/StockByPointManager.tsx`
-- Таблиця з точками та їх залишками
-- Можливість редагувати кількість для кожної точки
-- Fallback: якщо тільки одна точка - показати просте поле кількості
+**Секція 2: Категорія та роль**
+- Поточна категорія з кнопкою зміни (Select)
+- Перемикач "Адміністратор" (простий toggle)
+- Кнопка "Історія змін категорії" - відкриває модальне вікно
 
-### 2.5. Редагування товару
-Оновити `src/pages/admin/ProductEdit.tsx`:
-- Замінити `is_in_stock` (Switch) на Select зі статусами: "В наявності", "Немає в наявності", "Під замовлення"
-- Для простих товарів: додати `StockByPointManager`
+**Секція 3: Статистика**
+- Загальна сума покупок
+- Кількість замовлень
+- Останнє замовлення
 
-### 2.6. Редагування модифікацій
-Оновити `src/components/admin/ProductModifications.tsx`:
-- Замінити Switch на Select статусів
-- Додати `StockByPointManager` для кожної модифікації
-
-### 2.7. SimpleProductFields
-Оновити `src/components/admin/SimpleProductFields.tsx`:
-- Замінити Switch + Input stock_quantity на новий компонент
-- Select для статусу + StockByPointManager
+**Секція 4: Замовлення**
+- Список останніх 10 замовлень з посиланнями
 
 ---
 
-## Частина 3: Зміни в публічній частині
+## Частина 4: Адмін-панель - Категорії користувачів
 
-### 3.1. Компонент відображення залишків
-Новий файл: `src/components/catalog/StockDisplay.tsx`
-- Якщо одна точка: "В наявності: X шт" або "Немає в наявності"
-- Якщо кілька точок: таблиця/список по точках
-- Спеціальний бейдж для статусу "Під замовлення"
+### Сторінка `/admin/user-categories` - Список категорій
+- Таблиця: Назва, Код, Множник ціни, За замовчуванням, Кількість користувачів
+- Кнопка "Додати категорію"
+- Клікабельний рядок
 
-### 3.2. Картка товару
-Оновити `src/components/catalog/ProductCard.tsx`:
-- Додати бейдж "Під замовлення" (жовтий/помаранчевий)
-- Логіка: stock_status === 'on_order'
-
-### 3.3. Детальна сторінка товару
-Оновити `src/pages/ProductDetail.tsx`:
-- Замінити простий текст "В наявності" на компонент `StockDisplay`
-- Оновлювати при зміні модифікації
-- Дозволити додавання в кошик для "Під замовлення" навіть без залишків
-
-### 3.4. Селектор модифікацій
-Оновити `src/components/catalog/ModificationSelector.tsx`:
-- Показувати залишок для кожної модифікації
-- Бейдж "Під замовлення" де потрібно
-
-### 3.5. Оформлення замовлення
-Оновити `src/pages/Checkout.tsx`:
-- Дозволяти замовлення товарів зі статусом "Під замовлення"
+### Сторінка `/admin/user-categories/:categoryId` - Редагування категорії
+- Назва, Код, Опис
+- Множник ціни (price_multiplier)
+- Перемикач "За замовчуванням"
 
 ---
 
-## Частина 4: Фільтри каталогу
+## Частина 5: Правила автоматичного переходу
 
-### 4.1. FilterSidebar
-Оновити `src/components/catalog/FilterSidebar.tsx`:
-- Додати чекбокс "Тільки в наявності" (опціонально)
-- Логіка: фільтрувати товари де є модифікації з залишком > 0 АБО статус = 'on_order'
+### Нова сторінка `/admin/user-categories/rules` - Правила переходу
+- Таблиця правил з пріоритетом та кнопками сортування
+- Кнопка "Додати правило"
+- Кнопка "Запустити перевірку всіх користувачів" (ручний запуск)
 
-### 4.2. Сторінка каталогу
-Оновити логіку фільтрації в `src/pages/CatalogSection.tsx`:
-- При фільтрації по властивостях враховувати наявність відфільтрованих модифікацій
+### Форма правила
+- Назва правила
+- З категорії → До категорії
+- Умови (візуальний конструктор):
+  - **Сума покупок** >= X грн
+  - **Днів з реєстрації** >= X
+  - **UTM мітка** містить "..."
+  - **Домен email** = "..."
+  - **Провайдер авторизації** = google/email/...
+- Пріоритет виконання
+- Активність
 
----
-
-## Частина 5: Хуки та утиліти
-
-### 5.1. Хук для роботи із залишками
-Новий файл: `src/hooks/useStock.ts`
-```typescript
-function useStock(productId?: string, modificationId?: string) {
-  // Виклик RPC get_stock_info
-  // Повертає { totalQuantity, isAvailable, stockStatus, byPoint }
-}
-```
-
-### 5.2. Хук для кількості точок
-Новий файл: `src/hooks/usePickupPointsCount.ts`
-```typescript
-function usePickupPointsCount() {
-  // Повертає кількість активних точок
-  // Використовується для визначення режиму відображення (спрощений/детальний)
-}
-```
+### Тригери перевірки
+1. **При завершенні замовлення** - при зміні статусу на "Виконано" автоматично перевіряються правила для користувача
+2. **Ручний запуск** - кнопка в адмінці для перевірки всіх користувачів
 
 ---
 
-## Послідовність реалізації
+## Частина 6: Профіль користувача (публічна частина)
 
-1. **Міграція БД**: Створити нові таблиці, enum, RPC функції
-2. **Типи TypeScript**: Оновити типи для нових структур
-3. **Хуки**: useStock, usePickupPointsCount
-4. **Адмін UI**: Settings, StockByPointManager, оновити форми товарів
-5. **Публічний UI**: StockDisplay, оновити картки та детальні сторінки
-6. **Фільтри**: Оновити логіку фільтрації
-7. **Checkout**: Логіка зменшення залишків
-8. **Тестування**: Перевірити всі сценарії
+### Сторінка `/profile/settings` - розширити
+
+**Секція: Аватар**
+- Відображення поточного аватара (з Google або завантаженого)
+- Кнопка "Завантажити фото"
+- Ліміт 5MB, формати JPG/PNG/WEBP
+
+**Секція: Адреси доставки**
+- Список збережених адрес
+- Кнопка "Додати адресу"
+- Редагування/видалення адрес
+- Позначка адреси за замовчуванням
+
+**Секція: Отримувачі**
+- Список контактних осіб
+- Кнопка "Додати отримувача"
+- Редагування/видалення отримувачів
+- Форма: Ім'я, Прізвище, Телефон, Email, Місто, Адреса, Нотатки
+- Позначка основного отримувача
+
+**Секція: Доставка за замовчуванням**
+- Вибір методу доставки за замовчуванням
+- Вибір точки самовивозу за замовчуванням
+
+---
+
+## Частина 7: Зберігання аватарів
+
+### Storage bucket: `user-avatars`
+- Публічний bucket
+- RLS політика: користувач може завантажувати лише в свою папку `{user_id}/`
+- Ліміт: 5MB
+- Формати: image/jpeg, image/png, image/webp
 
 ---
 
 ## Технічні деталі
 
-### Нова структура даних
+### Database функції
 
-```typescript
-// Статус наявності
-type StockStatus = 'in_stock' | 'out_of_stock' | 'on_order';
+**`check_category_rules(p_user_id uuid)`**
+- Отримує всі активні правила за пріоритетом
+- Для кожного правила перевіряє умови
+- Якщо умови виконані - змінює категорію та записує історію
+- Повертає boolean (чи була зміна)
 
-// Залишок по точці
-interface StockByPoint {
-  pointId: string;
-  pointName: string;
-  quantity: number;
-}
+**`get_user_stats(p_user_id uuid)`**
+- Повертає: total_purchases, orders_count, registration_days
 
-// Інформація про залишки
-interface StockInfo {
-  totalQuantity: number;
-  isAvailable: boolean;
-  stockStatus: StockStatus;
-  byPoint: StockByPoint[];
-}
+**`check_all_users_category_rules()`**
+- Перебирає всіх користувачів
+- Викликає check_category_rules для кожного
+- Повертає кількість змінених
 
-// Налаштування системи
-interface SystemSettings {
-  stockManagement: {
-    decreaseOnOrder: boolean;
-  };
-}
-```
+### Тригер на замовленнях
+При зміні статусу замовлення - перевірити чи це статус "completed":
+- Якщо так - викликати `check_category_rules` для user_id замовлення
 
-### Логіка визначення наявності
-
-```typescript
-function isProductAvailable(stockInfo: StockInfo): boolean {
-  // Якщо статус "під замовлення" - завжди доступний
-  if (stockInfo.stockStatus === 'on_order') return true;
-  
-  // Якщо статус "в наявності" - перевірити реальний залишок
-  if (stockInfo.stockStatus === 'in_stock') {
-    return stockInfo.totalQuantity > 0;
-  }
-  
-  // Статус "немає в наявності" - недоступний
-  return false;
-}
-```
-
-### Fallback для однієї точки
-
-```typescript
-function shouldShowSimplifiedView(pointsCount: number): boolean {
-  return pointsCount <= 1;
-}
-
-// В компоненті:
-if (shouldShowSimplifiedView(pickupPointsCount)) {
-  return <SimplifiedStockInput value={totalQuantity} onChange={...} />;
-} else {
-  return <StockByPointManager byPoint={stockByPoint} onChange={...} />;
+### Підтримка розширень
+Система правил через JSONB дозволяє плагінам додавати власні умови:
+```json
+{
+  "type": "plugin",
+  "plugin": "loyalty",
+  "field": "loyalty_points",
+  "operator": ">=",
+  "value": 1000
 }
 ```
 
 ---
 
-## Результат
+## Нові файли
 
-- Повноцінний облік залишків по складах (точках самовивозу)
-- Три статуси наявності: в наявності, немає, під замовлення
-- Автоматичне або ручне управління залишками при замовленні
-- Спрощений інтерфейс для магазинів з одним складом
-- Коректна фільтрація по наявності з урахуванням модифікацій
+### Адмін-панель
+```text
+src/pages/admin/Users.tsx                    - Список користувачів
+src/pages/admin/UserEdit.tsx                 - Картка користувача
+src/pages/admin/UserCategories.tsx           - Список категорій
+src/pages/admin/UserCategoryEdit.tsx         - Редагування категорії
+src/pages/admin/UserCategoryRules.tsx        - Правила переходу
+src/pages/admin/UserCategoryRuleEdit.tsx     - Редагування правила
+src/components/admin/UserCategoryHistory.tsx - Модальне вікно історії
+src/components/admin/CategoryRuleBuilder.tsx - Конструктор умов
+```
+
+### Checkout
+```text
+src/components/checkout/CheckoutRecipientForm.tsx - Форма іншого отримувача
+```
+
+### Профіль користувача
+```text
+src/components/profile/AvatarUpload.tsx      - Завантаження аватара
+src/components/profile/AddressesList.tsx     - Список адрес
+src/components/profile/AddressForm.tsx       - Форма адреси
+src/components/profile/RecipientsList.tsx    - Список отримувачів
+src/components/profile/RecipientForm.tsx     - Форма отримувача
+src/components/profile/DefaultDelivery.tsx   - Налаштування доставки
+src/pages/ProfileAddresses.tsx               - Сторінка адрес
+src/pages/ProfileRecipients.tsx              - Сторінка отримувачів
+```
+
+---
+
+## Маршрути (App.tsx)
+
+```typescript
+// Додати в admin routes:
+<Route path="users" element={<Users />} />
+<Route path="users/:userId" element={<UserEdit />} />
+<Route path="user-categories" element={<UserCategories />} />
+<Route path="user-categories/new" element={<UserCategoryEdit />} />
+<Route path="user-categories/:categoryId" element={<UserCategoryEdit />} />
+<Route path="user-categories/rules" element={<UserCategoryRules />} />
+<Route path="user-categories/rules/new" element={<UserCategoryRuleEdit />} />
+<Route path="user-categories/rules/:ruleId" element={<UserCategoryRuleEdit />} />
+
+// Додати в profile routes:
+<Route path="addresses" element={<ProfileAddresses />} />
+<Route path="recipients" element={<ProfileRecipients />} />
+```
+
+---
+
+## Порядок реалізації
+
+### Етап 1: База даних
+1. Міграція - нові таблиці (user_category_history, category_rules, user_addresses, user_recipients)
+2. Міграція - зміни в profiles (avatar_url, default_shipping_method_id, auth_provider, registration_utm)
+3. Міграція - зміни в orders (has_different_recipient, recipient_*, saved_recipient_id)
+4. Storage bucket для аватарів
+
+### Етап 2: Адмін-панель користувачів
+5. Список користувачів
+6. Картка користувача
+7. Toggle адміністратора
+
+### Етап 3: Категорії та правила
+8. CRUD категорій
+9. Правила переходу з конструктором умов
+10. Історія змін категорій
+11. Database функції для перевірки правил
+12. Тригер на замовленнях
+
+### Етап 4: Профіль користувача
+13. Завантаження аватара
+14. Адреси доставки
+15. Отримувачі
+16. Налаштування доставки за замовчуванням
+
+### Етап 5: Інтеграція з Checkout
+17. Форма "Інший отримувач"
+18. Вибір збережених отримувачів
+19. Збереження нового отримувача
+20. Оновлення відображення замовлення (адмін + профіль)
+
+### Етап 6: Автозаповнення
+21. Інтеграція збережених адрес/отримувачів/методів доставки в Checkout
+
