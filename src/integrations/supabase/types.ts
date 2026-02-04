@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          description: string | null
+          from_category_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          to_category_id: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          from_category_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          to_category_id: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          from_category_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          to_category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_rules_from_category_id_fkey"
+            columns: ["from_category_id"]
+            isOneToOne: false
+            referencedRelation: "user_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_rules_to_category_id_fkey"
+            columns: ["to_category_id"]
+            isOneToOne: false
+            referencedRelation: "user_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comparisons: {
         Row: {
           created_at: string
@@ -229,6 +280,7 @@ export type Database = {
           delivery_method: string | null
           email: string
           first_name: string
+          has_different_recipient: boolean
           id: string
           last_name: string
           notes: string | null
@@ -236,6 +288,11 @@ export type Database = {
           payment_method: string
           phone: string
           pickup_point_id: string | null
+          recipient_email: string | null
+          recipient_first_name: string | null
+          recipient_last_name: string | null
+          recipient_phone: string | null
+          saved_recipient_id: string | null
           shipping_cost: number | null
           shipping_data: Json | null
           shipping_method_id: string | null
@@ -255,6 +312,7 @@ export type Database = {
           delivery_method?: string | null
           email: string
           first_name: string
+          has_different_recipient?: boolean
           id?: string
           last_name: string
           notes?: string | null
@@ -262,6 +320,11 @@ export type Database = {
           payment_method: string
           phone: string
           pickup_point_id?: string | null
+          recipient_email?: string | null
+          recipient_first_name?: string | null
+          recipient_last_name?: string | null
+          recipient_phone?: string | null
+          saved_recipient_id?: string | null
           shipping_cost?: number | null
           shipping_data?: Json | null
           shipping_method_id?: string | null
@@ -281,6 +344,7 @@ export type Database = {
           delivery_method?: string | null
           email?: string
           first_name?: string
+          has_different_recipient?: boolean
           id?: string
           last_name?: string
           notes?: string | null
@@ -288,6 +352,11 @@ export type Database = {
           payment_method?: string
           phone?: string
           pickup_point_id?: string | null
+          recipient_email?: string | null
+          recipient_first_name?: string | null
+          recipient_last_name?: string | null
+          recipient_phone?: string | null
+          saved_recipient_id?: string | null
           shipping_cost?: number | null
           shipping_data?: Json | null
           shipping_method_id?: string | null
@@ -305,6 +374,13 @@ export type Database = {
             columns: ["pickup_point_id"]
             isOneToOne: false
             referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_saved_recipient_id_fkey"
+            columns: ["saved_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "user_recipients"
             referencedColumns: ["id"]
           },
           {
@@ -656,35 +732,50 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_provider: string | null
+          avatar_url: string | null
           category_id: string | null
           created_at: string
+          default_pickup_point_id: string | null
+          default_shipping_method_id: string | null
           email: string | null
           first_name: string | null
           id: string
           last_name: string | null
           phone: string | null
+          registration_utm: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          auth_provider?: string | null
+          avatar_url?: string | null
           category_id?: string | null
           created_at?: string
+          default_pickup_point_id?: string | null
+          default_shipping_method_id?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
+          registration_utm?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          auth_provider?: string | null
+          avatar_url?: string | null
           category_id?: string | null
           created_at?: string
+          default_pickup_point_id?: string | null
+          default_shipping_method_id?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
+          registration_utm?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -694,6 +785,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "user_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_default_pickup_point_id_fkey"
+            columns: ["default_pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_default_shipping_method_id_fkey"
+            columns: ["default_shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -1202,6 +1307,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_addresses: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_categories: {
         Row: {
           code: string
@@ -1229,6 +1364,103 @@ export type Database = {
           is_default?: boolean
           name?: string
           price_multiplier?: number
+        }
+        Relationships: []
+      }
+      user_category_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_category_id: string | null
+          id: string
+          reason: string | null
+          rule_id: string | null
+          to_category_id: string
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_category_id?: string | null
+          id?: string
+          reason?: string | null
+          rule_id?: string | null
+          to_category_id: string
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_category_id?: string | null
+          id?: string
+          reason?: string | null
+          rule_id?: string | null
+          to_category_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_category_history_from_category_id_fkey"
+            columns: ["from_category_id"]
+            isOneToOne: false
+            referencedRelation: "user_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_category_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "category_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_category_history_to_category_id_fkey"
+            columns: ["to_category_id"]
+            isOneToOne: false
+            referencedRelation: "user_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_recipients: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_default: boolean
+          last_name: string
+          notes: string | null
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_default?: boolean
+          last_name: string
+          notes?: string | null
+          phone: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_default?: boolean
+          last_name?: string
+          notes?: string | null
+          phone?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1291,6 +1523,8 @@ export type Database = {
         Args: { new_category_id: string; target_user_id: string }
         Returns: undefined
       }
+      check_all_users_category_rules: { Args: never; Returns: number }
+      check_category_rules: { Args: { p_user_id: string }; Returns: boolean }
       get_active_pickup_points_count: { Args: never; Returns: number }
       get_stock_info: {
         Args: { p_modification_id?: string; p_product_id?: string }
@@ -1301,6 +1535,18 @@ export type Database = {
           total_quantity: number
         }[]
       }
+      get_user_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          auth_provider: string
+          email_domain: string
+          orders_count: number
+          registration_days: number
+          total_purchases: number
+          utm_campaign: string
+          utm_source: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1309,6 +1555,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      toggle_user_admin: {
+        Args: { p_is_admin: boolean; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"

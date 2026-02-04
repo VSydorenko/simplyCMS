@@ -19,6 +19,9 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { AddressesList } from "@/components/profile/AddressesList";
+import { RecipientsList } from "@/components/profile/RecipientsList";
 
 const profileSchema = z.object({
   firstName: z.string().min(2, "Мінімум 2 символи").max(100, "Максимум 100 символів"),
@@ -42,6 +45,8 @@ export default function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<{ first_name?: string; last_name?: string } | null>(null);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -65,9 +70,9 @@ export default function ProfileSettings() {
       if (!user) return;
 
       try {
-        const { data } = await supabase
+      const { data } = await supabase
           .from("profiles")
-          .select("first_name, last_name, phone")
+          .select("first_name, last_name, phone, avatar_url")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -75,6 +80,8 @@ export default function ProfileSettings() {
           profileForm.setValue("firstName", data.first_name || "");
           profileForm.setValue("lastName", data.last_name || "");
           profileForm.setValue("phone", data.phone || "");
+          setAvatarUrl(data.avatar_url);
+          setProfileData({ first_name: data.first_name, last_name: data.last_name });
         }
       } catch (error) {
         console.error("Error loading profile:", error);
@@ -158,6 +165,23 @@ export default function ProfileSettings() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Налаштування</h1>
+
+      {/* Avatar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Фото профілю</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AvatarUpload
+            userId={user?.id || ""}
+            currentAvatarUrl={avatarUrl}
+            firstName={profileData?.first_name}
+            lastName={profileData?.last_name}
+            email={user?.email}
+            onUpdate={setAvatarUrl}
+          />
+        </CardContent>
+      </Card>
 
       {/* Profile settings */}
       <Card>
@@ -298,6 +322,12 @@ export default function ProfileSettings() {
           </Form>
         </CardContent>
       </Card>
+
+      {/* Addresses */}
+      <AddressesList />
+
+      {/* Recipients */}
+      <RecipientsList />
     </div>
   );
 }
