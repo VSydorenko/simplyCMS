@@ -33,6 +33,12 @@ import ProductEdit from "./pages/admin/ProductEdit";
 import Orders from "./pages/admin/Orders";
 import OrderDetail from "./pages/admin/OrderDetail";
 import OrderStatuses from "./pages/admin/OrderStatuses";
+import Users from "./pages/admin/Users";
+import UserEdit from "./pages/admin/UserEdit";
+import UserCategories from "./pages/admin/UserCategories";
+import UserCategoryEdit from "./pages/admin/UserCategoryEdit";
+import UserCategoryRules from "./pages/admin/UserCategoryRules";
+import UserCategoryRuleEdit from "./pages/admin/UserCategoryRuleEdit";
 import Plugins from "./pages/admin/Plugins";
 import PluginSettings from "./pages/admin/PluginSettings";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
@@ -127,10 +133,16 @@ function App() {
                     <Route path="shipping/zones/:zoneId" element={<ShippingZoneEdit />} />
                     <Route path="shipping/pickup-points" element={<PickupPoints />} />
                     <Route path="shipping/pickup-points/:pointId" element={<PickupPointEdit />} />
+                    <Route path="users" element={<Users />} />
+                    <Route path="users/:userId" element={<UserEdit />} />
+                    <Route path="user-categories" element={<UserCategories />} />
+                    <Route path="user-categories/new" element={<UserCategoryEdit />} />
+                    <Route path="user-categories/:categoryId" element={<UserCategoryEdit />} />
+                    <Route path="user-categories/rules" element={<UserCategoryRules />} />
+                    <Route path="user-categories/rules/new" element={<UserCategoryRuleEdit />} />
+                    <Route path="user-categories/rules/:ruleId" element={<UserCategoryRuleEdit />} />
                     <Route path="services" element={<PlaceholderPage />} />
                     <Route path="service-requests" element={<PlaceholderPage />} />
-                    <Route path="users" element={<PlaceholderPage />} />
-                    <Route path="user-categories" element={<PlaceholderPage />} />
                     <Route path="languages" element={<PlaceholderPage />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>
