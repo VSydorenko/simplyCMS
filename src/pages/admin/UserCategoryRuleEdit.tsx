@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,7 +88,8 @@ export default function UserCategoryRuleEdit() {
   const { ruleId } = useParams<{ ruleId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNew = ruleId === "new";
+  const location = useLocation();
+  const isNew = location.pathname.endsWith("/new") || !ruleId;
 
   const form = useForm<RuleFormData>({
     resolver: zodResolver(ruleSchema),
@@ -128,7 +129,7 @@ export default function UserCategoryRuleEdit() {
   const { data: rule, isLoading } = useQuery({
     queryKey: ["category-rule", ruleId],
     queryFn: async () => {
-      if (isNew) return null;
+      if (isNew || !ruleId) return null;
       const { data, error } = await supabase
         .from("category_rules")
         .select("*")
@@ -137,7 +138,7 @@ export default function UserCategoryRuleEdit() {
       if (error) throw error;
       return data;
     },
-    enabled: !isNew,
+    enabled: !isNew && !!ruleId,
   });
 
   // Fill form when rule loads
@@ -180,6 +181,7 @@ export default function UserCategoryRuleEdit() {
         const { error } = await supabase.from("category_rules").insert(payload);
         if (error) throw error;
       } else {
+        if (!ruleId) throw new Error("Rule ID is required for update");
         const { error } = await supabase
           .from("category_rules")
           .update(payload)
@@ -204,6 +206,7 @@ export default function UserCategoryRuleEdit() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      if (!ruleId) throw new Error("Rule ID is required for delete");
       const { error } = await supabase
         .from("category_rules")
         .delete()
