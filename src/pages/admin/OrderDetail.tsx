@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Trash2, Save, Loader2 } from "lucide-react";
+ import { ArrowLeft, Trash2, Save, Loader2, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -524,6 +524,38 @@ export default function OrderDetail() {
             </CardContent>
           </Card>
 
+           {/* Recipient Info - if different from customer */}
+           {order.has_different_recipient && (
+             <Card className="border-primary/30 bg-primary/5">
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-2">
+                   <UserPlus className="h-4 w-4" />
+                   Отримувач
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-3 text-sm">
+                 <div>
+                   <span className="text-muted-foreground">Ім'я:</span>
+                   <p className="font-medium">
+                     {order.recipient_first_name} {order.recipient_last_name}
+                   </p>
+                 </div>
+                 {order.recipient_phone && (
+                   <div>
+                     <span className="text-muted-foreground">Телефон:</span>
+                     <p className="font-medium">{order.recipient_phone}</p>
+                   </div>
+                 )}
+                 {order.recipient_email && (
+                   <div>
+                     <span className="text-muted-foreground">Email:</span>
+                     <p className="font-medium">{order.recipient_email}</p>
+                   </div>
+                 )}
+               </CardContent>
+             </Card>
+           )}
+ 
           {/* Delivery */}
           <Card>
             <CardHeader>
