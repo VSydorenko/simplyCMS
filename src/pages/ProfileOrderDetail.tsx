@@ -9,6 +9,7 @@ import {
   User,
   XCircle,
   Loader2,
+   UserPlus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,11 @@ interface OrderDetails {
   subtotal: number;
   total: number;
   created_at: string;
+   has_different_recipient: boolean;
+   recipient_first_name: string | null;
+   recipient_last_name: string | null;
+   recipient_phone: string | null;
+   recipient_email: string | null;
   status: {
     id: string;
     name: string;
@@ -355,13 +361,13 @@ export default function ProfileOrderDetail() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <User className="h-5 w-5" />
-            Контактні дані
+             Замовник
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Отримувач</p>
+               <p className="text-sm text-muted-foreground">Ім'я</p>
               <p className="font-medium">
                 {order.first_name} {order.last_name}
               </p>
@@ -375,14 +381,54 @@ export default function ProfileOrderDetail() {
               <p className="font-medium">{order.email}</p>
             </div>
           </div>
-          {order.notes && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">Коментар</p>
-              <p className="font-medium">{order.notes}</p>
-            </div>
-          )}
         </CardContent>
       </Card>
+ 
+       {/* Recipient info - if different from customer */}
+       {order.has_different_recipient && (
+         <Card className="border-primary/30 bg-primary/5">
+           <CardHeader>
+             <CardTitle className="text-lg flex items-center gap-2">
+               <UserPlus className="h-5 w-5" />
+               Отримувач
+             </CardTitle>
+           </CardHeader>
+           <CardContent>
+             <div className="grid sm:grid-cols-2 gap-4">
+               <div>
+                 <p className="text-sm text-muted-foreground">Ім'я</p>
+                 <p className="font-medium">
+                   {order.recipient_first_name} {order.recipient_last_name}
+                 </p>
+               </div>
+               {order.recipient_phone && (
+                 <div>
+                   <p className="text-sm text-muted-foreground">Телефон</p>
+                   <p className="font-medium">{order.recipient_phone}</p>
+                 </div>
+               )}
+               {order.recipient_email && (
+                 <div>
+                   <p className="text-sm text-muted-foreground">Email</p>
+                   <p className="font-medium">{order.recipient_email}</p>
+                 </div>
+               )}
+             </div>
+           </CardContent>
+         </Card>
+       )}
+ 
+       {/* Notes */}
+       {order.notes && (
+         <Card>
+           <CardHeader>
+             <CardTitle className="text-lg">Коментар до замовлення</CardTitle>
+           </CardHeader>
+           <CardContent>
+             <p className="text-muted-foreground">{order.notes}</p>
+           </CardContent>
+         </Card>
+       )}
     </div>
   );
 }
