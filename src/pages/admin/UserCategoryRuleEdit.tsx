@@ -191,6 +191,7 @@ export default function UserCategoryRuleEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["user-categories"] });
       toast({ title: isNew ? "Правило створено" : "Зміни збережено" });
       navigate("/admin/user-categories/rules");
     },
@@ -215,6 +216,7 @@ export default function UserCategoryRuleEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["category-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["user-categories"] });
       toast({ title: "Правило видалено" });
       navigate("/admin/user-categories/rules");
     },
