@@ -124,6 +124,7 @@ export default function UserCategoryEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["user-categories-with-counts"] });
       toast({ title: isNew ? "Категорію створено" : "Зміни збережено" });
       navigate("/admin/user-categories");
     },
@@ -148,6 +149,7 @@ export default function UserCategoryEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["user-categories-with-counts"] });
       toast({ title: "Категорію видалено" });
       navigate("/admin/user-categories");
     },
