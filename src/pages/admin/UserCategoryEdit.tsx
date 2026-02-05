@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +50,8 @@ export default function UserCategoryEdit() {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNew = categoryId === "new";
+  const location = useLocation();
+  const isNew = location.pathname.endsWith("/new") || !categoryId;
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -67,7 +68,7 @@ export default function UserCategoryEdit() {
   const { data: category, isLoading } = useQuery({
     queryKey: ["user-category", categoryId],
     queryFn: async () => {
-      if (isNew) return null;
+      if (isNew || !categoryId) return null;
       const { data, error } = await supabase
         .from("user_categories")
         .select("*")
@@ -76,7 +77,7 @@ export default function UserCategoryEdit() {
       if (error) throw error;
       return data;
     },
-    enabled: !isNew,
+    enabled: !isNew && !!categoryId,
   });
 
   // Fill form when category loads
@@ -113,6 +114,7 @@ export default function UserCategoryEdit() {
         });
         if (error) throw error;
       } else {
+        if (!categoryId) throw new Error("Category ID is required for update");
         const { error } = await supabase
           .from("user_categories")
           .update(data)
@@ -137,6 +139,7 @@ export default function UserCategoryEdit() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      if (!categoryId) throw new Error("Category ID is required for delete");
       const { error } = await supabase
         .from("user_categories")
         .delete()
