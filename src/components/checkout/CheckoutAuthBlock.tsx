@@ -67,19 +67,27 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
     setIsLoading(true);
     clearMessages();
     
+    console.log("[CheckoutAuthBlock] Starting login for:", data.email);
+    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
+      console.log("[CheckoutAuthBlock] Login response:", { signInData, error });
+
       if (error) {
-        const errorMessage = error.message === "Invalid login credentials"
-          ? "Невірний email або пароль. Перевірте введені дані."
-          : error.message === "Email not confirmed"
-          ? "Email не підтверджено. Перевірте вашу пошту."
-          : error.message;
+        let errorMessage = error.message;
+        if (error.message === "Invalid login credentials") {
+          errorMessage = "Невірний email або пароль. Перевірте введені дані.";
+        } else if (error.message === "Email not confirmed") {
+          errorMessage = "Email не підтверджено. Перевірте вашу пошту.";
+        } else if (error.message.includes("rate limit")) {
+          errorMessage = "Забагато спроб. Зачекайте кілька хвилин.";
+        }
         
+        console.log("[CheckoutAuthBlock] Login error:", errorMessage);
         setAuthError(errorMessage);
         toast({
           variant: "destructive",
@@ -87,12 +95,14 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
           description: errorMessage,
         });
       } else {
+        console.log("[CheckoutAuthBlock] Login successful");
         setAuthSuccess("Успішний вхід! Завантажуємо ваші дані...");
         toast({ title: "Успішний вхід!" });
         onAuthSuccess?.();
       }
-    } catch (error) {
-      const errorMessage = "Щось пішло не так. Спробуйте ще раз.";
+    } catch (error: any) {
+      console.error("[CheckoutAuthBlock] Login exception:", error);
+      const errorMessage = error?.message || "Щось пішло не так. Спробуйте ще раз.";
       setAuthError(errorMessage);
       toast({
         variant: "destructive",
@@ -108,6 +118,8 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
     setIsLoading(true);
     clearMessages();
     
+    console.log("[CheckoutAuthBlock] Starting registration for:", data.email);
+    
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -121,14 +133,19 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
         },
       });
 
+      console.log("[CheckoutAuthBlock] SignUp response:", { signUpData, error });
+
       if (error) {
         let errorMessage = error.message;
         if (error.message.includes("already registered")) {
           errorMessage = "Цей email вже зареєстровано. Спробуйте увійти.";
         } else if (error.message.includes("password")) {
           errorMessage = "Пароль занадто слабкий. Використовуйте більше символів.";
+        } else if (error.message.includes("valid email")) {
+          errorMessage = "Введіть коректну email адресу.";
         }
         
+        console.log("[CheckoutAuthBlock] Registration error:", errorMessage);
         setAuthError(errorMessage);
         toast({
           variant: "destructive",
@@ -137,18 +154,31 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
         });
       } else if (signUpData?.user && !signUpData.session) {
         // Email confirmation required
+        console.log("[CheckoutAuthBlock] Email confirmation required");
         setAuthSuccess("Реєстрація успішна! Перевірте вашу пошту для підтвердження email.");
         toast({ 
           title: "Перевірте пошту!",
           description: "Ми надіслали лист для підтвердження email.",
         });
+      } else if (signUpData?.user && signUpData.session) {
+        // Auto-confirmed, user is now logged in
+        console.log("[CheckoutAuthBlock] Registration successful, auto-confirmed");
+        setAuthSuccess("Реєстрація успішна! Ваші дані завантажуються...");
+        toast({ 
+          title: "Реєстрація успішна!",
+          description: "Вітаємо! Ви можете продовжити оформлення.",
+        });
+        onAuthSuccess?.();
       } else {
+        // Fallback
+        console.log("[CheckoutAuthBlock] Registration completed (fallback)");
         setAuthSuccess("Реєстрація успішна!");
         toast({ title: "Реєстрація успішна!" });
         onAuthSuccess?.();
       }
-    } catch (error) {
-      const errorMessage = "Щось пішло не так. Спробуйте ще раз.";
+    } catch (error: any) {
+      console.error("[CheckoutAuthBlock] Registration exception:", error);
+      const errorMessage = error?.message || "Щось пішло не так. Спробуйте ще раз.";
       setAuthError(errorMessage);
       toast({
         variant: "destructive",
