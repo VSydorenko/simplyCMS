@@ -3,10 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Form,
   FormControl,
@@ -16,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Loader2, LogIn, UserPlus, UserX } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Loader2, LogIn, UserPlus, UserX, AlertCircle, CheckCircle } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Введіть коректний email"),
@@ -43,6 +45,8 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -54,8 +58,15 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
     defaultValues: { firstName: "", lastName: "", email: "", password: "" },
   });
 
+  const clearMessages = () => {
+    setAuthError(null);
+    setAuthSuccess(null);
+  };
+
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
+    clearMessages();
+    
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -63,22 +74,30 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
       });
 
       if (error) {
+        const errorMessage = error.message === "Invalid login credentials"
+          ? "Невірний email або пароль. Перевірте введені дані."
+          : error.message === "Email not confirmed"
+          ? "Email не підтверджено. Перевірте вашу пошту."
+          : error.message;
+        
+        setAuthError(errorMessage);
         toast({
           variant: "destructive",
           title: "Помилка входу",
-          description: error.message === "Invalid login credentials"
-            ? "Невірний email або пароль"
-            : error.message,
+          description: errorMessage,
         });
       } else {
+        setAuthSuccess("Успішний вхід! Завантажуємо ваші дані...");
         toast({ title: "Успішний вхід!" });
         onAuthSuccess?.();
       }
     } catch (error) {
+      const errorMessage = "Щось пішло не так. Спробуйте ще раз.";
+      setAuthError(errorMessage);
       toast({
         variant: "destructive",
         title: "Помилка",
-        description: "Щось пішло не так. Спробуйте ще раз.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -87,8 +106,10 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
 
   const handleRegister = async (data: RegisterFormData) => {
     setIsLoading(true);
+    clearMessages();
+    
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -101,20 +122,38 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
       });
 
       if (error) {
+        let errorMessage = error.message;
+        if (error.message.includes("already registered")) {
+          errorMessage = "Цей email вже зареєстровано. Спробуйте увійти.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Пароль занадто слабкий. Використовуйте більше символів.";
+        }
+        
+        setAuthError(errorMessage);
         toast({
           variant: "destructive",
           title: "Помилка реєстрації",
-          description: error.message,
+          description: errorMessage,
+        });
+      } else if (signUpData?.user && !signUpData.session) {
+        // Email confirmation required
+        setAuthSuccess("Реєстрація успішна! Перевірте вашу пошту для підтвердження email.");
+        toast({ 
+          title: "Перевірте пошту!",
+          description: "Ми надіслали лист для підтвердження email.",
         });
       } else {
+        setAuthSuccess("Реєстрація успішна!");
         toast({ title: "Реєстрація успішна!" });
         onAuthSuccess?.();
       }
     } catch (error) {
+      const errorMessage = "Щось пішло не так. Спробуйте ще раз.";
+      setAuthError(errorMessage);
       toast({
         variant: "destructive",
         title: "Помилка",
-        description: "Щось пішло не так. Спробуйте ще раз.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -123,26 +162,38 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    clearMessages();
+    
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: window.location.href,
-        },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
 
-      if (error) {
+      if (result.redirected) {
+        // Page is redirecting to OAuth provider
+        return;
+      }
+
+      if (result.error) {
+        const errorMessage = result.error.message || "Помилка авторизації через Google";
+        setAuthError(errorMessage);
         toast({
           variant: "destructive",
           title: "Помилка Google авторизації",
-          description: error.message,
+          description: errorMessage,
         });
+      } else {
+        setAuthSuccess("Успішний вхід через Google!");
+        toast({ title: "Успішний вхід!" });
+        onAuthSuccess?.();
       }
     } catch (error) {
+      const errorMessage = "Щось пішло не так. Спробуйте ще раз.";
+      setAuthError(errorMessage);
       toast({
         variant: "destructive",
         title: "Помилка",
-        description: "Щось пішло не так. Спробуйте ще раз.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -161,7 +212,23 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Error Alert */}
+        {authError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{authError}</AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Success Alert */}
+        {authSuccess && (
+          <Alert className="mb-4 border-primary/50 bg-primary/10">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-foreground">{authSuccess}</AlertDescription>
+          </Alert>
+        )}
+
+        <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); clearMessages(); }} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="guest" className="flex items-center gap-1.5 text-xs sm:text-sm">
               <UserX className="h-4 w-4 hidden sm:block" />
