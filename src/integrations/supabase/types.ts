@@ -292,6 +292,7 @@ export type Database = {
           recipient_first_name: string | null
           recipient_last_name: string | null
           recipient_phone: string | null
+          saved_address_id: string | null
           saved_recipient_id: string | null
           shipping_cost: number | null
           shipping_data: Json | null
@@ -324,6 +325,7 @@ export type Database = {
           recipient_first_name?: string | null
           recipient_last_name?: string | null
           recipient_phone?: string | null
+          saved_address_id?: string | null
           saved_recipient_id?: string | null
           shipping_cost?: number | null
           shipping_data?: Json | null
@@ -356,6 +358,7 @@ export type Database = {
           recipient_first_name?: string | null
           recipient_last_name?: string | null
           recipient_phone?: string | null
+          saved_address_id?: string | null
           saved_recipient_id?: string | null
           shipping_cost?: number | null
           shipping_data?: Json | null
@@ -374,6 +377,13 @@ export type Database = {
             columns: ["pickup_point_id"]
             isOneToOne: false
             referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_saved_address_id_fkey"
+            columns: ["saved_address_id"]
+            isOneToOne: false
+            referencedRelation: "user_addresses"
             referencedColumns: ["id"]
           },
           {

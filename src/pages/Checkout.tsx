@@ -10,18 +10,19 @@ import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { CheckoutAuthBlock } from "@/components/checkout/CheckoutAuthBlock";
 import { CheckoutContactForm } from "@/components/checkout/CheckoutContactForm";
 import { CheckoutDeliveryForm } from "@/components/checkout/CheckoutDeliveryForm";
 import { CheckoutPaymentForm } from "@/components/checkout/CheckoutPaymentForm";
 import { CheckoutOrderSummary } from "@/components/checkout/CheckoutOrderSummary";
- import { CheckoutRecipientForm } from "@/components/checkout/CheckoutRecipientForm";
+import { CheckoutRecipientForm } from "@/components/checkout/CheckoutRecipientForm";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 
- const checkoutSchema = z.object({
+const checkoutSchema = z.object({
   firstName: z.string().min(2, "Мінімум 2 символи").max(100, "Максимум 100 символів"),
   lastName: z.string().min(2, "Мінімум 2 символи").max(100, "Максимум 100 символів"),
-  email: z.string().email("Невірний формат email"),
-  phone: z.string().min(10, "Введіть коректний номер телефону").max(20, "Максимум 20 символів"),
+  email: z.string().email("Невірний формат email").optional().or(z.literal("")),
+  phone: z.string().optional(),
   shippingMethodId: z.string().min(1, "Оберіть спосіб доставки"),
   deliveryCity: z.string().optional(),
   deliveryAddress: z.string().optional(),
@@ -30,32 +31,43 @@ import { PluginSlot } from "@/components/plugins/PluginSlot";
     required_error: "Оберіть спосіб оплати",
   }),
   notes: z.string().optional(),
-   // Recipient fields
-   hasDifferentRecipient: z.boolean().default(false),
-   savedRecipientId: z.string().optional(),
-   recipientFirstName: z.string().optional(),
-   recipientLastName: z.string().optional(),
-   recipientPhone: z.string().optional(),
-   recipientEmail: z.string().optional(),
-   recipientCity: z.string().optional(),
-   recipientAddress: z.string().optional(),
-   recipientNotes: z.string().optional(),
-   saveRecipient: z.boolean().default(false),
- }).refine((data) => {
-   // If different recipient is selected, require recipient details
-   if (data.hasDifferentRecipient) {
-     return (
-       data.recipientFirstName && data.recipientFirstName.length >= 2 &&
-       data.recipientLastName && data.recipientLastName.length >= 2 &&
-       data.recipientPhone && data.recipientPhone.length >= 10 &&
-       data.recipientCity && data.recipientCity.length >= 2 &&
-       data.recipientAddress && data.recipientAddress.length >= 5
-     );
-   }
-   return true;
- }, {
-   message: "Заповніть всі обов'язкові поля отримувача",
-   path: ["recipientFirstName"],
+  // Recipient fields
+  hasDifferentRecipient: z.boolean().default(false),
+  savedRecipientId: z.string().optional(),
+  recipientFirstName: z.string().optional(),
+  recipientLastName: z.string().optional(),
+  recipientPhone: z.string().optional(),
+  recipientEmail: z.string().optional(),
+  recipientCity: z.string().optional(),
+  recipientAddress: z.string().optional(),
+  recipientNotes: z.string().optional(),
+  saveRecipient: z.boolean().default(false),
+  // Address fields
+  savedAddressId: z.string().optional(),
+  saveAddress: z.boolean().default(false),
+}).refine((data) => {
+  // Require at least email OR phone
+  const hasEmail = data.email && data.email.length > 0;
+  const hasPhone = data.phone && data.phone.length >= 10;
+  return hasEmail || hasPhone;
+}, {
+  message: "Вкажіть email або телефон для зв'язку",
+  path: ["phone"],
+}).refine((data) => {
+  // If different recipient is selected, require recipient details
+  if (data.hasDifferentRecipient) {
+    return (
+      data.recipientFirstName && data.recipientFirstName.length >= 2 &&
+      data.recipientLastName && data.recipientLastName.length >= 2 &&
+      data.recipientPhone && data.recipientPhone.length >= 10 &&
+      data.recipientCity && data.recipientCity.length >= 2 &&
+      data.recipientAddress && data.recipientAddress.length >= 5
+    );
+  }
+  return true;
+}, {
+  message: "Заповніть всі обов'язкові поля отримувача",
+  path: ["recipientFirstName"],
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -80,16 +92,18 @@ export default function Checkout() {
       pickupPointId: "",
       paymentMethod: "cash",
       notes: "",
-       hasDifferentRecipient: false,
-       savedRecipientId: "",
-       recipientFirstName: "",
-       recipientLastName: "",
-       recipientPhone: "",
-       recipientEmail: "",
-       recipientCity: "",
-       recipientAddress: "",
-       recipientNotes: "",
-       saveRecipient: false,
+      hasDifferentRecipient: false,
+      savedRecipientId: "",
+      recipientFirstName: "",
+      recipientLastName: "",
+      recipientPhone: "",
+      recipientEmail: "",
+      recipientCity: "",
+      recipientAddress: "",
+      recipientNotes: "",
+      saveRecipient: false,
+      savedAddressId: "",
+      saveAddress: false,
     },
   });
 
@@ -139,32 +153,32 @@ export default function Checkout() {
     setIsSubmitting(true);
 
     try {
-       let savedRecipientId: string | null = null;
- 
-       // If saving new recipient, create it first
-       if (user && data.hasDifferentRecipient && data.saveRecipient && 
-           (!data.savedRecipientId || data.savedRecipientId === "new")) {
-         const { data: newRecipient, error: recipientError } = await supabase
-           .from("user_recipients")
-           .insert({
-             user_id: user.id,
-             first_name: data.recipientFirstName!,
-             last_name: data.recipientLastName!,
-             phone: data.recipientPhone!,
-             email: data.recipientEmail || null,
-             city: data.recipientCity!,
-             address: data.recipientAddress!,
-             notes: data.recipientNotes || null,
-           })
-           .select("id")
-           .single();
- 
-         if (recipientError) throw recipientError;
-         savedRecipientId = newRecipient.id;
-       } else if (data.savedRecipientId && data.savedRecipientId !== "new") {
-         savedRecipientId = data.savedRecipientId;
-       }
- 
+      let savedRecipientId: string | null = null;
+
+      // If saving new recipient, create it first
+      if (user && data.hasDifferentRecipient && data.saveRecipient && 
+          (!data.savedRecipientId || data.savedRecipientId === "new")) {
+        const { data: newRecipient, error: recipientError } = await supabase
+          .from("user_recipients")
+          .insert({
+            user_id: user.id,
+            first_name: data.recipientFirstName!,
+            last_name: data.recipientLastName!,
+            phone: data.recipientPhone!,
+            email: data.recipientEmail || null,
+            city: data.recipientCity!,
+            address: data.recipientAddress!,
+            notes: data.recipientNotes || null,
+          })
+          .select("id")
+          .single();
+
+        if (recipientError) throw recipientError;
+        savedRecipientId = newRecipient.id;
+      } else if (data.savedRecipientId && data.savedRecipientId !== "new") {
+        savedRecipientId = data.savedRecipientId;
+      }
+
       // Get default status
       const { data: defaultStatus } = await supabase
         .from("order_statuses")
@@ -179,15 +193,15 @@ export default function Checkout() {
         .eq("id", data.shippingMethodId)
         .single();
 
-      // Create order
+      // Create order with all data copied as text
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           user_id: user?.id || null,
           first_name: data.firstName,
           last_name: data.lastName,
-          email: data.email,
-          phone: data.phone,
+          email: data.email || "",
+          phone: data.phone || "",
           delivery_method: shippingMethod?.code || null,
           delivery_city: data.deliveryCity || null,
           delivery_address: data.deliveryAddress || null,
@@ -200,14 +214,16 @@ export default function Checkout() {
           shipping_cost: shippingCost,
           pickup_point_id: data.pickupPointId || null,
           shipping_data: {},
-          order_number: "", // Will be auto-generated by trigger
-           // Recipient fields
-           has_different_recipient: data.hasDifferentRecipient,
-           recipient_first_name: data.hasDifferentRecipient ? data.recipientFirstName : null,
-           recipient_last_name: data.hasDifferentRecipient ? data.recipientLastName : null,
-           recipient_phone: data.hasDifferentRecipient ? data.recipientPhone : null,
-           recipient_email: data.hasDifferentRecipient ? data.recipientEmail || null : null,
-           saved_recipient_id: savedRecipientId,
+          order_number: "",
+          // Recipient fields - copy as text
+          has_different_recipient: data.hasDifferentRecipient,
+          recipient_first_name: data.hasDifferentRecipient ? data.recipientFirstName : null,
+          recipient_last_name: data.hasDifferentRecipient ? data.recipientLastName : null,
+          recipient_phone: data.hasDifferentRecipient ? data.recipientPhone : null,
+          recipient_email: data.hasDifferentRecipient ? data.recipientEmail || null : null,
+          // References for analytics (will become NULL if deleted)
+          saved_recipient_id: savedRecipientId,
+          saved_address_id: data.savedAddressId || null,
         })
         .select()
         .single();
@@ -259,6 +275,11 @@ export default function Checkout() {
     }
   };
 
+  // Handle auth success - reload profile data
+  const handleAuthSuccess = async () => {
+    // Profile will be loaded by the useEffect when user changes
+  };
+
   if (items.length === 0) {
     return null;
   }
@@ -294,8 +315,13 @@ export default function Checkout() {
             <div className="lg:col-span-2 space-y-6">
               <PluginSlot name="checkout.shipping.before" context={{ cart: { items, subtotal: totalPrice } }} />
               
+              {/* Auth block for non-logged-in users */}
+              {!user && (
+                <CheckoutAuthBlock onAuthSuccess={handleAuthSuccess} />
+              )}
+              
               <CheckoutContactForm form={form} />
-               <CheckoutRecipientForm form={form} />
+              <CheckoutRecipientForm form={form} />
               <CheckoutDeliveryForm 
                 form={form} 
                 subtotal={totalPrice}
