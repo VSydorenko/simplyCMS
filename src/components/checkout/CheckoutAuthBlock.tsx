@@ -284,7 +284,7 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
           {/* Login Tab */}
           <TabsContent value="login" className="space-y-4">
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-3">
+              <div className="space-y-3">
                 <FormField
                   control={loginForm.control}
                   name="email"
@@ -338,11 +338,16 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button 
+                  type="button" 
+                  className="w-full" 
+                  disabled={isLoading}
+                  onClick={loginForm.handleSubmit(handleLogin)}
+                >
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Увійти
                 </Button>
-              </form>
+              </div>
             </Form>
 
             <div className="relative">
@@ -385,7 +390,7 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
           {/* Register Tab */}
           <TabsContent value="register" className="space-y-4">
             <Form {...registerForm}>
-              <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-3">
+              <div className="space-y-3">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <FormField
                     control={registerForm.control}
@@ -468,11 +473,16 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button 
+                  type="button" 
+                  className="w-full" 
+                  disabled={isLoading}
+                  onClick={registerForm.handleSubmit(handleRegister)}
+                >
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Зареєструватися
                 </Button>
-              </form>
+              </div>
             </Form>
 
             <div className="relative">
