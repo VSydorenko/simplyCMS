@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Palette, Check, Settings, Trash2, Upload, ArrowLeft } from "lucide-react";
+import { Palette, Check, Settings, Trash2, ArrowLeft } from "lucide-react";
+import { InstallThemeDialog } from "@/components/admin/InstallThemeDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -125,10 +126,7 @@ export default function Themes() {
             </p>
           </div>
         </div>
-        <Button disabled>
-          <Upload className="h-4 w-4 mr-2" />
-          Встановити тему
-        </Button>
+        <InstallThemeDialog />
       </div>
 
       {/* Themes grid */}
