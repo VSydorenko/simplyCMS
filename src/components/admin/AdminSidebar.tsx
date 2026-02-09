@@ -16,6 +16,7 @@ import {
   Truck,
   Map,
   Building,
+  Palette,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -53,6 +54,7 @@ const shippingItems = [
 
 const settingsItems = [
   { title: "Розширення", url: "/admin/plugins", icon: Puzzle },
+  { title: "Теми", url: "/admin/themes", icon: Palette },
   { title: "Користувачі", url: "/admin/users", icon: Users },
   { title: "Категорії користувачів", url: "/admin/user-categories", icon: Tags },
   { title: "Мови", url: "/admin/languages", icon: Globe },

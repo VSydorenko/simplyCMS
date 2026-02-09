@@ -1317,6 +1317,51 @@ export type Database = {
         }
         Relationships: []
       }
+      themes: {
+        Row: {
+          author: string | null
+          config: Json | null
+          description: string | null
+          display_name: string
+          id: string
+          installed_at: string | null
+          is_active: boolean | null
+          name: string
+          preview_image: string | null
+          settings_schema: Json | null
+          updated_at: string | null
+          version: string
+        }
+        Insert: {
+          author?: string | null
+          config?: Json | null
+          description?: string | null
+          display_name: string
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          name: string
+          preview_image?: string | null
+          settings_schema?: Json | null
+          updated_at?: string | null
+          version?: string
+        }
+        Update: {
+          author?: string | null
+          config?: Json | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          installed_at?: string | null
+          is_active?: boolean | null
+          name?: string
+          preview_image?: string | null
+          settings_schema?: Json | null
+          updated_at?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       user_addresses: {
         Row: {
           address: string
