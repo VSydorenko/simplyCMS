@@ -1,454 +1,170 @@
 
-# План системи тем (Themes) для CMS
+# План: Система видів цін з повним видаленням старого механізму
 
 ## Огляд
 
-Реалізація повноцінної системи тем, аналогічної існуючій системі плагінів, яка дозволить:
-- Розробляти нові теми з власними компонентами та стилями
-- Завантажувати та встановлювати теми через адмін-панель
-- Перемикатися між встановленими темами
-- Мігрувати поточну тему як дефолтну ("SolarStore Default")
+Створення системи множинних видів цін з окремим довідником та таблицею цін, з **повним видаленням** старого механізму (поля `price`, `old_price` в таблицях `products` та `product_modifications`, а також поле `price_multiplier` в `user_categories`).
 
----
+## Етап 1: База даних
 
-## Архітектурна концепція
+### 1.1 Створити таблицю `price_types`
 
-### Принцип розділення
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid PK | |
+| name | text NOT NULL | "Роздрібна", "Оптова" |
+| code | varchar UNIQUE NOT NULL | "retail", "wholesale" |
+| is_default | boolean DEFAULT false | Тільки один |
+| sort_order | integer DEFAULT 0 | |
+| created_at | timestamptz | |
+
+- Partial unique index на `is_default WHERE is_default = true`
+- RLS: SELECT для всіх, ALL для адмінів
+- Вставити початковий запис: "Роздрібна" (code: retail, is_default: true)
+
+### 1.2 Створити таблицю `product_prices`
+
+| Колонка | Тип | Опис |
+|---------|-----|------|
+| id | uuid PK | |
+| price_type_id | uuid FK -> price_types NOT NULL | |
+| product_id | uuid FK -> products NOT NULL | |
+| modification_id | uuid FK -> product_modifications (nullable) | null = простий товар |
+| price | numeric NOT NULL | |
+| old_price | numeric (nullable) | |
+| created_at | timestamptz | |
+| updated_at | timestamptz | |
+
+- Unique index на `(price_type_id, product_id, modification_id)` з COALESCE для null
+- RLS: SELECT для всіх, ALL для адмінів
+- ON DELETE CASCADE для FK
+
+### 1.3 Додати `price_type_id` до `user_categories`
 
 ```text
-+---------------------------+      +---------------------------+
-|     THEME (Фронтенд)      |      |    CORE (Бекенд/Логіка)   |
-+---------------------------+      +---------------------------+
-|                           |      |                           |
-| - Компоненти сторінок     | <--> | - Запити до Supabase      |
-| - Стилі (CSS variables)   |      | - Типи даних              |
-| - Layouts (Header/Footer) |      | - Хуки даних              |
-| - UI варіації             |      | - Валідація               |
-|                           |      | - Бізнес-логіка           |
-+---------------------------+      +---------------------------+
+ALTER TABLE user_categories ADD COLUMN price_type_id uuid REFERENCES price_types(id) ON DELETE SET NULL;
 ```
 
-### Що залишається в Core (не міняється темою)
-- Інтеграція з Supabase (client, types)
-- Хуки авторизації (useAuth)
-- Хуки даних (useCart, useProductsWithStock)
-- Система плагінів (HookRegistry, PluginSlot)
-- Утиліти (lib/utils.ts, lib/shipping/)
-- Адмін-панель (повністю)
+### 1.4 Міграція існуючих даних
 
-### Що визначає Theme
-- Публічні сторінки (Index, Catalog, ProductDetail, Cart, Checkout, Profile)
-- Layouts (CatalogLayout, ProfileLayout)
-- UI-компоненти каталогу (ProductCard, FilterSidebar, ProductGallery)
-- Стилі (index.css, CSS variables)
-- Картки, секції, бейджі
+- Скопіювати поточні `products.price` / `products.old_price` в `product_prices` для дефолтного виду ціни (де price IS NOT NULL)
+- Скопіювати поточні `product_modifications.price` / `product_modifications.old_price` в `product_prices`
 
----
-
-## Структура теми
-
-### Директорія теми
+### 1.5 Видалити старі колонки (окремий крок!)
 
 ```text
-src/themes/
-├── default/                    # Дефолтна тема (мігрована)
-│   ├── manifest.json           # Метадані теми
-│   ├── index.ts                # Точка входу + реєстрація
-│   ├── styles/
-│   │   └── theme.css           # CSS variables теми
-│   ├── layouts/
-│   │   ├── MainLayout.tsx      # Публічний layout (header/footer)
-│   │   ├── CatalogLayout.tsx   # Layout каталогу
-│   │   └── ProfileLayout.tsx   # Layout профілю
-│   ├── pages/
-│   │   ├── HomePage.tsx
-│   │   ├── CatalogPage.tsx
-│   │   ├── ProductPage.tsx
-│   │   ├── CartPage.tsx
-│   │   ├── CheckoutPage.tsx
-│   │   └── ProfilePage.tsx
-│   ├── components/
-│   │   ├── Header.tsx
-│   │   ├── Footer.tsx
-│   │   ├── ProductCard.tsx
-│   │   ├── ProductGallery.tsx
-│   │   ├── FilterSidebar.tsx
-│   │   └── ...
-│   └── slots/                  # Компоненти для слотів плагінів
-│       └── ProductBadges.tsx
-│
-└── themes.ts                   # Реєстр тем (аналог plugins/index.ts)
-```
-
-### Маніфест теми (manifest.json)
-
-```text
-{
-  "name": "default",
-  "displayName": "SolarStore Default",
-  "version": "1.0.0",
-  "description": "Стандартна тема SolarStore з підтримкою світлої/темної теми",
-  "author": "SolarStore Team",
-  "previewImage": "/themes/default/preview.png",
-  "supports": {
-    "darkMode": true,
-    "customColors": true,
-    "catalogLayouts": ["grid", "list"],
-    "productLayouts": ["default"]
-  },
-  "settings": {
-    "primaryColor": {
-      "type": "color",
-      "default": "#1192DC",
-      "label": "Основний колір"
-    },
-    "showBrandInHeader": {
-      "type": "boolean",
-      "default": true,
-      "label": "Показувати логотип у хедері"
-    },
-    "productsPerRow": {
-      "type": "select",
-      "default": "4",
-      "label": "Товарів у рядку",
-      "options": [
-        { "value": "3", "label": "3 товари" },
-        { "value": "4", "label": "4 товари" },
-        { "value": "5", "label": "5 товарів" }
-      ]
-    }
-  }
-}
+ALTER TABLE products DROP COLUMN price;
+ALTER TABLE products DROP COLUMN old_price;
+ALTER TABLE product_modifications DROP COLUMN price;
+ALTER TABLE product_modifications DROP COLUMN old_price;
+ALTER TABLE user_categories DROP COLUMN price_multiplier;
 ```
 
 ---
 
-## Система завантаження тем
+## Етап 2: Контроль повного видалення старого механізму
 
-### ThemeRegistry (аналог HookRegistry)
+Після міграції БД -- окремий крок перевірки та заміни всіх згадок старого механізму у коді. Повний перелік файлів та точок зміни:
 
-```text
-src/lib/themes/
-├── types.ts           # Інтерфейси ThemeManifest, ThemeModule
-├── ThemeRegistry.ts   # Реєстр та завантаження тем
-├── ThemeLoader.ts     # Динамічне завантаження
-├── ThemeContext.tsx   # React Context для активної теми
-└── index.ts           # Експорти
-```
+### 2.1 Адмін-панель -- видалити/замінити
 
-### Інтерфейси
+| Файл | Що видалити/замінити |
+|------|---------------------|
+| `src/components/admin/SimpleProductFields.tsx` | Видалити поля `price`, `old_price` та відповідні props. Замінити на компонент `ProductPricesEditor` (таблиця цін по видам) |
+| `src/components/admin/ProductModifications.tsx` | Видалити поля `price`, `old_price` з форми створення/редагування модифікації. Додати `ProductPricesEditor` для кожної модифікації |
+| `src/pages/admin/ProductEdit.tsx` | Видалити `formData.price`, `formData.old_price`, `onPriceChange`, `onOldPriceChange` з стану та обробників. Видалити передачу price/old_price до `SimpleProductFields` та при збереженні |
+| `src/pages/admin/UserCategoryEdit.tsx` | Видалити поле `price_multiplier` зі схеми, форми та збереження. Додати Select для вибору виду ціни (`price_type_id`) |
+| `src/pages/admin/UserCategories.tsx` | Видалити відображення `price_multiplier`. Замінити на назву виду ціни |
+| `src/pages/admin/UserEdit.tsx` | Видалити `price_multiplier` з select-запиту та відображення |
+| `src/components/admin/AddProductToOrder.tsx` | Замінити читання `product.price` та `modification.price` на запит з `product_prices` |
 
-```text
-// ThemeManifest
-interface ThemeManifest {
-  name: string;
-  displayName: string;
-  version: string;
-  description?: string;
-  author?: string;
-  previewImage?: string;
-  supports?: ThemeSupports;
-  settings?: Record<string, ThemeSettingDefinition>;
-}
+### 2.2 Фронтенд (публічна частина) -- видалити/замінити
 
-// ThemeModule - експортується з кожної теми
-interface ThemeModule {
-  manifest: ThemeManifest;
-  MainLayout: React.ComponentType;
-  CatalogLayout: React.ComponentType;
-  ProfileLayout: React.ComponentType;
-  pages: {
-    HomePage: React.ComponentType;
-    CatalogPage: React.ComponentType;
-    ProductPage: React.ComponentType;
-    CartPage: React.ComponentType;
-    CheckoutPage: React.ComponentType;
-    ProfilePage: React.ComponentType;
-    // ...інші сторінки
-  };
-  components: {
-    ProductCard: React.ComponentType<ProductCardProps>;
-    FilterSidebar: React.ComponentType<FilterSidebarProps>;
-    // ...інші компоненти
-  };
-  styles: string; // CSS import
-}
-```
+| Файл | Що видалити/замінити |
+|------|---------------------|
+| `src/components/catalog/ProductCard.tsx` | Замінити `product.price`, `product.old_price`, `modification.price`, `modification.old_price` на ціну з нового хука/контексту |
+| `src/pages/Catalog.tsx` | Видалити `price`, `old_price` з select-запиту модифікацій. Підключити `useProductPrices` |
+| `src/pages/ProductDetail.tsx` | Замінити `selectedMod?.price`, `product.price` на ціну з `product_prices` |
+| `src/components/catalog/ModificationSelector.tsx` | Видалити `price`, `old_price` з інтерфейсу модифікації та відображення. Приймати ціни через props від нового механізму |
+| `src/hooks/useProductsWithStock.ts` | Видалити `price`, `old_price` з інтерфейсу `ProductModification` |
+| `src/lib/themes/types.ts` | Видалити `price`, `old_price` з типу `ProductCardProps` (замінити на прийом ціни ззовні) |
 
-### ThemeContext
+### 2.3 Кошик та замовлення -- оновити
 
-```text
-interface ThemeContextType {
-  activeTheme: ThemeModule | null;
-  themeName: string;
-  themeSettings: Record<string, unknown>;
-  isLoading: boolean;
-}
+| Файл | Що змінити |
+|------|-----------|
+| `src/hooks/useCart.tsx` | Ціна вже зберігається як `item.price` -- залишається як є (фіксується на момент додавання). Без змін |
+| `src/components/cart/CartItem.tsx` | Без змін (працює з `item.price` з кошика) |
+| `src/components/checkout/CheckoutOrderSummary.tsx` | Без змін |
+| `src/pages/Checkout.tsx` | Без змін (ціна береться з кошика) |
+| `src/pages/OrderSuccess.tsx` | Без змін (дані з order_items) |
+| `src/pages/ProfileOrderDetail.tsx` | Без змін (дані з order_items) |
+| `src/pages/admin/OrderDetail.tsx` | Замінити `item.price` при додаванні нового товару -- брати з `product_prices` |
 
-// Використання в App.tsx
-<ThemeProvider>
-  <ThemeRouter /> {/* Динамічні роути на основі активної теми */}
-</ThemeProvider>
-```
+### 2.4 Тема (default) -- оновити
+
+| Файл | Що змінити |
+|------|-----------|
+| `src/themes/default/index.tsx` | Оновити реекспорти, якщо змінились props компонентів |
 
 ---
 
-## База даних
+## Етап 3: Нові компоненти та хуки
 
-### Нова таблиця: themes
+### 3.1 Адмін-панель
 
-```text
-CREATE TABLE themes (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name varchar(100) UNIQUE NOT NULL,
-  display_name text NOT NULL,
-  version varchar(20) NOT NULL,
-  description text,
-  author text,
-  preview_image text,
-  is_active boolean DEFAULT false,
-  config jsonb DEFAULT '{}',
-  settings_schema jsonb DEFAULT '{}',
-  installed_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+**Новий розділ "Види цін"**:
+- `src/pages/admin/PriceTypes.tsx` -- список видів цін (CRUD)
+- `src/pages/admin/PriceTypeEdit.tsx` -- форма створення/редагування виду ціни
+- Додати пункт в `AdminSidebar.tsx`
+- Додати роути в `App.tsx`
 
--- Обмеження: тільки одна тема може бути активною
-CREATE UNIQUE INDEX themes_active_idx ON themes (is_active) WHERE is_active = true;
+**Компонент `ProductPricesEditor`**:
+- `src/components/admin/ProductPricesEditor.tsx` -- таблиця з рядком на кожен вид ціни, в кожному рядку поля `price` та `old_price`
+- Props: `productId`, `modificationId` (nullable)
+- Завантажує всі `price_types`, показує поточні ціни з `product_prices`
+- Зберігає upsert в `product_prices`
 
--- RLS policies
-ALTER TABLE themes ENABLE ROW LEVEL SECURITY;
+### 3.2 Фронтенд
 
-CREATE POLICY "Themes are viewable by everyone"
-  ON themes FOR SELECT USING (true);
+**Хук `usePriceType`**:
+- Визначає `price_type_id` для поточного користувача
+- Ланцюжок: user -> profile.category_id -> user_categories.price_type_id -> fallback to is_default
+- Для гостя: одразу дефолтний
 
-CREATE POLICY "Themes are manageable by admins"
-  ON themes FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
-```
-
-### Системні налаштування
-
-```text
--- Додати до system_settings
-INSERT INTO system_settings (key, value, description)
-VALUES ('active_theme', '"default"', 'Активна тема сайту');
-```
+**Хук `useProductPrices`**:
+- Приймає масив `productId[]` та `priceTypeId`
+- Завантажує ціни з `product_prices`
+- Повертає `Map<string, { price, old_price }>` (ключ = productId або modificationId)
+- Якщо немає ціни для виду -- фолбек на дефолтний вид
 
 ---
 
-## Інтеграція в App.tsx
+## Етап 4: Інтеграція
 
-### Динамічний роутинг
+### 4.1 Каталог
+- `Catalog.tsx`: після завантаження товарів, запитати ціни через `useProductPrices` для всіх productId
+- `ProductCard.tsx`: отримувати ціну як prop або з контексту
+- Фільтри по ціні: діапазон розраховувати на основі цін активного виду
 
-```text
-// Замість статичних імпортів сторінок
-function ThemeRouter() {
-  const { activeTheme, isLoading } = useTheme();
-  
-  if (isLoading) return <LoadingScreen />;
-  if (!activeTheme) return <FallbackTheme />;
-  
-  const {
-    MainLayout,
-    CatalogLayout,
-    ProfileLayout,
-    pages: {
-      HomePage,
-      CatalogPage,
-      ProductPage,
-      CartPage,
-      CheckoutPage,
-      ProfilePage,
-    }
-  } = activeTheme;
-  
-  return (
-    <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-      </Route>
-      <Route element={<CatalogLayout />}>
-        <Route path="/catalog" element={<CatalogPage />} />
-        <Route path="/catalog/:sectionSlug" element={<CatalogPage />} />
-        <Route path="/catalog/:sectionSlug/:productSlug" element={<ProductPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-      </Route>
-      <Route path="/profile" element={<ProfileLayout />}>
-        <Route index element={<ProfilePage />} />
-        {/* ... */}
-      </Route>
-      {/* Admin routes залишаються незмінними */}
-    </Routes>
-  );
-}
-```
+### 4.2 Сторінка товару
+- `ProductDetail.tsx`: завантажити ціни для всіх модифікацій + для самого товару
+- При перемиканні модифікації -- показувати ціну з `product_prices`
+- Кнопка "Додати в кошик" -- передає ціну з `product_prices`
+
+### 4.3 Адмін -- додавання товару в замовлення
+- `AddProductToOrder.tsx`: при виборі товару завантажувати ціну з `product_prices` (дефолтний вид)
 
 ---
 
-## Адмін-панель: Управління темами
+## Порядок виконання
 
-### Нові сторінки
-
-```text
-src/pages/admin/
-├── Themes.tsx             # Список тем (аналог Plugins.tsx)
-└── ThemeSettings.tsx      # Налаштування обраної теми
-```
-
-### UI сторінки Themes.tsx
-
-```text
-+----------------------------------------------------------+
-| ← Теми оформлення                     [Встановити тему]  |
-+----------------------------------------------------------+
-|                                                          |
-| +----------------------+  +----------------------+       |
-| | [Preview Image]      |  | [Preview Image]      |       |
-| |                      |  |                      |       |
-| | SolarStore Default   |  | Minimal Theme        |       |
-| | v1.0.0 | SolarStore  |  | v1.0.0 | Community   |       |
-| |                      |  |                      |       |
-| | [●] Активна          |  | [ ] Активувати       |       |
-| | [Налаштування]       |  | [Налаштування] [🗑]  |       |
-| +----------------------+  +----------------------+       |
-|                                                          |
-+----------------------------------------------------------+
-```
-
-### Функції
-- Перегляд встановлених тем
-- Активація/деактивація теми (одна активна)
-- Налаштування теми (кольори, опції)
-- Встановлення нової теми
-- Видалення теми (крім активної та дефолтної)
-
----
-
-## Міграція поточного коду
-
-### Етап 1: Створення інфраструктури
-1. Створити `src/lib/themes/` з типами та реєстром
-2. Створити таблицю `themes` в БД
-3. Створити ThemeContext та ThemeProvider
-
-### Етап 2: Міграція дефолтної теми
-1. Створити `src/themes/default/`
-2. Перенести компоненти:
-   - `src/components/catalog/*` → `src/themes/default/components/`
-   - `src/components/profile/ProfileLayout.tsx` → `src/themes/default/layouts/`
-   - `src/pages/Index.tsx` → `src/themes/default/pages/HomePage.tsx`
-   - `src/pages/Catalog.tsx` → `src/themes/default/pages/CatalogPage.tsx`
-   - і т.д.
-3. Створити manifest.json та index.ts
-4. Оновити імпорти в App.tsx
-
-### Етап 3: Адмін-панель
-1. Додати пункт "Теми" в AdminSidebar
-2. Створити Themes.tsx
-3. Створити ThemeSettings.tsx
-4. Створити InstallThemeDialog.tsx
-
-### Етап 4: Core хуки для тем
-1. Створити хуки для отримання даних (useProducts, useSections) які використовуються темами
-2. Експортувати типізовані props для компонентів
-
----
-
-## Взаємодія Theme і Plugins
-
-### Plugin Slots у темах
-
-Теми повинні підтримувати PluginSlot:
-
-```text
-// У компоненті ProductPage теми
-<PluginSlot name="product.detail.before" context={{ product }} />
-<ProductInfo product={product} />
-<PluginSlot name="product.detail.after" context={{ product }} />
-```
-
-Тема визначає де розміщувати слоти, плагіни заповнюють контент.
-
----
-
-## Налаштування теми
-
-### Динамічні CSS variables
-
-```text
-// ThemeStylesProvider
-function ThemeStylesProvider({ children }) {
-  const { themeSettings } = useActiveTheme();
-  
-  useEffect(() => {
-    const root = document.documentElement;
-    if (themeSettings.primaryColor) {
-      const hsl = hexToHsl(themeSettings.primaryColor);
-      root.style.setProperty('--primary', hsl);
-    }
-  }, [themeSettings]);
-  
-  return children;
-}
-```
-
----
-
-## Порядок імплементації
-
-1. **Етап 1**: Інфраструктура
-   - Створити типи та інтерфейси
-   - Створити таблицю themes
-   - Створити ThemeRegistry та ThemeContext
-
-2. **Етап 2**: Міграція Default теми
-   - Перенести компоненти в src/themes/default/
-   - Оновити App.tsx для динамічного роутингу
-   - Протестувати роботу
-
-3. **Етап 3**: Адмін-панель
-   - Створити UI управління темами
-   - Додати налаштування теми
-   - Встановлення/видалення тем
-
-4. **Етап 4**: Розширення
-   - Документація для розробників тем
-   - Приклад мінімальної теми
-   - Експорт core хуків
-
----
-
-## Очікувані результати
-
-- Можливість створювати власні теми з унікальним дизайном
-- Збереження всієї бізнес-логіки в core
-- Легке перемикання між темами в адмін-панелі
-- Підтримка кастомізації через налаштування теми
-- Сумісність з системою плагінів
-- Дефолтна тема як референс для розробників
-
----
-
-## Технічні примітки
-
-### Lazy Loading тем
-Теми завантажуються динамічно для оптимізації початкового bundle:
-```text
-const theme = await import(`@/themes/${themeName}/index.ts`);
-```
-
-### Fallback
-Якщо активна тема не завантажилась, використовується дефолтна:
-```text
-if (!activeTheme) {
-  console.warn('Falling back to default theme');
-  return loadTheme('default');
-}
-```
-
-### Версіонування
-Теми мають версії для сумісності з core API. При оновленні CMS теми можуть потребувати оновлення.
+1. **Крок 1**: Міграція БД -- створити `price_types`, `product_prices`, додати `price_type_id` до `user_categories`, мігрувати дані
+2. **Крок 2**: Міграція БД -- видалити колонки `price`/`old_price` з `products` та `product_modifications`, видалити `price_multiplier` з `user_categories`
+3. **Крок 3**: Створити адмін CRUD для видів цін (`PriceTypes.tsx`, `PriceTypeEdit.tsx`)
+4. **Крок 4**: Створити `ProductPricesEditor.tsx` та інтегрувати в `ProductEdit`, `SimpleProductFields`, `ProductModifications`
+5. **Крок 5**: Додати вибір виду ціни в `UserCategoryEdit.tsx`, оновити `UserCategories.tsx`
+6. **Крок 6**: Створити хуки `usePriceType`, `useProductPrices`
+7. **Крок 7**: Оновити фронтенд: Catalog, ProductCard, ProductDetail, ModificationSelector, фільтри
+8. **Крок 8**: Оновити адмін OrderDetail та AddProductToOrder
+9. **Крок 9**: Контрольна перевірка -- пошук по всьому коду залишків `\.price`, `old_price`, `price_multiplier` для гарантії повного видалення
