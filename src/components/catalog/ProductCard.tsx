@@ -14,40 +14,15 @@ interface ProductCardProps {
     has_modifications?: boolean;
     price?: number | null;
     old_price?: number | null;
-    is_in_stock?: boolean;
-    modifications?: Array<{
-      price: number;
-      old_price?: number | null;
-      stock_status?: string | null;
-    }>;
     stock_status?: string | null;
   };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   const firstImage = product.images?.[0];
-  const hasModifications = product.has_modifications ?? true;
-  
-  // Get price and stock based on product type
-  let price: number | undefined;
-  let oldPrice: number | undefined | null;
-  let isInStock: boolean;
-
-  let stockStatus: string | null = null;
-  
-  if (hasModifications) {
-    const defaultMod = product.modifications?.[0];
-    price = defaultMod?.price;
-    oldPrice = defaultMod?.old_price;
-    stockStatus = defaultMod?.stock_status ?? "in_stock";
-  } else {
-    price = product.price ?? undefined;
-    oldPrice = product.old_price;
-    stockStatus = product.stock_status ?? "in_stock";
-  }
-
-  isInStock = stockStatus === "in_stock" || stockStatus === "on_order";
-
+  const price = product.price ?? undefined;
+  const oldPrice = product.old_price;
+  const stockStatus = product.stock_status ?? "in_stock";
   const sectionSlug = product.section?.slug || "";
 
   const formatPrice = (value: number) => {

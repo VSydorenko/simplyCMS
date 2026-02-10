@@ -32,6 +32,7 @@ import { ImageUpload } from "./ImageUpload";
 import { ProductPropertyValues } from "./ProductPropertyValues";
 import { StockStatusSelect } from "./StockStatusSelect";
 import { StockByPointManager } from "./StockByPointManager";
+import { ProductPricesEditor } from "./ProductPricesEditor";
 import type { Tables } from "@/integrations/supabase/types";
 import type { StockStatus } from "@/hooks/useStock";
 
@@ -49,6 +50,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
   const [stockStatus, setStockStatus] = useState<StockStatus>("in_stock");
   const [stockOpen, setStockOpen] = useState(true);
   const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const [pricesOpen, setPricesOpen] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -64,6 +66,25 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       return data;
     },
   });
+
+  // Fetch default prices for table display
+  const { data: modPrices } = useQuery({
+    queryKey: ["modification-default-prices", productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_prices")
+        .select("modification_id, price, old_price, price_types!inner(is_default)")
+        .eq("product_id", productId)
+        .not("modification_id", "is", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getDefaultPrice = (modId: string) => {
+    const entry = modPrices?.find((p: any) => p.modification_id === modId && (p.price_types as any)?.is_default);
+    return entry;
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<ProductModification>) => {
@@ -159,13 +180,11 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const data = {
       name: formData.get("name") as string,
       slug: formData.get("slug") as string,
       sku: (formData.get("sku") as string) || null,
-      price: parseFloat(formData.get("price") as string) || 0,
-      old_price: formData.get("old_price") ? parseFloat(formData.get("old_price") as string) : null,
       stock_status: stockStatus,
       is_default: formData.get("is_default") === "on",
       images: images,
@@ -273,149 +292,81 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="mod-name">Назва *</Label>
-                    <Input
-                      id="mod-name"
-                      name="name"
-                      defaultValue={editingModification?.name || ""}
-                      placeholder="Наприклад: 100W, Синій"
-                      required
-                    />
+                    <Input id="mod-name" name="name" defaultValue={editingModification?.name || ""} placeholder="Наприклад: 100W, Синій" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="mod-slug">URL (slug) *</Label>
-                    <Input
-                      id="mod-slug"
-                      name="slug"
-                      defaultValue={editingModification?.slug || ""}
-                      placeholder="100w"
-                      required
-                    />
+                    <Input id="mod-slug" name="slug" defaultValue={editingModification?.slug || ""} placeholder="100w" required />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="mod-sku">Артикул (SKU)</Label>
-                    <Input
-                      id="mod-sku"
-                      name="sku"
-                      defaultValue={editingModification?.sku || ""}
-                      placeholder="SP-100W-BLK"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mod-price">Ціна (₴) *</Label>
-                    <Input
-                      id="mod-price"
-                      name="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue={editingModification?.price || ""}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mod-old-price">Стара ціна (₴)</Label>
-                    <Input
-                      id="mod-old-price"
-                      name="old_price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue={editingModification?.old_price || ""}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mod-sku">Артикул (SKU)</Label>
+                  <Input id="mod-sku" name="sku" defaultValue={editingModification?.sku || ""} placeholder="SP-100W-BLK" />
                 </div>
 
-                <StockStatusSelect
-                  value={stockStatus}
-                  onChange={setStockStatus}
-                />
+                <StockStatusSelect value={stockStatus} onChange={setStockStatus} />
 
                 <div className="flex items-center gap-2">
-                  <Switch
-                    id="mod-default"
-                    name="is_default"
-                    defaultChecked={editingModification?.is_default ?? false}
-                  />
+                  <Switch id="mod-default" name="is_default" defaultChecked={editingModification?.is_default ?? false} />
                   <Label htmlFor="mod-default">За замовчуванням</Label>
                 </div>
 
                 {/* Images section */}
                 <div className="space-y-2">
                   <Label>Зображення</Label>
-                  <ImageUpload
-                    images={images}
-                    onImagesChange={setImages}
-                    folder={`modifications/${editingModification?.id || 'new'}`}
-                    maxImages={10}
-                  />
+                  <ImageUpload images={images} onImagesChange={setImages} folder={`modifications/${editingModification?.id || 'new'}`} maxImages={10} />
                 </div>
 
-                {/* Stock by point for existing modifications - expanded by default */}
+                {/* Prices editor for existing modifications */}
                 {editingModification && (
-                  <Collapsible open={stockOpen} onOpenChange={setStockOpen}>
+                  <Collapsible open={pricesOpen} onOpenChange={setPricesOpen}>
                     <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50"
-                      >
-                        <span className="font-medium">Залишки по складах</span>
-                        {stockOpen ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
+                      <Button variant="ghost" type="button" className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50">
+                        <span className="font-medium">Ціни за видами</span>
+                        {pricesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-3">
-                      <StockByPointManager
-                        modificationId={editingModification.id}
-                        showCard={false}
-                      />
+                      <ProductPricesEditor productId={productId} modificationId={editingModification.id} />
                     </CollapsibleContent>
                   </Collapsible>
                 )}
 
-                {/* Properties section for existing modifications - expanded by default */}
-                {editingModification && sectionId && (
-                  <Collapsible open={propertiesOpen} onOpenChange={setPropertiesOpen}>
+                {/* Stock by point for existing modifications */}
+                {editingModification && (
+                  <Collapsible open={stockOpen} onOpenChange={setStockOpen}>
                     <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50"
-                      >
-                        <span className="font-medium">Властивості модифікації</span>
-                        {propertiesOpen ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
+                      <Button variant="ghost" type="button" className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50">
+                        <span className="font-medium">Залишки по складах</span>
+                        {stockOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-3">
-                      <ProductPropertyValues
-                        modificationId={editingModification.id}
-                        sectionId={sectionId}
-                      />
+                      <StockByPointManager modificationId={editingModification.id} showCard={false} />
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* Properties section for existing modifications */}
+                {editingModification && sectionId && (
+                  <Collapsible open={propertiesOpen} onOpenChange={setPropertiesOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" type="button" className="flex w-full justify-between p-3 border rounded-lg hover:bg-muted/50">
+                        <span className="font-medium">Властивості модифікації</span>
+                        {propertiesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3">
+                      <ProductPropertyValues modificationId={editingModification.id} sectionId={sectionId} />
                     </CollapsibleContent>
                   </Collapsible>
                 )}
 
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={closeDialog}>
-                    Скасувати
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) && (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
+                  <Button type="button" variant="outline" onClick={closeDialog}>Скасувати</Button>
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {editingModification ? "Зберегти" : "Створити"}
                   </Button>
                 </div>
@@ -441,52 +392,31 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
             <TableBody>
               {modifications.map((mod, index) => {
                 const modImages = Array.isArray(mod.images) ? mod.images as string[] : [];
+                const defaultPrice = getDefaultPrice(mod.id);
                 return (
-                  <TableRow 
-                    key={mod.id} 
+                  <TableRow
+                    key={mod.id}
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={(e) => handleRowClick(mod, e)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          disabled={index === 0 || reorderMutation.isPending}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            reorderMutation.mutate({ id: mod.id, direction: "up" });
-                          }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === 0 || reorderMutation.isPending}
+                          onClick={(e) => { e.stopPropagation(); reorderMutation.mutate({ id: mod.id, direction: "up" }); }}>
                           <ArrowUp className="h-3 w-3" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          disabled={index === modifications.length - 1 || reorderMutation.isPending}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            reorderMutation.mutate({ id: mod.id, direction: "down" });
-                          }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === modifications.length - 1 || reorderMutation.isPending}
+                          onClick={(e) => { e.stopPropagation(); reorderMutation.mutate({ id: mod.id, direction: "down" }); }}>
                           <ArrowDown className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>
                     <TableCell>
                       {modImages.length > 0 ? (
-                        <img
-                          src={modImages[0]}
-                          alt={mod.name}
-                          className="h-10 w-10 object-cover rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/placeholder.svg';
-                          }}
-                        />
+                        <img src={modImages[0]} alt="" className="h-8 w-8 object-cover rounded"
+                          onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
                       ) : (
-                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                        <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
                           <Image className="h-4 w-4 text-muted-foreground" />
                         </div>
                       )}
@@ -494,37 +424,27 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                     <TableCell className="font-medium">
                       {mod.name}
                       {mod.is_default && (
-                        <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                          За замовч.
-                        </span>
+                        <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">За замовч.</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {mod.sku || "—"}
-                    </TableCell>
+                    <TableCell className="text-muted-foreground">{mod.sku || "—"}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{formatPrice(Number(mod.price))}</span>
-                        {mod.old_price && (
-                          <span className="text-xs text-muted-foreground line-through">
-                            {formatPrice(Number(mod.old_price))}
-                          </span>
-                        )}
-                      </div>
+                      {defaultPrice ? (
+                        <div className="flex flex-col">
+                          <span className="font-medium">{formatPrice(Number(defaultPrice.price))}</span>
+                          {defaultPrice.old_price && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {formatPrice(Number(defaultPrice.old_price))}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
+                    <TableCell>{getStatusBadge(mod.stock_status)}</TableCell>
                     <TableCell>
-                      {getStatusBadge(mod.stock_status)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteMutation.mutate(mod.id);
-                        }}
-                        disabled={deleteMutation.isPending}
-                      >
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(mod.id); }} disabled={deleteMutation.isPending}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>

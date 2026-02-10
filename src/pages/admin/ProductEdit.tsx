@@ -45,8 +45,6 @@ export default function ProductEdit() {
     is_active: true,
     is_featured: false,
     has_modifications: true,
-    price: null as number | null,
-    old_price: null as number | null,
     sku: "",
     stock_status: "in_stock" as "in_stock" | "out_of_stock" | "on_order",
   });
@@ -92,8 +90,6 @@ export default function ProductEdit() {
         is_active: product.is_active ?? true,
         is_featured: product.is_featured ?? false,
         has_modifications: (product as any).has_modifications ?? true,
-        price: (product as any).price ?? null,
-        old_price: (product as any).old_price ?? null,
         sku: (product as any).sku || "",
         stock_status: (product as any).stock_status || "in_stock",
       });
@@ -156,16 +152,11 @@ export default function ProductEdit() {
       images,
     };
 
-    // Only include price/stock fields for simple products
+    // Only include stock fields for simple products
     if (!formData.has_modifications) {
-      data.price = formData.price;
-      data.old_price = formData.old_price;
       data.sku = formData.sku || null;
       data.stock_status = formData.stock_status;
     } else {
-      // Clear simple product fields when switching to modifications
-      data.price = null;
-      data.old_price = null;
       data.sku = null;
       data.stock_status = "in_stock";
     }
@@ -322,12 +313,8 @@ export default function ProductEdit() {
           {!isNew && !formData.has_modifications && (
             <SimpleProductFields
               productId={productId!}
-              price={formData.price}
-              oldPrice={formData.old_price}
               sku={formData.sku}
               stockStatus={formData.stock_status}
-              onPriceChange={(v) => handleChange("price", v)}
-              onOldPriceChange={(v) => handleChange("old_price", v)}
               onSkuChange={(v) => handleChange("sku", v)}
               onStockStatusChange={(v) => handleChange("stock_status", v)}
             />

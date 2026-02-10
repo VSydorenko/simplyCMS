@@ -17,6 +17,8 @@ import { FilterSidebar } from "@/components/catalog/FilterSidebar";
 import { ActiveFilters } from "@/components/catalog/ActiveFilters";
 import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "lucide-react";
 import { fetchModificationStockData, fetchModificationPropertyValues, enrichProductsWithAvailability } from "@/hooks/useProductsWithStock";
+import { usePriceType } from "@/hooks/usePriceType";
+import { resolvePrice } from "@/lib/priceUtils";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
@@ -25,6 +27,8 @@ export default function Catalog() {
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+
+  const { priceTypeId, defaultPriceTypeId } = usePriceType();
 
   // Fetch all sections
   const { data: sections } = useQuery({
@@ -40,8 +44,8 @@ export default function Catalog() {
     },
   });
 
-  // Fetch all products with modification property values and stock data
-  const { data: products, isLoading: productsLoading } = useQuery({
+  // Fetch all products with modifications, prices, property values, and stock
+  const { data: rawProducts, isLoading: productsLoading } = useQuery({
     queryKey: ["all-products"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -49,37 +53,36 @@ export default function Catalog() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(id, price, old_price, stock_status, is_default, sort_order),
+          product_modifications(id, stock_status, is_default, sort_order),
+          product_prices(price_type_id, price, old_price, modification_id),
           product_property_values(property_id, value, numeric_value, option_id),
           stock_by_pickup_point(quantity)
         `)
         .eq("is_active", true);
       if (error) throw error;
 
-      // Fetch modification property values and stock
-      const modificationIds = data.flatMap(p => 
+      const modificationIds = data.flatMap(p =>
         (p.product_modifications || []).map((m: any) => m.id)
       );
-      
+
       const [modPropertyValues, modStockData] = await Promise.all([
         fetchModificationPropertyValues(modificationIds),
         fetchModificationStockData(modificationIds),
       ]);
 
-      const rawProducts = data.map((product) => {
+      const mapped = data.map((product) => {
         const mods = product.product_modifications || [];
         const defaultMod =
           mods.find((m: any) => m.is_default) ||
           mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
         const images = product.images as string[] | null;
         const hasModifications = (product as any).has_modifications ?? true;
-        
-        // Collect all property values from product and all modifications
+
         const allPropertyValues = [
           ...(product.product_property_values || []),
           ...mods.flatMap((m: any) => modPropertyValues[m.id] || [])
         ];
-        
+
         return {
           ...product,
           images: Array.isArray(images) ? images : [],
@@ -87,31 +90,40 @@ export default function Catalog() {
           has_modifications: hasModifications,
           modifications: defaultMod ? [defaultMod] : [],
           propertyValues: allPropertyValues,
+          product_prices: product.product_prices || [],
         };
       });
 
-      // Enrich products with availability using shared logic
-      return enrichProductsWithAvailability(rawProducts, modStockData);
+      return enrichProductsWithAvailability(mapped, modStockData);
     },
   });
 
-  // Calculate price range (for both simple products and modifications)
+  // Resolve prices based on user's price type
+  const products = useMemo(() => {
+    if (!rawProducts) return undefined;
+    return rawProducts.map((p) => {
+      const prices = (p as any).product_prices || [];
+      let resolved;
+      if (p.has_modifications && p.modifications?.[0]) {
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, p.modifications[0].id);
+      } else {
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, null);
+      }
+      const stockStatus = p.has_modifications
+        ? (p.modifications?.[0]?.stock_status ?? "in_stock")
+        : ((p as any).stock_status ?? "in_stock");
+      return { ...p, price: resolved.price, old_price: resolved.oldPrice, stock_status: stockStatus };
+    });
+  }, [rawProducts, priceTypeId, defaultPriceTypeId]);
+
+  // Calculate price range
   const priceRange = useMemo(() => {
     if (!products?.length) return undefined;
     const prices = products
-      .map((p) => {
-        if (p.has_modifications) {
-          return p.modifications?.[0]?.price;
-        } else {
-          return (p as any).price;
-        }
-      })
+      .map((p) => p.price)
       .filter((p): p is number => typeof p === "number");
     if (prices.length === 0) return undefined;
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-    };
+    return { min: Math.min(...prices), max: Math.max(...prices) };
   }, [products]);
 
   // Fetch numeric properties for selected section
@@ -183,7 +195,7 @@ export default function Catalog() {
       result = result.filter((p) => p.section?.id === selectedSectionId);
     }
 
-    // Apply "In Stock Only" filter using same logic as RPC get_stock_info
+    // Apply "In Stock Only" filter
     if (filters.inStockOnly) {
       result = result.filter((product) => product.isAvailable);
     }
@@ -240,17 +252,10 @@ export default function Catalog() {
     // Apply price filter
     if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
       result = result.filter((product) => {
-        let price: number | undefined;
-        if (product.has_modifications) {
-          price = product.modifications?.[0]?.price;
-        } else {
-          price = (product as any).price;
-        }
-        if (price === undefined) return true;
-        if (filters.priceMin !== undefined && price < filters.priceMin)
-          return false;
-        if (filters.priceMax !== undefined && price > filters.priceMax)
-          return false;
+        const price = product.price;
+        if (price === undefined || price === null) return true;
+        if (filters.priceMin !== undefined && price < filters.priceMin) return false;
+        if (filters.priceMax !== undefined && price > filters.priceMax) return false;
         return true;
       });
     }
@@ -258,24 +263,13 @@ export default function Catalog() {
     // Sort
     switch (sortBy) {
       case "price_asc":
-        result.sort((a, b) => {
-          const priceA = a.has_modifications ? (a.modifications?.[0]?.price || 0) : ((a as any).price || 0);
-          const priceB = b.has_modifications ? (b.modifications?.[0]?.price || 0) : ((b as any).price || 0);
-          return priceA - priceB;
-        });
+        result.sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
       case "price_desc":
-        result.sort((a, b) => {
-          const priceA = a.has_modifications ? (a.modifications?.[0]?.price || 0) : ((a as any).price || 0);
-          const priceB = b.has_modifications ? (b.modifications?.[0]?.price || 0) : ((b as any).price || 0);
-          return priceB - priceA;
-        });
+        result.sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
       case "newest":
-        result.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
       default:
         break;

@@ -1,17 +1,20 @@
+import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePriceType } from "@/hooks/usePriceType";
+import { resolvePrice } from "@/lib/priceUtils";
 
 export default function PropertyPage() {
-  const { propertySlug, optionSlug } = useParams<{ 
-    propertySlug: string; 
+  const { propertySlug, optionSlug } = useParams<{
+    propertySlug: string;
     optionSlug: string;
   }>();
 
-  // Use propertySlug as propertyCode for the queries
+  const { priceTypeId, defaultPriceTypeId } = usePriceType();
   const propertyCode = propertySlug;
 
   // Fetch property by slug
@@ -47,12 +50,12 @@ export default function PropertyPage() {
     enabled: !!property?.id && !!optionSlug,
   });
 
-  // Fetch products with this property value (from both product and modification levels)
-  const { data: products, isLoading: productsLoading } = useQuery({
+  // Fetch products with this property value
+  const { data: rawProducts, isLoading: productsLoading } = useQuery({
     queryKey: ["products-by-option", option?.id],
     queryFn: async () => {
       if (!option?.id) return [];
-      
+
       // Get product IDs that have this option at product level
       const { data: productLevelValues, error: pvError } = await supabase
         .from("product_property_values")
@@ -84,7 +87,8 @@ export default function PropertyPage() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(price, old_price, stock_status, is_default, sort_order)
+          product_modifications(stock_status, is_default, sort_order),
+          product_prices(price_type_id, price, old_price, modification_id)
         `)
         .in("id", Array.from(productIds))
         .eq("is_active", true);
@@ -102,11 +106,31 @@ export default function PropertyPage() {
           images: Array.isArray(images) ? images : [],
           section: product.sections,
           modifications: defaultMod ? [defaultMod] : [],
+          product_prices: product.product_prices || [],
         };
       });
     },
     enabled: !!option?.id,
   });
+
+  // Resolve prices
+  const products = useMemo(() => {
+    if (!rawProducts) return undefined;
+    return rawProducts.map((p) => {
+      const prices = (p as any).product_prices || [];
+      const hasModifications = (p as any).has_modifications ?? true;
+      let resolved;
+      if (hasModifications && p.modifications?.[0]) {
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, (p.modifications[0] as any).id);
+      } else {
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, null);
+      }
+      const stockStatus = hasModifications
+        ? (p.modifications?.[0]?.stock_status ?? "in_stock")
+        : ((p as any).stock_status ?? "in_stock");
+      return { ...p, price: resolved.price, old_price: resolved.oldPrice, stock_status: stockStatus };
+    });
+  }, [rawProducts, priceTypeId, defaultPriceTypeId]);
 
   if (optionLoading) {
     return (

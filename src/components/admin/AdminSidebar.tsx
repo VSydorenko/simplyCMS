@@ -17,6 +17,7 @@ import {
   Map,
   Building,
   Palette,
+  DollarSign,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -34,6 +35,7 @@ const catalogItems = [
   { title: "Розділи", url: "/admin/sections", icon: FolderTree },
   { title: "Властивості", url: "/admin/properties", icon: ListChecks },
   { title: "Товари", url: "/admin/products", icon: Package },
+  { title: "Види цін", url: "/admin/price-types", icon: DollarSign },
 ];
 
 const ordersItems = [

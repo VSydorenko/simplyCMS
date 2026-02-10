@@ -561,6 +561,33 @@ export type Database = {
         }
         Relationships: []
       }
+      price_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       product_modifications: {
         Row: {
           created_at: string
@@ -568,8 +595,6 @@ export type Database = {
           images: Json | null
           is_default: boolean
           name: string
-          old_price: number | null
-          price: number
           product_id: string
           sku: string | null
           slug: string
@@ -583,8 +608,6 @@ export type Database = {
           images?: Json | null
           is_default?: boolean
           name: string
-          old_price?: number | null
-          price: number
           product_id: string
           sku?: string | null
           slug: string
@@ -598,8 +621,6 @@ export type Database = {
           images?: Json | null
           is_default?: boolean
           name?: string
-          old_price?: number | null
-          price?: number
           product_id?: string
           sku?: string | null
           slug?: string
@@ -610,6 +631,61 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_modifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_prices: {
+        Row: {
+          created_at: string
+          id: string
+          modification_id: string | null
+          old_price: number | null
+          price: number
+          price_type_id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modification_id?: string | null
+          old_price?: number | null
+          price: number
+          price_type_id: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modification_id?: string | null
+          old_price?: number | null
+          price?: number
+          price_type_id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_prices_modification_id_fkey"
+            columns: ["modification_id"]
+            isOneToOne: false
+            referencedRelation: "product_modifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_prices_price_type_id_fkey"
+            columns: ["price_type_id"]
+            isOneToOne: false
+            referencedRelation: "price_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_prices_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -681,8 +757,6 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           name: string
-          old_price: number | null
-          price: number | null
           section_id: string | null
           short_description: string | null
           sku: string | null
@@ -701,8 +775,6 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name: string
-          old_price?: number | null
-          price?: number | null
           section_id?: string | null
           short_description?: string | null
           sku?: string | null
@@ -721,8 +793,6 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           name?: string
-          old_price?: number | null
-          price?: number | null
           section_id?: string | null
           short_description?: string | null
           sku?: string | null
@@ -1400,7 +1470,7 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
-          price_multiplier: number
+          price_type_id: string | null
         }
         Insert: {
           code: string
@@ -1409,7 +1479,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
-          price_multiplier?: number
+          price_type_id?: string | null
         }
         Update: {
           code?: string
@@ -1418,9 +1488,17 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
-          price_multiplier?: number
+          price_type_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_categories_price_type_id_fkey"
+            columns: ["price_type_id"]
+            isOneToOne: false
+            referencedRelation: "price_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_category_history: {
         Row: {

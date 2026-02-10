@@ -2,8 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ProductModification {
   id: string;
-  price: number;
-  old_price: number | null;
   stock_status: string | null;
   is_default: boolean;
   sort_order: number;
