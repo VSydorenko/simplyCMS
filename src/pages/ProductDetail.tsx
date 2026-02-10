@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { StockDisplay } from "@/components/catalog/StockDisplay";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
+import { usePriceType } from "@/hooks/usePriceType";
+import { resolvePrice } from "@/lib/priceUtils";
 
 export default function ProductDetail() {
   const { sectionSlug, productSlug } = useParams<{
@@ -30,6 +32,7 @@ export default function ProductDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addItem } = useCart();
   const { toast } = useToast();
+  const { priceTypeId, defaultPriceTypeId } = usePriceType();
 
   // Fetch product with all related data
   const { data: product, isLoading } = useQuery({
@@ -42,6 +45,7 @@ export default function ProductDetail() {
           *,
           sections(id, slug, name),
           product_modifications(*),
+          product_prices(price_type_id, price, old_price, modification_id),
           product_property_values(
             property_id,
             value,
@@ -243,6 +247,19 @@ export default function ProductDetail() {
     }).format(value);
   };
 
+  // Build prices map for modifications
+  const modPrices = useMemo(() => {
+    const productPrices = (product as any)?.product_prices || [];
+    const map: Record<string, { price: number; oldPrice: number | null }> = {};
+    modifications.forEach((mod) => {
+      const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, mod.id);
+      if (resolved.price !== null) {
+        map[mod.id] = { price: resolved.price, oldPrice: resolved.oldPrice };
+      }
+    });
+    return map;
+  }, [product, modifications, priceTypeId, defaultPriceTypeId]);
+
   if (isLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -268,15 +285,19 @@ export default function ProductDetail() {
   let oldPrice: number | null | undefined;
   let sku: string | null | undefined;
 
+  const productPrices = (product as any).product_prices || [];
+
   if (hasModifications) {
     stockStatus = selectedMod?.stock_status ?? "in_stock";
-    price = selectedMod?.price;
-    oldPrice = selectedMod?.old_price;
+    const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, selectedMod?.id || null);
+    price = resolved.price ?? undefined;
+    oldPrice = resolved.oldPrice;
     sku = selectedMod?.sku;
   } else {
     stockStatus = (product as any).stock_status ?? "in_stock";
-    price = (product as any).price ?? undefined;
-    oldPrice = (product as any).old_price;
+    const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, null);
+    price = resolved.price ?? undefined;
+    oldPrice = resolved.oldPrice;
     sku = (product as any).sku;
   }
   
@@ -383,6 +404,7 @@ export default function ProductDetail() {
               selectedId={selectedModId}
               onSelect={handleModificationSelect}
               formatPrice={formatPrice}
+              prices={modPrices}
               stockByModification={modificationsStockData}
             />
           )}

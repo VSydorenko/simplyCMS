@@ -35,6 +35,8 @@ import PickupPointEdit from "@/pages/admin/PickupPointEdit";
 import Settings from "@/pages/admin/Settings";
 import Themes from "@/pages/admin/Themes";
 import ThemeSettings from "@/pages/admin/ThemeSettings";
+import PriceTypes from "@/pages/admin/PriceTypes";
+import PriceTypeEdit from "@/pages/admin/PriceTypeEdit";
 
 // Fallback components for loading/error states
 function LoadingScreen() {
@@ -170,6 +172,9 @@ export function ThemeRouter() {
         <Route path="service-requests" element={<PlaceholderPage />} />
         <Route path="languages" element={<PlaceholderPage />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="price-types" element={<PriceTypes />} />
+        <Route path="price-types/new" element={<PriceTypeEdit />} />
+        <Route path="price-types/:priceTypeId" element={<PriceTypeEdit />} />
       </Route>
 
       {/* 404 */}

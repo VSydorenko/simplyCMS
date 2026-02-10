@@ -15,8 +15,6 @@ interface Modification {
   id: string;
   name: string;
   slug: string;
-  price: number;
-  old_price?: number | null;
   stock_status?: StockStatus | null;
   sku?: string | null;
 }
@@ -26,6 +24,7 @@ interface ModificationSelectorProps {
   selectedId: string;
   onSelect: (id: string) => void;
   formatPrice: (price: number) => string;
+  prices?: Record<string, { price: number; oldPrice: number | null }>;
   stockByModification?: Record<string, ModificationStockInfo>;
 }
 
@@ -34,6 +33,7 @@ export function ModificationSelector({
   selectedId,
   onSelect,
   formatPrice,
+  prices = {},
   stockByModification = {},
 }: ModificationSelectorProps) {
   if (modifications.length <= 1) {
@@ -42,8 +42,6 @@ export function ModificationSelector({
 
   const getModificationAvailability = (mod: Modification) => {
     const stockInfo = stockByModification[mod.id];
-    
-    // If we have stock data, use it
     if (stockInfo) {
       return {
         isAvailable: stockInfo.isAvailable,
@@ -51,8 +49,6 @@ export function ModificationSelector({
         isOnOrder: mod.stock_status === "on_order",
       };
     }
-    
-    // Fallback to stock_status only
     return {
       isAvailable: mod.stock_status !== "out_of_stock",
       totalQuantity: 0,
@@ -71,6 +67,7 @@ export function ModificationSelector({
         {modifications.map((mod) => {
           const availability = getModificationAvailability(mod);
           const isUnavailable = !availability.isAvailable && !availability.isOnOrder;
+          const modPrice = prices[mod.id];
 
           return (
             <Label
@@ -98,43 +95,33 @@ export function ModificationSelector({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {/* Stock status badges */}
                 {isUnavailable && (
-                  <Badge variant="secondary" className="text-xs">
-                    Немає в наявності
-                  </Badge>
+                  <Badge variant="secondary" className="text-xs">Немає в наявності</Badge>
                 )}
                 {availability.isOnOrder && (
-                  <Badge 
-                    variant="outline" 
-                    className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 text-xs"
-                  >
+                  <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 text-xs">
                     Під замовлення
                   </Badge>
                 )}
                 {availability.isAvailable && !availability.isOnOrder && availability.totalQuantity > 0 && (
-                  <Badge 
-                    variant="outline" 
-                    className="border-green-500 text-green-600 bg-green-50 dark:bg-green-950/20 text-xs"
-                  >
+                  <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50 dark:bg-green-950/20 text-xs">
                     <Check className="h-3 w-3 mr-1" />
                     {availability.totalQuantity} шт
                   </Badge>
                 )}
-                
-                <div className="text-right">
-                  <div className={cn(
-                    "font-bold",
-                    isUnavailable ? "text-muted-foreground" : "text-primary"
-                  )}>
-                    {formatPrice(mod.price)}
-                  </div>
-                  {mod.old_price && mod.old_price > mod.price && (
-                    <div className="text-sm text-muted-foreground line-through">
-                      {formatPrice(mod.old_price)}
+
+                {modPrice && (
+                  <div className="text-right">
+                    <div className={cn("font-bold", isUnavailable ? "text-muted-foreground" : "text-primary")}>
+                      {formatPrice(modPrice.price)}
                     </div>
-                  )}
-                </div>
+                    {modPrice.oldPrice && modPrice.oldPrice > modPrice.price && (
+                      <div className="text-sm text-muted-foreground line-through">
+                        {formatPrice(modPrice.oldPrice)}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Label>
           );

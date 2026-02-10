@@ -59,7 +59,7 @@ export default function UserEdit() {
         .from("profiles")
         .select(`
           *,
-          category:user_categories(id, name, price_multiplier)
+          category:user_categories(id, name)
         `)
         .eq("user_id", userId)
         .single();
@@ -347,11 +347,6 @@ export default function UserEdit() {
                     {categories?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
-                        {cat.price_multiplier !== 1 && (
-                          <span className="text-muted-foreground ml-2">
-                            (×{cat.price_multiplier})
-                          </span>
-                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
