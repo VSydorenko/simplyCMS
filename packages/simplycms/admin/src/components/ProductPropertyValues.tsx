@@ -177,10 +177,10 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
         } else if (value || numericValue !== null || optionId) {
           const { error } = await supabase
             .from("modification_property_values")
-            .insert([{ 
-              modification_id: entityId, 
-              property_id: propertyId, 
-              value, 
+            .insert([{
+              modification_id: entityId!,
+              property_id: propertyId,
+              value,
               numeric_value: numericValue,
               option_id: optionId ?? null
             }]);
@@ -200,10 +200,10 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
         } else if (value || numericValue !== null || optionId) {
           const { error } = await supabase
             .from("product_property_values")
-            .insert([{ 
-              product_id: entityId, 
-              property_id: propertyId, 
-              value, 
+            .insert([{
+              product_id: entityId!,
+              property_id: propertyId,
+              value,
               numeric_value: numericValue,
               option_id: optionId ?? null
             }]);

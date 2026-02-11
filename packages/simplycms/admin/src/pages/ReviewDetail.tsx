@@ -81,7 +81,7 @@ export default function AdminReviewDetail() {
     mutationFn: async () => {
       // Delete images from storage
       if (review?.images?.length) {
-        const paths = review.images.map((url: string) => {
+        const paths = (review.images as string[]).map((url: string) => {
           try {
             const u = new URL(url);
             const match = u.pathname.match(/\/review-images\/(.+)$/);
@@ -183,7 +183,7 @@ export default function AdminReviewDetail() {
 
           {review.images.length > 0 && (
             <div className="flex gap-2 flex-wrap">
-              {review.images.map((url: string, i: number) => (
+              {(review.images as string[]).map((url: string, i: number) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer">
                   <img src={url} alt={`Фото ${i + 1}`} className="h-24 w-24 object-cover rounded-lg border hover:opacity-80 transition-opacity" />
                 </a>

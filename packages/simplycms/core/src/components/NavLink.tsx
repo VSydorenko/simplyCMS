@@ -6,25 +6,25 @@ import { forwardRef } from "react";
 import { cn } from "@simplycms/core/lib/utils";
 
 interface NavLinkProps extends Omit<React.ComponentProps<typeof Link>, "className"> {
-  to: string;
+  href: string;
   className?: string;
   activeClassName?: string;
   pendingClassName?: string;
-  end?: boolean;
+  exact?: boolean;
   children?: React.ReactNode;
 }
 
 const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
-  ({ className, activeClassName, to, end, children, ...props }, ref) => {
+  ({ className, activeClassName, href, exact, children, ...props }, ref) => {
     const pathname = usePathname();
-    const isActive = end ? pathname === to : pathname.startsWith(to);
+    const isActive = exact ? pathname === href : pathname.startsWith(href);
 
     return (
       <Link
         ref={ref}
-        href={to}
-        className={cn(className, isActive && activeClassName)}
         {...props}
+        href={href}
+        className={cn(className, isActive && activeClassName)}
       >
         {children}
       </Link>

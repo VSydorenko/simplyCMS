@@ -23,9 +23,9 @@ function hexToHsl(hex: string): string | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return null;
 
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -165,12 +165,12 @@ export function ThemeProvider({
         description: data.description,
         author: data.author,
         preview_image: data.preview_image,
-        is_active: data.is_active,
+        is_active: data.is_active ?? false,
         config: configData || {},
         settings_schema:
           (settingsData || {}) as Record<string, ThemeSettingDefinition>,
-        installed_at: data.installed_at,
-        updated_at: data.updated_at,
+        installed_at: data.installed_at ?? new Date().toISOString(),
+        updated_at: data.updated_at ?? new Date().toISOString(),
       };
 
       setThemeRecord(record);

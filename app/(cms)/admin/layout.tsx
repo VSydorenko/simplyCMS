@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 
 const AdminLayout = dynamic(
-  () => import('@simplycms/admin/layouts/AdminLayout').then(m => ({ default: m.AdminLayout || m.default })),
+  () => import('@simplycms/admin/layouts/AdminLayout').then(m => ({ default: m.AdminLayout })),
   { ssr: false }
 );
 

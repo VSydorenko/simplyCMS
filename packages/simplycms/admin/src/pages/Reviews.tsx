@@ -48,8 +48,8 @@ export default function AdminReviews() {
       const productIds = [...new Set((data || []).map((r: any) => r.product_id))];
       const userIds = [...new Set((data || []).map((r: any) => r.user_id))];
 
-      let productsMap: Record<string, string> = {};
-      let profilesMap: Record<string, any> = {};
+      const productsMap: Record<string, string> = {};
+      const profilesMap: Record<string, any> = {};
 
       if (productIds.length > 0) {
         const { data: products } = await supabase

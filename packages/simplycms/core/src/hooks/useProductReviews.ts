@@ -43,7 +43,7 @@ export function useProductReviews(productId: string | undefined) {
 
       // Fetch profiles for all user_ids
       const userIds = [...new Set((data || []).map((r: any) => r.user_id))];
-      let profilesMap: Record<string, any> = {};
+      const profilesMap: Record<string, any> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")

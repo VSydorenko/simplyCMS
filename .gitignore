@@ -9,6 +9,7 @@ out
 # Build
 dist
 dist-ssr
+*.tsbuildinfo
 
 # Environment
 *.local

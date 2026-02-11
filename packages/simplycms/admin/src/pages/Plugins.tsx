@@ -10,13 +10,10 @@ import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ArrowLeft, Puzzle, Settings, Trash2 } from "lucide-react";
 import {
-  getAllPlugins,
-  activatePlugin,
-  deactivatePlugin,
-  uninstallPlugin,
   getRegisteredPluginModules,
 } from "@simplycms/plugins";
-import { parsePlugin, type ParsedPlugin } from "@simplycms/plugins/types";
+import { supabase } from "@simplycms/core/supabase/client";
+import { parsePlugin, type ParsedPlugin, type Plugin } from "@simplycms/plugins/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +34,14 @@ export default function Plugins() {
 
   const { data: plugins, isLoading } = useQuery({
     queryKey: ["plugins"],
-    queryFn: getAllPlugins,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plugins")
+        .select("*")
+        .order("display_name", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Plugin[];
+    },
   });
 
   const parsedPlugins: ParsedPlugin[] = (plugins || []).map(parsePlugin);
@@ -45,11 +49,12 @@ export default function Plugins() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ name, activate }: { name: string; activate: boolean }) => {
-      if (activate) {
-        return activatePlugin(name);
-      } else {
-        return deactivatePlugin(name);
-      }
+      const { error } = await supabase
+        .from("plugins")
+        .update({ is_active: activate, updated_at: new Date().toISOString() })
+        .eq("name", name);
+      if (error) throw error;
+      return true;
     },
     onMutate: ({ name }) => {
       setTogglingPlugin(name);
@@ -75,21 +80,27 @@ export default function Plugins() {
   });
 
   const uninstallMutation = useMutation({
-    mutationFn: uninstallPlugin,
-    onSuccess: (success, name) => {
-      if (success) {
-        toast({
-          title: "Плагін видалено",
-          description: `Плагін "${name}" успішно видалено.`,
-        });
-        queryClient.invalidateQueries({ queryKey: ["plugins"] });
-      } else {
-        toast({
-          title: "Помилка",
-          description: "Не вдалося видалити плагін.",
-          variant: "destructive",
-        });
-      }
+    mutationFn: async (pluginName: string) => {
+      const { error } = await supabase
+        .from("plugins")
+        .delete()
+        .eq("name", pluginName);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: (_success, name) => {
+      toast({
+        title: "Плагін видалено",
+        description: `Плагін "${name}" успішно видалено.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["plugins"] });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося видалити плагін.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -97,7 +108,7 @@ export default function Plugins() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <NavLink to="/admin">
+          <NavLink href="/admin">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -185,7 +196,7 @@ export default function Plugins() {
                   )}
 
                   <div className="flex gap-2">
-                    <NavLink to={`/admin/plugins/${plugin.id}`} className="flex-1">
+                    <NavLink href={`/admin/plugins/${plugin.id}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <Settings className="h-4 w-4 mr-2" />
                         Налаштування

@@ -140,7 +140,7 @@ export async function updatePluginConfig(
 ): Promise<boolean> {
   const { error } = await supabase
     .from("plugins")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     .update({ config: config as any, updated_at: new Date().toISOString() })
     .eq("name", pluginName);
 

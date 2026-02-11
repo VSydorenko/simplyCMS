@@ -26,8 +26,8 @@ export function useStock(
     queryKey: ["stock-info", modificationId ?? productId],
     queryFn: async (): Promise<StockInfo> => {
       const { data, error } = await supabase.rpc("get_stock_info", {
-        p_product_id: modificationId ? null : productId,
-        p_modification_id: modificationId ?? null,
+        p_product_id: modificationId ? undefined : (productId ?? undefined),
+        p_modification_id: modificationId ?? undefined,
       });
 
       if (error) throw error;

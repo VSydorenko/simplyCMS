@@ -84,7 +84,7 @@ export function AdminSidebar() {
       <SidebarContent className="pt-4">
         {/* Logo */}
         <div className="px-4 mb-4">
-          <NavLink to="/admin" className="flex items-center gap-2">
+          <NavLink href="/admin" className="flex items-center gap-2">
             <LayoutDashboard className="h-6 w-6 text-primary" />
             {!collapsed && <span className="font-bold text-lg">CMS</span>}
           </NavLink>
@@ -97,8 +97,8 @@ export function AdminSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink
-                    to="/admin"
-                    end
+                    href="/admin"
+                    exact
                     className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                     activeClassName="bg-primary/10 text-primary font-medium"
                   >
@@ -120,7 +120,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -143,7 +143,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -166,7 +166,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -189,7 +189,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -212,7 +212,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
@@ -255,7 +255,7 @@ export function AdminSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      href={item.url}
                       className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >

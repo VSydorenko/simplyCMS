@@ -4,7 +4,7 @@ export { CMSProvider } from "./providers/CMSProvider";
 // ---- Hooks ----
 export { AuthProvider, useAuth } from "./hooks/useAuth";
 export { useCart } from "./hooks/useCart";
-export type { CartItem } from "./hooks/useCart";
+export type { CartItem as CartItemType } from "./hooks/useCart";
 export { useToast, toast } from "./hooks/use-toast";
 export { useBanners } from "./hooks/useBanners";
 export type { Banner, BannerButton } from "./hooks/useBanners";

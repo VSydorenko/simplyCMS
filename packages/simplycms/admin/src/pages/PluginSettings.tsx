@@ -19,7 +19,7 @@ import {
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ArrowLeft, Loader2, Save, Power, PowerOff, Plug, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
-import { parsePlugin, type ParsedPlugin, type PluginSettingDefinition } from "@simplycms/plugins/types";
+import { parsePlugin, type ParsedPlugin, type Plugin, type PluginSettingDefinition } from "@simplycms/plugins/types";
 
 export default function PluginSettings() {
   const { pluginId } = useParams<{ pluginId: string }>();
@@ -38,7 +38,7 @@ export default function PluginSettings() {
         .eq("id", pluginId)
         .single();
       if (error) throw error;
-      return parsePlugin(data);
+      return parsePlugin({ ...data, is_active: data.is_active ?? false } as Plugin);
     },
   });
 

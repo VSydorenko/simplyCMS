@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Package, FolderTree, ShoppingCart, Users, Wrench, FileText } from "lucide-react";
 import { PluginSlot } from "@simplycms/plugins/PluginSlot";
+import Link from "next/link";
 
 export default function Dashboard() {
   const { data: stats } = useQuery({
@@ -73,7 +74,7 @@ export default function Dashboard() {
             <CardDescription>Часто використовувані функції</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <a href="/admin/products" className="block p-3 rounded-lg hover:bg-muted transition-colors">
+            <Link href="/admin/products" className="block p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <Package className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -81,8 +82,8 @@ export default function Dashboard() {
                   <div className="text-sm text-muted-foreground">Створити новий товар в каталозі</div>
                 </div>
               </div>
-            </a>
-            <a href="/admin/sections" className="block p-3 rounded-lg hover:bg-muted transition-colors">
+            </Link>
+            <Link href="/admin/sections" className="block p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <FolderTree className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -90,8 +91,8 @@ export default function Dashboard() {
                   <div className="text-sm text-muted-foreground">Редагувати структуру каталогу</div>
                 </div>
               </div>
-            </a>
-            <a href="/admin/orders" className="block p-3 rounded-lg hover:bg-muted transition-colors">
+            </Link>
+            <Link href="/admin/orders" className="block p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <ShoppingCart className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -99,7 +100,7 @@ export default function Dashboard() {
                   <div className="text-sm text-muted-foreground">Обробка нових замовлень</div>
                 </div>
               </div>
-            </a>
+            </Link>
           </CardContent>
         </Card>
 
