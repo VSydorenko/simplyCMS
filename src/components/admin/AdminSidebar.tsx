@@ -21,6 +21,7 @@ import {
   Percent,
   Calculator,
   ImageIcon,
+  MessageSquare,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -61,6 +62,7 @@ const shippingItems = [
 
 const contentItems = [
   { title: "Банери", url: "/admin/banners", icon: ImageIcon },
+  { title: "Відгуки", url: "/admin/reviews", icon: MessageSquare },
 ];
 
 const settingsItems = [

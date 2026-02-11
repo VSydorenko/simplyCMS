@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { StockDisplay } from "@/components/catalog/StockDisplay";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
+import { ProductReviews } from "@/components/reviews/ProductReviews";
+import { StarRating } from "@/components/reviews/StarRating";
+import { useProductReviews } from "@/hooks/useProductReviews";
 import { usePriceType } from "@/hooks/usePriceType";
 import { resolvePrice } from "@/lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "@/hooks/useDiscountedPrice";
@@ -517,6 +520,12 @@ export default function ProductDetail() {
           >
             Наявність
           </button>
+          <button
+            onClick={() => document.getElementById('section-reviews')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-b-2 border-transparent hover:border-primary"
+          >
+            Відгуки
+          </button>
         </nav>
       </div>
 
@@ -550,6 +559,14 @@ export default function ProductDetail() {
           productId={hasModifications ? null : product.id}
           modificationId={hasModifications ? selectedModId : null}
         />
+      </section>
+
+      <Separator className="my-8" />
+
+      {/* Reviews section */}
+      <section id="section-reviews" className="scroll-mt-16">
+        <h2 className="text-xl font-semibold mb-4">Відгуки</h2>
+        <ProductReviews productId={product.id} />
       </section>
 
       {/* Plugin slot: after product content */}

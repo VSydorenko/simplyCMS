@@ -43,6 +43,8 @@ import DiscountEdit from "@/pages/admin/DiscountEdit";
 import PriceValidator from "@/pages/admin/PriceValidator";
 import Banners from "@/pages/admin/Banners";
 import BannerEdit from "@/pages/admin/BannerEdit";
+import AdminReviews from "@/pages/admin/Reviews";
+import AdminReviewDetail from "@/pages/admin/ReviewDetail";
 
 // Fallback components for loading/error states
 function LoadingScreen() {
@@ -190,6 +192,8 @@ export function ThemeRouter() {
         <Route path="banners" element={<Banners />} />
         <Route path="banners/new" element={<BannerEdit />} />
         <Route path="banners/:bannerId" element={<BannerEdit />} />
+        <Route path="reviews" element={<AdminReviews />} />
+        <Route path="reviews/:reviewId" element={<AdminReviewDetail />} />
       </Route>
 
       {/* 404 */}
