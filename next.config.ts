@@ -1,14 +1,12 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@tiptap/react', '@tiptap/starter-kit'],
-  },
+  serverExternalPackages: ['@tiptap/react', '@tiptap/starter-kit'],
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'eizeqwcxqjyxxquclihf.supabase.co',
+        hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
     ],

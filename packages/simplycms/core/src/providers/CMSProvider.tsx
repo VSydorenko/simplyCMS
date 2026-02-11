@@ -3,6 +3,7 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "../hooks/useAuth";
+import { CartProvider } from "../hooks/useCart";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +26,9 @@ export function CMSProvider({ children, customQueryClient }: CMSProviderProps) {
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -11,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -19,20 +23,48 @@
       }
     ],
     "paths": {
-      "@simplycms/core": ["./packages/simplycms/core/src"],
-      "@simplycms/core/*": ["./packages/simplycms/core/src/*"],
-      "@simplycms/admin": ["./packages/simplycms/admin/src"],
-      "@simplycms/admin/*": ["./packages/simplycms/admin/src/*"],
-      "@simplycms/ui": ["./packages/simplycms/ui/src"],
-      "@simplycms/ui/*": ["./packages/simplycms/ui/src/*"],
-      "@simplycms/plugins": ["./packages/simplycms/plugin-system/src"],
-      "@simplycms/plugins/*": ["./packages/simplycms/plugin-system/src/*"],
-      "@simplycms/themes": ["./packages/simplycms/theme-system/src"],
-      "@simplycms/themes/*": ["./packages/simplycms/theme-system/src/*"],
-      "@simplycms/supabase/*": ["./packages/simplycms/supabase/*"],
-      "@/*": ["./app/*"],
-      "@themes/*": ["./themes/*"],
-      "@plugins/*": ["./plugins/*"]
+      "@simplycms/core": [
+        "./packages/simplycms/core/src"
+      ],
+      "@simplycms/core/*": [
+        "./packages/simplycms/core/src/*"
+      ],
+      "@simplycms/admin": [
+        "./packages/simplycms/admin/src"
+      ],
+      "@simplycms/admin/*": [
+        "./packages/simplycms/admin/src/*"
+      ],
+      "@simplycms/ui": [
+        "./packages/simplycms/ui/src"
+      ],
+      "@simplycms/ui/*": [
+        "./packages/simplycms/ui/src/*"
+      ],
+      "@simplycms/plugins": [
+        "./packages/simplycms/plugin-system/src"
+      ],
+      "@simplycms/plugins/*": [
+        "./packages/simplycms/plugin-system/src/*"
+      ],
+      "@simplycms/themes": [
+        "./packages/simplycms/theme-system/src"
+      ],
+      "@simplycms/themes/*": [
+        "./packages/simplycms/theme-system/src/*"
+      ],
+      "@simplycms/supabase/*": [
+        "./packages/simplycms/supabase/*"
+      ],
+      "@/*": [
+        "./app/*"
+      ],
+      "@themes/*": [
+        "./themes/*"
+      ],
+      "@plugins/*": [
+        "./plugins/*"
+      ]
     },
     "baseUrl": "."
   },
@@ -40,7 +72,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
