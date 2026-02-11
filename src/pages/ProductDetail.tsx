@@ -268,7 +268,7 @@ export default function ProductDetail() {
             cartTotal: 0,
             productId: product?.id || '',
             modificationId: mod.id,
-            sectionId: section?.id || null,
+            sectionId: product?.sections?.id || null,
           });
           if (discountResult.totalDiscount > 0) {
             modOldPrice = modPrice;
