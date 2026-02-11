@@ -10,8 +10,8 @@ import { ThemeRegistry } from '@/lib/themes';
 // Register the default theme
 ThemeRegistry.register('default', () => import('./default/index'));
 
-// To add more themes, register them here:
-// ThemeRegistry.register('minimal', () => import('./minimal'));
+// Register the beauty theme
+ThemeRegistry.register('beauty', () => import('./beauty/index'));
 // ThemeRegistry.register('modern', () => import('./modern'));
 
 console.log('[Themes] Registered themes:', ThemeRegistry.getRegisteredThemes());

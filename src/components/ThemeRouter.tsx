@@ -41,6 +41,7 @@ import Discounts from "@/pages/admin/Discounts";
 import DiscountGroupEdit from "@/pages/admin/DiscountGroupEdit";
 import DiscountEdit from "@/pages/admin/DiscountEdit";
 import PriceValidator from "@/pages/admin/PriceValidator";
+import Banners from "@/pages/admin/Banners";
 
 // Fallback components for loading/error states
 function LoadingScreen() {
@@ -185,6 +186,7 @@ export function ThemeRouter() {
         <Route path="discounts/new" element={<DiscountEdit />} />
         <Route path="discounts/:discountId" element={<DiscountEdit />} />
         <Route path="price-validator" element={<PriceValidator />} />
+        <Route path="banners" element={<Banners />} />
       </Route>
 
       {/* 404 */}
