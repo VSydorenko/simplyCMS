@@ -296,20 +296,9 @@ export default function ProfileOrderDetail() {
                   {item.quantity} × {formatPrice(item.price)}
                 </p>
                 {item.base_price && item.base_price > item.price && (
-                  <div className="mt-1 space-y-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      <span className="line-through">{formatPrice(item.base_price)}</span>
-                      {' → '}
-                      <span className="text-green-600 font-medium">
-                        -{formatPrice(item.base_price - item.price)}
-                      </span>
-                    </p>
-                    {item.discount_data?.appliedDiscounts?.map((d: any, i: number) => (
-                      <p key={i} className="text-xs text-green-600">
-                        {d.name}: -{formatPrice(d.calculatedAmount)}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <span className="line-through">{formatPrice(item.base_price)}</span>
+                  </p>
                 )}
               </div>
               <p className="font-semibold">{formatPrice(item.total)}</p>
