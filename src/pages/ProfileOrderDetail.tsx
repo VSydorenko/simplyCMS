@@ -61,6 +61,8 @@ interface OrderDetails {
     id: string;
     name: string;
     price: number;
+    base_price: number | null;
+    discount_data: any | null;
     quantity: number;
     total: number;
   }[];
@@ -95,7 +97,7 @@ export default function ProfileOrderDetail() {
           .select(`
             *,
             status:order_statuses(id, name, code, color),
-            items:order_items(id, name, price, quantity, total)
+            items:order_items(id, name, price, base_price, discount_data, quantity, total)
           `)
           .eq("id", orderId)
           .eq("user_id", user.id)
@@ -293,6 +295,22 @@ export default function ProfileOrderDetail() {
                 <p className="text-sm text-muted-foreground">
                   {item.quantity} × {formatPrice(item.price)}
                 </p>
+                {item.base_price && item.base_price > item.price && (
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="line-through">{formatPrice(item.base_price)}</span>
+                      {' → '}
+                      <span className="text-green-600 font-medium">
+                        -{formatPrice(item.base_price - item.price)}
+                      </span>
+                    </p>
+                    {item.discount_data?.appliedDiscounts?.map((d: any, i: number) => (
+                      <p key={i} className="text-xs text-green-600">
+                        {d.name}: -{formatPrice(d.calculatedAmount)}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
               <p className="font-semibold">{formatPrice(item.total)}</p>
             </div>

@@ -43,6 +43,8 @@ interface OrderItem {
   id: string;
   name: string;
   price: number;
+  base_price: number | null;
+  discount_data: any | null;
   quantity: number;
   total: number;
   product_id: string | null;
@@ -359,6 +361,7 @@ export default function OrderDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Назва</TableHead>
+                    <TableHead className="w-28 text-right">Базова ціна</TableHead>
                     <TableHead className="w-24 text-right">Ціна</TableHead>
                     <TableHead className="w-32 text-center">Кількість</TableHead>
                     <TableHead className="w-28 text-right">Сума</TableHead>
@@ -368,7 +371,27 @@ export default function OrderDetail() {
                 <TableBody>
                   {orderItems?.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{item.name}</div>
+                        {item.discount_data?.appliedDiscounts?.length > 0 && (
+                          <div className="mt-1">
+                            {item.discount_data.appliedDiscounts.map((d: any, i: number) => (
+                              <span key={i} className="inline-block text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded px-1.5 py-0.5 mr-1 mb-0.5">
+                                {d.name}: -{d.calculatedAmount.toLocaleString()} ₴
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.base_price && item.base_price > item.price ? (
+                          <span className="text-muted-foreground line-through">
+                            {item.base_price.toLocaleString()} ₴
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {item.price.toLocaleString()} ₴
                       </TableCell>
