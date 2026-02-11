@@ -82,7 +82,7 @@ export default function BannerEdit() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const isNew = bannerId === "new";
+  const isNew = !bannerId || bannerId === "new";
 
   const [form, setForm] = useState<BannerForm>(defaultForm);
 
