@@ -82,7 +82,7 @@ export default function Banners() {
       ) : (
         <div className="space-y-3">
           {banners.map((b) => (
-            <Card key={b.id} className="overflow-hidden">
+            <Card key={b.id} className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/admin/banners/${b.id}`)}>
               <div className="flex items-center gap-4 p-4">
                 <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="h-16 w-28 rounded bg-muted overflow-hidden shrink-0">
@@ -111,11 +111,9 @@ export default function Banners() {
                 <Switch
                   checked={b.is_active}
                   onCheckedChange={(checked) => toggleActive.mutate({ id: b.id, is_active: checked })}
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                 />
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/banners/${b.id}`)}>
-                  Редагувати
-                </Button>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(b.id)}>
+                <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(b.id); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
