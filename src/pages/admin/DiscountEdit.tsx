@@ -58,7 +58,7 @@ export default function DiscountEdit() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNew = discountId === "new";
+  const isNew = !discountId || discountId === "new";
 
   const [targets, setTargets] = useState<TargetRow[]>([]);
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
