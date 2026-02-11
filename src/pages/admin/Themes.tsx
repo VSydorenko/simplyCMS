@@ -55,7 +55,7 @@ export default function Themes() {
       const { error: deactivateError } = await supabase
         .from("themes")
         .update({ is_active: false })
-        .neq("id", "");
+        .neq("id", themeId);
       
       if (deactivateError) throw deactivateError;
 
