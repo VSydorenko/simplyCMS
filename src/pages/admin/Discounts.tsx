@@ -127,13 +127,9 @@ export default function Discounts() {
     return (
       <div key={group.id} style={{ marginLeft: depth * 24 }} className="border-l-2 border-muted pl-4 mb-2">
         <div className="flex items-center gap-2 py-2 group">
-          {hasChildren ? (
-            <button onClick={() => toggleExpanded(group.id)} className="p-0.5">
-              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </button>
-          ) : (
-            <div className="w-5" />
-          )}
+          <button onClick={() => toggleExpanded(group.id)} className="p-0.5">
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
 
           <Badge variant="outline" className={operatorColors[group.operator]}>
             {operatorLabels[group.operator]}
