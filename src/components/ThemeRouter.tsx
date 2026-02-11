@@ -37,6 +37,10 @@ import Themes from "@/pages/admin/Themes";
 import ThemeSettings from "@/pages/admin/ThemeSettings";
 import PriceTypes from "@/pages/admin/PriceTypes";
 import PriceTypeEdit from "@/pages/admin/PriceTypeEdit";
+import Discounts from "@/pages/admin/Discounts";
+import DiscountGroupEdit from "@/pages/admin/DiscountGroupEdit";
+import DiscountEdit from "@/pages/admin/DiscountEdit";
+import PriceValidator from "@/pages/admin/PriceValidator";
 
 // Fallback components for loading/error states
 function LoadingScreen() {
@@ -175,6 +179,12 @@ export function ThemeRouter() {
         <Route path="price-types" element={<PriceTypes />} />
         <Route path="price-types/new" element={<PriceTypeEdit />} />
         <Route path="price-types/:priceTypeId" element={<PriceTypeEdit />} />
+        <Route path="discounts" element={<Discounts />} />
+        <Route path="discounts/groups/new" element={<DiscountGroupEdit />} />
+        <Route path="discounts/groups/:groupId" element={<DiscountGroupEdit />} />
+        <Route path="discounts/new" element={<DiscountEdit />} />
+        <Route path="discounts/:discountId" element={<DiscountEdit />} />
+        <Route path="price-validator" element={<PriceValidator />} />
       </Route>
 
       {/* 404 */}

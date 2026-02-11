@@ -18,6 +18,8 @@ import {
   Building,
   Palette,
   DollarSign,
+  Percent,
+  Calculator,
 } from "lucide-react";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import {
@@ -36,6 +38,8 @@ const catalogItems = [
   { title: "Властивості", url: "/admin/properties", icon: ListChecks },
   { title: "Товари", url: "/admin/products", icon: Package },
   { title: "Види цін", url: "/admin/price-types", icon: DollarSign },
+  { title: "Скидки", url: "/admin/discounts", icon: Percent },
+  { title: "Валідатор цін", url: "/admin/price-validator", icon: Calculator },
 ];
 
 const ordersItems = [
