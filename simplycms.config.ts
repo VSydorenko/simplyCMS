@@ -1,11 +1,6 @@
-export interface SimplyCMSConfig {
-  supabase: { url: string; anonKey: string };
-  seo: { siteName: string; defaultTitle: string; titleTemplate: string };
-  locale: string;
-  currency: string;
-}
+import { defineConfig } from '@simplycms/core/config';
 
-const config: SimplyCMSConfig = {
+export default defineConfig({
   supabase: {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,6 +12,4 @@ const config: SimplyCMSConfig = {
   },
   locale: 'uk-UA',
   currency: 'UAH',
-};
-
-export default config;
+});

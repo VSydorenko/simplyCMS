@@ -1,24 +1,15 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import PropertyOptionPage from '@themes/default/pages/PropertyOptionPage';
 
 export const revalidate = 86400;
-
-async function createSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: (c) => { c.forEach(({ name, value, options }) => { try { cookieStore.set(name, value, options); } catch {} }); } } }
-  );
-}
 
 type Props = { params: Promise<{ propertySlug: string; optionSlug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { propertySlug, optionSlug } = await params;
-  const supabase = await createSupabase();
+  const supabase = await createServerSupabaseClient();
 
   const { data: property } = await supabase
     .from('properties')
@@ -38,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function OptionPage({ params }: Props) {
   const { propertySlug, optionSlug } = await params;
-  const supabase = await createSupabase();
+  const supabase = await createServerSupabaseClient();
 
   const { data: property } = await supabase
     .from('properties')
@@ -64,10 +55,10 @@ export default async function OptionPage({ params }: Props) {
     .eq('is_active', true);
 
   return (
-    <div className="container-fluid py-8">
-      <h1 className="text-3xl font-bold mb-2">{option.value}</h1>
-      <p className="text-muted-foreground mb-6">Property: {property.name}</p>
-      <p className="text-sm text-muted-foreground">{products?.length || 0} products</p>
-    </div>
+    <PropertyOptionPage
+      property={property}
+      option={option}
+      products={products || []}
+    />
   );
 }

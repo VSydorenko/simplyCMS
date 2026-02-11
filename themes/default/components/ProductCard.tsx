@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { Image, Star } from "lucide-react";
 
 interface ProductCardProps {
@@ -40,13 +41,12 @@ export function ProductCard({ product }: ProductCardProps) {
     <Link href={`/catalog/${sectionSlug}/${product.slug}`} className="group block">
       <div className="relative aspect-square overflow-hidden rounded-md bg-muted mb-3">
         {firstImage ? (
-          <img
+          <NextImage
             src={firstImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder.svg";
-            }}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

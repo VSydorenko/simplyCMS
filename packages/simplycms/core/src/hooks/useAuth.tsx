@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Check if user is admin - use setTimeout to avoid race conditions
-          setTimeout(async () => {
+          // Check if user is admin - use queueMicrotask to avoid race conditions
+          queueMicrotask(async () => {
             const { data, error } = await supabase
               .from("user_roles")
               .select("role")

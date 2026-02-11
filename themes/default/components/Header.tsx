@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, User, ShoppingBag, Menu, X, Settings, LogOut } from "lucide-react";
 import { Button } from "@simplycms/ui/button";
@@ -32,7 +33,7 @@ export function Header() {
   const storeName = useThemeSettings<string>("storeName") || "Beauty Store";
 
   const { data: sections } = useQuery({
-    queryKey: ["beauty-sections-nav"],
+    queryKey: ["sections-nav"],
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
@@ -69,7 +70,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName} className="h-10 max-w-[160px] object-contain" />
+              <Image src={logoUrl} alt={storeName} width={160} height={40} className="h-10 max-w-[160px] object-contain" />
             ) : (
               <span className="text-xl font-serif font-bold tracking-wide text-foreground">
                 {storeName}
