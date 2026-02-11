@@ -263,10 +263,10 @@ export default function PriceValidator() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Користувач</Label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <Select value={selectedUserId || "__guest__"} onValueChange={(v) => setSelectedUserId(v === "__guest__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Гість (без авторизації)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Гість</SelectItem>
+                  <SelectItem value="__guest__">Гість</SelectItem>
                   {users.map((u: any) => (
                     <SelectItem key={u.user_id} value={u.user_id}>
                       {u.first_name || ""} {u.last_name || ""} ({u.email || "без email"})
@@ -292,10 +292,10 @@ export default function PriceValidator() {
           {modifications.length > 0 && (
             <div className="space-y-2">
               <Label>Модифікація</Label>
-              <Select value={selectedModificationId} onValueChange={setSelectedModificationId}>
+              <Select value={selectedModificationId || "__none__"} onValueChange={(v) => setSelectedModificationId(v === "__none__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Без модифікації" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Без модифікації</SelectItem>
+                  <SelectItem value="__none__">Без модифікації</SelectItem>
                   {modifications.map((m: any) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                   ))}
