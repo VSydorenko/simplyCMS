@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useThemeSettings } from "@simplycms/core/hooks/useThemeSettings";
 import { Facebook, Instagram } from "lucide-react";
 
@@ -19,7 +20,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link href="/" className="inline-block mb-3">
               {logoUrl ? (
-                <img src={logoUrl} alt={storeName} className="h-8 object-contain" />
+                <Image src={logoUrl} alt={storeName} width={160} height={40} className="h-8 object-contain" />
               ) : (
                 <span className="text-lg font-serif font-bold text-foreground">{storeName}</span>
               )}

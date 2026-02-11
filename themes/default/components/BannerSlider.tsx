@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@simplycms/ui/button";
+import Image from "next/image";
 import Link from "next/link";
 
 interface BannerSliderProps {
@@ -47,9 +48,9 @@ export function BannerSlider({ placement = "home", sectionId }: BannerSliderProp
     <div className="relative group">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {banners.map((banner) => (
+          {banners.map((banner, index) => (
             <div key={banner.id} className="flex-[0_0_100%] min-w-0 relative">
-              <BannerContent banner={banner} />
+              <BannerContent banner={banner} isFirst={index === 0} />
             </div>
           ))}
         </div>
@@ -91,28 +92,23 @@ export function BannerSlider({ placement = "home", sectionId }: BannerSliderProp
   );
 }
 
-function BannerContent({ banner }: { banner: Banner }) {
+function BannerContent({ banner, isFirst }: { banner: Banner; isFirst: boolean }) {
   const textAlign = banner.text_position === "center" ? "items-center text-center" : banner.text_position === "right" ? "items-end text-right" : "items-start";
   const gradientDir = banner.text_position === "right" ? "from-transparent to-black/40" : banner.text_position === "center" ? "from-black/30 via-black/20 to-black/30" : "from-black/40 to-transparent";
 
   return (
     <div className="relative aspect-[21/9] md:aspect-[3/1] bg-muted overflow-hidden">
-      <picture>
-        {banner.mobile_image_url && (
-          <source media="(max-width: 768px)" srcSet={banner.mobile_image_url} />
-        )}
-        {banner.desktop_image_url && (
-          <source media="(min-width: 769px)" srcSet={banner.desktop_image_url} />
-        )}
-        <img
-          src={banner.image_url}
-          alt={banner.title}
-          className="w-full h-full object-cover"
-          style={{
-            animationDuration: `${banner.animation_duration}ms`,
-          }}
-        />
-      </picture>
+      <Image
+        src={banner.image_url}
+        alt={banner.title}
+        fill
+        sizes="100vw"
+        priority={isFirst}
+        className="object-cover"
+        style={{
+          animationDuration: `${banner.animation_duration}ms`,
+        }}
+      />
       <div
         className={`absolute inset-0 bg-gradient-to-r ${gradientDir} flex ${textAlign}`}
         style={{ backgroundColor: banner.overlay_color || undefined }}
