@@ -9,6 +9,7 @@ interface ImageUploadProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
   folder?: string;
+  bucket?: string;
   maxImages?: number;
   disabled?: boolean;
 }
@@ -17,6 +18,7 @@ export function ImageUpload({
   images,
   onImagesChange,
   folder = "products",
+  bucket = "product-images",
   maxImages = 10,
   disabled = false,
 }: ImageUploadProps) {
@@ -49,7 +51,7 @@ export function ImageUpload({
     const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     const { error } = await supabase.storage
-      .from("product-images")
+      .from(bucket)
       .upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
@@ -66,7 +68,7 @@ export function ImageUpload({
     }
 
     const { data: urlData } = supabase.storage
-      .from("product-images")
+      .from(bucket)
       .getPublicUrl(fileName);
 
     return urlData.publicUrl;
@@ -132,9 +134,10 @@ export function ImageUpload({
     // Try to delete from storage
     try {
       const url = new URL(imageUrl);
-      const pathMatch = url.pathname.match(/\/product-images\/(.+)$/);
+      const bucketPattern = new RegExp(`\\/${bucket}\\/(.+)$`);
+      const pathMatch = url.pathname.match(bucketPattern);
       if (pathMatch) {
-        await supabase.storage.from("product-images").remove([pathMatch[1]]);
+        await supabase.storage.from(bucket).remove([pathMatch[1]]);
       }
     } catch (e) {
       // Ignore deletion errors for external URLs
