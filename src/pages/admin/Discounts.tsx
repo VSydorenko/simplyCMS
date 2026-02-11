@@ -41,12 +41,10 @@ interface DiscountGroup {
   description: string | null;
   operator: string;
   parent_group_id: string | null;
-  price_type_id: string;
   is_active: boolean;
   priority: number;
   starts_at: string | null;
   ends_at: string | null;
-  price_type?: { name: string };
   discounts?: any[];
   children?: DiscountGroup[];
 }
@@ -61,13 +59,13 @@ export default function Discounts() {
     queryFn: async () => {
       const { data: allGroups, error: gErr } = await supabase
         .from("discount_groups")
-        .select("*, price_types(name)")
+        .select("*")
         .order("priority");
       if (gErr) throw gErr;
 
       const { data: allDiscounts, error: dErr } = await supabase
         .from("discounts")
-        .select("*")
+        .select("*, price_types(name)")
         .order("priority");
       if (dErr) throw dErr;
 
@@ -76,7 +74,6 @@ export default function Discounts() {
       for (const g of allGroups as any[]) {
         map.set(g.id, {
           ...g,
-          price_type: g.price_types,
           discounts: [],
           children: [],
         });
@@ -146,12 +143,6 @@ export default function Discounts() {
             {group.name}
           </span>
 
-          {group.price_type && (
-            <Badge variant="secondary" className="text-xs">
-              {group.price_type.name}
-            </Badge>
-          )}
-
           {group.starts_at || group.ends_at ? (
             <Badge variant="outline" className="text-xs">
               {group.starts_at ? new Date(group.starts_at).toLocaleDateString() : "∞"}
@@ -206,6 +197,11 @@ export default function Discounts() {
                   {d.discount_value}
                   {discountTypeLabels[d.discount_type]}
                 </Badge>
+                 {d.price_types && (
+                   <Badge variant="secondary" className="text-xs">
+                     {d.price_types.name}
+                   </Badge>
+                 )}
                 <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/discount:opacity-100" asChild>
                   <Link to={`/admin/discounts/${d.id}`}>
                     <Pencil className="h-3 w-3" />
@@ -225,7 +221,7 @@ export default function Discounts() {
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" className="text-xs h-7" asChild>
-                <Link to={`/admin/discounts/groups/new?parentId=${group.id}&priceTypeId=${group.price_type_id}`}>
+                <Link to={`/admin/discounts/groups/new?parentId=${group.id}`}>
                   <Plus className="h-3 w-3 mr-1" /> Підгрупа
                 </Link>
               </Button>

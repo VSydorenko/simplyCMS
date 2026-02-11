@@ -141,33 +141,49 @@ export default function PriceValidator() {
 
     // Step 3: Calculate discounts
     if (resolved.price !== null && priceTypeId) {
-      // Load discount groups for this price type
-      const { data: dbGroups } = await supabase
-        .from("discount_groups")
-        .select("*")
+      // Load discounts for this price type
+      const { data: dbDiscounts } = await supabase
+        .from("discounts")
+        .select("*, discount_targets(*), discount_conditions(*)")
         .eq("price_type_id", priceTypeId)
         .eq("is_active", true);
 
-      const groupIds = (dbGroups || []).map((g: any) => g.id);
-
-      let dbDiscounts: any[] = [];
-      if (groupIds.length > 0) {
-        const { data } = await supabase
-          .from("discounts")
-          .select("*, discount_targets(*), discount_conditions(*)")
-          .in("group_id", groupIds);
-        dbDiscounts = data || [];
+      if (!dbDiscounts?.length) {
+        steps.push({
+          title: "Скидки",
+          value: "Немає",
+          reason: "Жодна скидка не знайдена для цього виду ціни",
+          status: "info",
+          applied: [],
+          rejected: [],
+        });
+        steps.push({
+          title: "Фінальна ціна",
+          value: `${resolved.price.toFixed(2)} грн`,
+          reason: `Без знижки: ${resolved.price} грн`,
+          status: "ok",
+        });
+        setResult(steps);
+        return;
       }
 
+      // Load groups for these discounts
+      const groupIds = [...new Set(dbDiscounts.map((d: any) => d.group_id))];
+      const { data: dbGroups } = await supabase
+        .from("discount_groups")
+        .select("*")
+        .in("id", groupIds)
+        .eq("is_active", true);
+
       // Build tree
+      const allGroups = dbGroups || [];
       const groupMap = new Map<string, DiscountGroup>();
-      for (const g of dbGroups || []) {
+      for (const g of allGroups) {
         groupMap.set(g.id, {
           id: g.id,
           name: g.name,
           description: g.description,
           operator: g.operator as any,
-          price_type_id: g.price_type_id,
           is_active: g.is_active,
           priority: g.priority,
           starts_at: g.starts_at,
@@ -198,7 +214,7 @@ export default function PriceValidator() {
 
       // Build parent-child
       const roots: DiscountGroup[] = [];
-      for (const g of dbGroups || []) {
+      for (const g of allGroups) {
         const node = groupMap.get(g.id)!;
         if (g.parent_group_id && groupMap.has(g.parent_group_id)) {
           groupMap.get(g.parent_group_id)!.children.push(node);

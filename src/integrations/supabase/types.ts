@@ -139,7 +139,6 @@ export type Database = {
           name: string
           operator: Database["public"]["Enums"]["discount_group_operator"]
           parent_group_id: string | null
-          price_type_id: string
           priority: number
           starts_at: string | null
           updated_at: string
@@ -153,7 +152,6 @@ export type Database = {
           name: string
           operator?: Database["public"]["Enums"]["discount_group_operator"]
           parent_group_id?: string | null
-          price_type_id: string
           priority?: number
           starts_at?: string | null
           updated_at?: string
@@ -167,7 +165,6 @@ export type Database = {
           name?: string
           operator?: Database["public"]["Enums"]["discount_group_operator"]
           parent_group_id?: string | null
-          price_type_id?: string
           priority?: number
           starts_at?: string | null
           updated_at?: string
@@ -178,13 +175,6 @@ export type Database = {
             columns: ["parent_group_id"]
             isOneToOne: false
             referencedRelation: "discount_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "discount_groups_price_type_id_fkey"
-            columns: ["price_type_id"]
-            isOneToOne: false
-            referencedRelation: "price_types"
             referencedColumns: ["id"]
           },
         ]
@@ -232,6 +222,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          price_type_id: string
           priority: number
           starts_at: string | null
           updated_at: string
@@ -246,6 +237,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          price_type_id: string
           priority?: number
           starts_at?: string | null
           updated_at?: string
@@ -260,6 +252,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          price_type_id?: string
           priority?: number
           starts_at?: string | null
           updated_at?: string
@@ -270,6 +263,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "discount_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discounts_price_type_id_fkey"
+            columns: ["price_type_id"]
+            isOneToOne: false
+            referencedRelation: "price_types"
             referencedColumns: ["id"]
           },
         ]

@@ -13,32 +13,49 @@ export function useDiscountGroups() {
     queryFn: async (): Promise<DiscountGroup[]> => {
       if (!priceTypeId) return [];
 
+      // Fetch discounts for this price type, with their groups
+      const { data: dbDiscounts, error: dErr } = await supabase
+        .from("discounts")
+        .select("*, discount_targets(*), discount_conditions(*)")
+        .eq("price_type_id", priceTypeId)
+        .eq("is_active", true);
+      if (dErr) throw dErr;
+      if (!dbDiscounts?.length) return [];
+
+      // Collect group ids from discounts
+      const groupIds = [...new Set(dbDiscounts.map((d: any) => d.group_id))];
+
       const { data: dbGroups, error: gErr } = await supabase
         .from("discount_groups")
         .select("*")
-        .eq("price_type_id", priceTypeId)
+        .in("id", groupIds)
         .eq("is_active", true);
       if (gErr) throw gErr;
       if (!dbGroups?.length) return [];
 
-      const groupIds = dbGroups.map((g: any) => g.id);
-
-      const { data: dbDiscounts, error: dErr } = await supabase
-        .from("discounts")
-        .select("*, discount_targets(*), discount_conditions(*)")
-        .in("group_id", groupIds)
-        .eq("is_active", true);
-      if (dErr) throw dErr;
+      // Also load parent groups that might not have discounts for this price type
+      const parentIds = dbGroups
+        .map((g: any) => g.parent_group_id)
+        .filter((id: any) => id && !groupIds.includes(id));
+      
+      let allGroups = [...dbGroups];
+      if (parentIds.length > 0) {
+        const { data: parents } = await supabase
+          .from("discount_groups")
+          .select("*")
+          .in("id", parentIds)
+          .eq("is_active", true);
+        if (parents) allGroups = [...allGroups, ...parents];
+      }
 
       // Build tree
       const groupMap = new Map<string, DiscountGroup>();
-      for (const g of dbGroups) {
+      for (const g of allGroups) {
         groupMap.set(g.id, {
           id: g.id,
           name: g.name,
           description: g.description,
           operator: g.operator as any,
-          price_type_id: g.price_type_id,
           is_active: g.is_active,
           priority: g.priority,
           starts_at: g.starts_at,
@@ -48,7 +65,7 @@ export function useDiscountGroups() {
         });
       }
 
-      for (const d of dbDiscounts || []) {
+      for (const d of dbDiscounts) {
         const group = groupMap.get(d.group_id);
         if (group) {
           group.discounts.push({
@@ -68,7 +85,7 @@ export function useDiscountGroups() {
       }
 
       const roots: DiscountGroup[] = [];
-      for (const g of dbGroups) {
+      for (const g of allGroups) {
         const node = groupMap.get(g.id)!;
         if (g.parent_group_id && groupMap.has(g.parent_group_id)) {
           groupMap.get(g.parent_group_id)!.children.push(node);
