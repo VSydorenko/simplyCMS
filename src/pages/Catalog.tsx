@@ -20,6 +20,7 @@ import { fetchModificationStockData, fetchModificationPropertyValues, enrichProd
 import { usePriceType } from "@/hooks/usePriceType";
 import { resolvePrice } from "@/lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "@/hooks/useDiscountedPrice";
+import { useProductRatings } from "@/hooks/useProductReviews";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
@@ -32,6 +33,7 @@ export default function Catalog() {
   const { priceTypeId, defaultPriceTypeId } = usePriceType();
   const { data: discountGroups = [] } = useDiscountGroups();
   const discountCtx = useDiscountContext();
+
 
   // Fetch all sections
   const { data: sections } = useQuery({
@@ -137,6 +139,10 @@ export default function Catalog() {
       return { ...p, price: finalPrice, old_price: oldPrice, stock_status: stockStatus };
     });
   }, [rawProducts, priceTypeId, defaultPriceTypeId, discountGroups, discountCtx]);
+
+  // Product ratings
+  const ratingProductIds = useMemo(() => products?.map((p: any) => p.id) || [], [products]);
+  const { data: ratingsData } = useProductRatings(ratingProductIds);
 
   // Calculate price range
   const priceRange = useMemo(() => {
@@ -565,7 +571,7 @@ export default function Catalog() {
               }
             >
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} rating={ratingsData?.[product.id]} />
               ))}
             </div>
           ) : (

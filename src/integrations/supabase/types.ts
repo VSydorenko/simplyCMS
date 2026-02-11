@@ -1017,6 +1017,56 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          admin_comment: string | null
+          content: string | null
+          created_at: string
+          id: string
+          images: Json | null
+          product_id: string
+          rating: number
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_comment?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          images?: Json | null
+          product_id: string
+          rating: number
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_comment?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          images?: Json | null
+          product_id?: string
+          rating?: number
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string
@@ -1931,6 +1981,14 @@ export type Database = {
       check_all_users_category_rules: { Args: never; Returns: number }
       check_category_rules: { Args: { p_user_id: string }; Returns: boolean }
       get_active_pickup_points_count: { Args: never; Returns: number }
+      get_product_ratings: {
+        Args: { product_ids: string[] }
+        Returns: {
+          avg_rating: number
+          product_id: string
+          review_count: number
+        }[]
+      }
       get_stock_info: {
         Args: { p_modification_id?: string; p_product_id?: string }
         Returns: {
