@@ -14,7 +14,7 @@ export default function HomePage() {
 
   // Fetch featured / recent products
   const { data: featuredProducts } = useQuery({
-    queryKey: ["beauty-featured-products"],
+    queryKey: ["featured-products"],
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
@@ -38,7 +38,7 @@ export default function HomePage() {
   });
 
   const { data: newProducts } = useQuery({
-    queryKey: ["beauty-new-products"],
+    queryKey: ["new-products"],
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
@@ -62,7 +62,7 @@ export default function HomePage() {
 
   // Fetch root sections for per-category carousels
   const { data: rootSections } = useQuery({
-    queryKey: ["beauty-root-sections"],
+    queryKey: ["root-sections"],
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
@@ -108,7 +108,7 @@ export default function HomePage() {
 
 function SectionProductCarousel({ section }: { section: { id: string; name: string; slug: string } }) {
   const { data: products } = useQuery({
-    queryKey: ["beauty-section-products", section.id],
+    queryKey: ["section-products", section.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("products")

@@ -1,29 +1,10 @@
 import type { MetadataRoute } from 'next';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
 
-async function createSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            try { cookieStore.set(name, value, options); } catch {}
-          });
-        },
-      },
-    }
-  );
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createSupabase();
+  const supabase = await createServerSupabaseClient();
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

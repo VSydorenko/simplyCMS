@@ -32,7 +32,7 @@ export function Header() {
   const storeName = useThemeSettings<string>("storeName") || "Beauty Store";
 
   const { data: sections } = useQuery({
-    queryKey: ["beauty-sections-nav"],
+    queryKey: ["sections-nav"],
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")

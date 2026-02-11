@@ -1,7 +1,6 @@
-"use client";
-
-import { MainLayout } from "@themes/default/layouts/MainLayout";
+// Server Component — БЕЗ "use client"
+import { StorefrontShell } from "@themes/default/layouts/StorefrontShell";
 
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  return <MainLayout>{children}</MainLayout>;
+  return <StorefrontShell>{children}</StorefrontShell>;
 }
