@@ -15,7 +15,7 @@ CREATE TABLE public.product_reviews (
   UNIQUE(product_id, user_id)
 );
 
--- Validation trigger for rating 1-5
+-- Validation  trigger for rating 1-5
 CREATE OR REPLACE FUNCTION public.validate_review_rating()
 RETURNS trigger
 LANGUAGE plpgsql
