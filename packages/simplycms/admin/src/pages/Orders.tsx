@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import {
@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 
 export default function Orders() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
@@ -66,7 +66,7 @@ export default function Orders() {
                 <TableRow
                   key={order.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  onClick={() => router.push(`/admin/orders/${order.id}`)}
                 >
                   <TableCell className="font-medium">{order.order_number}</TableCell>
                   <TableCell>

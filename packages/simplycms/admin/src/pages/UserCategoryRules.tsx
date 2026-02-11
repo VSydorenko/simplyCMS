@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
 import { Badge } from "@simplycms/ui/badge";
@@ -47,7 +48,7 @@ const fieldLabels: Record<string, string> = {
 };
 
 export default function UserCategoryRules() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isRunning, setIsRunning] = useState(false);
 
@@ -144,7 +145,7 @@ export default function UserCategoryRules() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to="/admin/user-categories">
+            <Link href="/admin/user-categories">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -169,7 +170,7 @@ export default function UserCategoryRules() {
             Запустити перевірку
           </Button>
           <Button asChild>
-            <Link to="/admin/user-categories/rules/new">
+            <Link href="/admin/user-categories/rules/new">
               <Plus className="h-4 w-4 mr-2" />
               Додати правило
             </Link>
@@ -207,7 +208,7 @@ export default function UserCategoryRules() {
                   key={rule.id}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() =>
-                    navigate(`/admin/user-categories/rules/${rule.id}`)
+                    router.push(`/admin/user-categories/rules/${rule.id}`)
                   }
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>

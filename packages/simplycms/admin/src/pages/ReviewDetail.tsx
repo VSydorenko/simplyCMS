@@ -1,5 +1,6 @@
 "use client";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -20,8 +21,8 @@ import { uk } from "date-fns/locale";
 import { useState } from "react";
 
 export default function AdminReviewDetail() {
-  const { reviewId } = useParams();
-  const navigate = useNavigate();
+  const { reviewId } = useParams() as { reviewId: string };
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [adminComment, setAdminComment] = useState("");
@@ -97,7 +98,7 @@ export default function AdminReviewDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
       toast({ title: "Відгук видалено" });
-      navigate("/admin/reviews");
+      router.push("/admin/reviews");
     },
   });
 
@@ -123,7 +124,7 @@ export default function AdminReviewDetail() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/reviews")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push("/admin/reviews")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">Деталі відгуку</h1>
@@ -139,7 +140,7 @@ export default function AdminReviewDetail() {
           <CardContent>
             {review.product ? (
               <Link
-                to={`/catalog/${review.product.sections?.slug || "all"}/${review.product.slug}`}
+                href={`/catalog/${review.product.sections?.slug || "all"}/${review.product.slug}`}
                 className="font-medium text-primary hover:underline"
               >
                 {review.product.name}

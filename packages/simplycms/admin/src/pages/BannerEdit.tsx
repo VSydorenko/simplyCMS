@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -79,8 +79,8 @@ const defaultForm: BannerForm = {
 };
 
 export default function BannerEdit() {
-  const { bannerId } = useParams();
-  const navigate = useNavigate();
+  const { bannerId } = useParams() as { bannerId: string };
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isNew = !bannerId || bannerId === "new";
@@ -169,7 +169,7 @@ export default function BannerEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
       toast({ title: "Банер збережено" });
-      navigate("/admin/banners");
+      router.push("/admin/banners");
     },
     onError: () => {
       toast({ variant: "destructive", title: "Помилка збереження" });
@@ -206,7 +206,7 @@ export default function BannerEdit() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/banners")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push("/admin/banners")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">{isNew ? "Новий банер" : "Редагування банера"}</h1>

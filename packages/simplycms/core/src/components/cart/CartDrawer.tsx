@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
 import { CartItem } from "./CartItem";
@@ -49,7 +49,7 @@ export function CartDrawer() {
               Додайте товари для оформлення замовлення
             </p>
             <Link
-              to="/catalog"
+              href="/catalog"
               onClick={() => setIsOpen(false)}
               className="px-4 py-2 border rounded-md text-sm"
             >
@@ -83,14 +83,14 @@ export function CartDrawer() {
 
               <div className="flex gap-2">
                 <Link
-                  to="/cart"
+                  href="/cart"
                   onClick={() => setIsOpen(false)}
                   className="flex-1 text-center px-4 py-2 border rounded-md text-sm"
                 >
                   Переглянути кошик
                 </Link>
                 <Link
-                  to="/checkout"
+                  href="/checkout"
                   onClick={() => setIsOpen(false)}
                   className="flex-1 text-center px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm"
                 >

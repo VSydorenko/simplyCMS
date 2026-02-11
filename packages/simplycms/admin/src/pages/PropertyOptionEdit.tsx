@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -23,8 +23,8 @@ function generateSlug(text: string): string {
 }
 
 export default function PropertyOptionEdit() {
-  const { propertyId, optionId } = useParams();
-  const navigate = useNavigate();
+  const { propertyId, optionId } = useParams() as { propertyId: string; optionId: string };
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -141,7 +141,7 @@ export default function PropertyOptionEdit() {
       toast({ title: wasCreating ? "Опцію створено" : "Опцію збережено" });
       
       if (wasCreating && result?.id) {
-        navigate(`/admin/properties/${propertyId}/options/${result.id}`, { replace: true });
+        router.replace(`/admin/properties/${propertyId}/options/${result.id}`);
       }
     },
     onError: (error) => {
@@ -165,7 +165,7 @@ export default function PropertyOptionEdit() {
   };
 
   const goBack = () => {
-    navigate(`/admin/properties/${propertyId}`);
+    router.push(`/admin/properties/${propertyId}`);
   };
 
   if (optionLoading) {

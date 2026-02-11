@@ -1,11 +1,11 @@
 "use client";
-import { useLocation } from "react-router-dom";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Construction } from "lucide-react";
 
 export default function PlaceholderPage() {
-  const location = useLocation();
-  const pageName = location.pathname.split("/").pop() || "Сторінка";
+  const pathname = usePathname();
+  const pageName = pathname.split("/").pop() || "Сторінка";
 
   const pageNames: Record<string, string> = {
     "order-statuses": "Статуси замовлень",

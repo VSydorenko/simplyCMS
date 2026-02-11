@@ -8,7 +8,7 @@ import { Badge } from "@simplycms/ui/badge";
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Image, Clock, Calendar } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const PLACEMENT_LABELS: Record<string, string> = {
   home: "Головна",
@@ -21,7 +21,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
 export default function Banners() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const { data: banners, isLoading } = useQuery({
     queryKey: ["admin-banners"],
@@ -68,7 +68,7 @@ export default function Banners() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Банери</h1>
-        <Button onClick={() => navigate("/admin/banners/new")}>
+        <Button onClick={() => router.push("/admin/banners/new")}>
           <Plus className="h-4 w-4 mr-2" /> Додати банер
         </Button>
       </div>
@@ -83,7 +83,7 @@ export default function Banners() {
       ) : (
         <div className="space-y-3">
           {banners.map((b) => (
-            <Card key={b.id} className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/admin/banners/${b.id}`)}>
+            <Card key={b.id} className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/admin/banners/${b.id}`)}>
               <div className="flex items-center gap-4 p-4">
                 <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="h-16 w-28 rounded bg-muted overflow-hidden shrink-0">

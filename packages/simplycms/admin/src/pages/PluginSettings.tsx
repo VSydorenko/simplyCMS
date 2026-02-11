@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -23,7 +23,7 @@ import { parsePlugin, type ParsedPlugin, type PluginSettingDefinition } from "@s
 
 export default function PluginSettings() {
   const { pluginId } = useParams<{ pluginId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -120,7 +120,7 @@ export default function PluginSettings() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Розширення не знайдено</p>
-        <Button variant="link" onClick={() => navigate("/admin/plugins")}>
+        <Button variant="link" onClick={() => router.push("/admin/plugins")}>
           Повернутися до списку
         </Button>
       </div>
@@ -134,7 +134,7 @@ export default function PluginSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/plugins")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/plugins")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">

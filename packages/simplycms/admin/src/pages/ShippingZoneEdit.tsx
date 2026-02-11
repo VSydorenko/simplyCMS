@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -76,8 +76,8 @@ function arrayToString(arr: string[] | undefined): string {
 }
 
 export default function ShippingZoneEdit() {
-  const { zoneId } = useParams();
-  const navigate = useNavigate();
+  const { zoneId } = useParams() as { zoneId: string };
+  const router = useRouter();
   const queryClient = useQueryClient();
   const isNew = zoneId === "new";
 
@@ -175,7 +175,7 @@ export default function ShippingZoneEdit() {
       queryClient.invalidateQueries({ queryKey: ["shipping-zones"] });
       toast.success(isNew ? "Зону створено" : "Зміни збережено");
       if (isNew) {
-        navigate("/admin/shipping/zones");
+        router.push("/admin/shipping/zones");
       }
     },
     onError: (error: Error) => {
@@ -228,7 +228,7 @@ export default function ShippingZoneEdit() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

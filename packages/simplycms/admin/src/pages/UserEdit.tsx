@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -48,7 +49,7 @@ import { uk } from "date-fns/locale";
 
 export default function UserEdit() {
   const { userId } = useParams<{ userId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -236,7 +237,7 @@ export default function UserEdit() {
       <div className="p-8 text-center">
         <p>Користувача не знайдено</p>
         <Button asChild className="mt-4">
-          <Link to="/admin/users">Назад до списку</Link>
+          <Link href="/admin/users">Назад до списку</Link>
         </Button>
       </div>
     );
@@ -247,7 +248,7 @@ export default function UserEdit() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/admin/users">
+          <Link href="/admin/users">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
@@ -505,7 +506,7 @@ export default function UserEdit() {
                       </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/admin/orders/${order.id}`}>
+                          <Link href={`/admin/orders/${order.id}`}>
                             <ExternalLink className="h-4 w-4" />
                           </Link>
                         </Button>

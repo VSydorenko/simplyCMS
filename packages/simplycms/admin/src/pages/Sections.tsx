@@ -1,5 +1,5 @@
 "use client";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -16,7 +16,7 @@ import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, Loader2, Image } from "lucide-react";
 
 export default function Sections() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -61,7 +61,7 @@ export default function Sections() {
           <h1 className="text-3xl font-bold">Розділи</h1>
           <p className="text-muted-foreground">Керування розділами каталогу</p>
         </div>
-        <Button onClick={() => navigate("/admin/sections/new")}>
+        <Button onClick={() => router.push("/admin/sections/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Додати розділ
         </Button>
@@ -88,7 +88,7 @@ export default function Sections() {
                 <TableRow 
                   key={section.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/admin/sections/${section.id}`)}
+                  onClick={() => router.push(`/admin/sections/${section.id}`)}
                 >
                   <TableCell>
                     {section.image_url ? (

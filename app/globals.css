@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@plugin "@tailwindcss/typography";
 
 /* SolarStore Design System
    Brand color: #1192DC (HSL: 200 85% 47%)

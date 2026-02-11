@@ -1,5 +1,5 @@
 "use client";
-import { Outlet, useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@simplycms/core/hooks/useAuth";
 import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@simplycms/ui/sidebar";
@@ -10,16 +10,16 @@ import { supabase } from "@simplycms/core/supabase/client";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ThemeToggle } from "@simplycms/core/components/ThemeToggle";
 
-export function AdminLayout() {
+export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAdmin } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
-      navigate("/auth");
+      router.push("/auth");
     }
-  }, [user, isLoading, isAdmin, navigate]);
+  }, [user, isLoading, isAdmin, router]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -27,7 +27,7 @@ export function AdminLayout() {
       title: "Вихід виконано",
       description: "Ви успішно вийшли з системи",
     });
-    navigate("/");
+    router.push("/");
   };
 
   if (isLoading) {
@@ -57,7 +57,7 @@ export function AdminLayout() {
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+              <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
                 <Home className="h-4 w-4 mr-2" />
                 На сайт
               </Button>
@@ -70,7 +70,7 @@ export function AdminLayout() {
           
           {/* Main content */}
           <main className="flex-1 p-6 bg-muted/30">
-            <Outlet />
+            {children}
           </main>
         </div>
       </div>

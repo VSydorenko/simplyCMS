@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
-import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,13 +32,13 @@ type FormData = z.infer<typeof schema>;
 
 export default function PriceTypeEdit() {
   const { priceTypeId } = useParams<{ priceTypeId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const location = useLocation();
-  const isNew = location.pathname.endsWith("/new") || !priceTypeId;
+  const pathname = usePathname();
+  const isNew = pathname.endsWith("/new") || !priceTypeId;
 
   const form = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: { name: "", code: "", sort_order: 0, is_default: false },
   });
 
@@ -82,7 +83,7 @@ export default function PriceTypeEdit() {
       queryClient.invalidateQueries({ queryKey: ["admin-price-types"] });
       queryClient.invalidateQueries({ queryKey: ["price-types"] });
       toast({ title: isNew ? "Вид ціни створено" : "Зміни збережено" });
-      navigate("/admin/price-types");
+      router.push("/admin/price-types");
     },
     onError: (error: Error) => {
       toast({ title: "Помилка", description: error.message, variant: "destructive" });
@@ -97,7 +98,7 @@ export default function PriceTypeEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-price-types"] });
       toast({ title: "Вид ціни видалено" });
-      navigate("/admin/price-types");
+      router.push("/admin/price-types");
     },
     onError: (error: Error) => {
       toast({ title: "Помилка", description: error.message, variant: "destructive" });
@@ -111,7 +112,7 @@ export default function PriceTypeEdit() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to="/admin/price-types"><ArrowLeft className="h-5 w-5" /></Link>
+            <Link href="/admin/price-types"><ArrowLeft className="h-5 w-5" /></Link>
           </Button>
           <h1 className="text-3xl font-bold">{isNew ? "Новий вид ціни" : "Редагування виду ціни"}</h1>
         </div>
@@ -159,7 +160,7 @@ export default function PriceTypeEdit() {
                 </FormItem>
               )} />
               <div className="flex justify-end gap-4">
-                <Button variant="outline" asChild><Link to="/admin/price-types">Скасувати</Link></Button>
+                <Button variant="outline" asChild><Link href="/admin/price-types">Скасувати</Link></Button>
                 <Button type="submit" disabled={saveMutation.isPending}>
                   {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isNew ? "Створити" : "Зберегти"}

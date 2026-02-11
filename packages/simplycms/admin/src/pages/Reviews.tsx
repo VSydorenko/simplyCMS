@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
 import { Badge } from "@simplycms/ui/badge";
@@ -26,7 +26,7 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 export default function AdminReviews() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: reviews = [], isLoading } = useQuery({
@@ -133,7 +133,7 @@ export default function AdminReviews() {
                     <TableRow
                       key={r.id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/admin/reviews/${r.id}`)}
+                      onClick={() => router.push(`/admin/reviews/${r.id}`)}
                     >
                       <TableCell className="font-medium max-w-[200px] truncate">{r.productName}</TableCell>
                       <TableCell>{authorName}</TableCell>

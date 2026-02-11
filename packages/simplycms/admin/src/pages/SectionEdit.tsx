@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -16,8 +16,8 @@ import { RichTextEditor } from "../components/RichTextEditor";
 import { SectionPropertiesManager } from "../components/SectionPropertiesManager";
 
 export default function SectionEdit() {
-  const { sectionId } = useParams();
-  const navigate = useNavigate();
+  const { sectionId } = useParams() as { sectionId: string };
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isNew = sectionId === "new";
@@ -93,7 +93,7 @@ export default function SectionEdit() {
       queryClient.invalidateQueries({ queryKey: ["section", sectionId] });
       toast({ title: isNew ? "Розділ створено" : "Розділ збережено" });
       if (isNew) {
-        navigate("/admin/sections");
+        router.push("/admin/sections");
       }
     },
     onError: (error) => {
@@ -123,7 +123,7 @@ export default function SectionEdit() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/sections")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/sections")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

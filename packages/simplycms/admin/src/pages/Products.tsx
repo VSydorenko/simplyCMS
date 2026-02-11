@@ -1,5 +1,5 @@
 "use client";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -19,7 +19,7 @@ import type { Tables } from "@simplycms/core/supabase/types";
 type Product = Tables<"products">;
 
 export default function Products() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,7 +50,7 @@ export default function Products() {
   });
 
   const handleRowClick = (productId: string) => {
-    navigate(`/admin/products/${productId}`);
+    router.push(`/admin/products/${productId}`);
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -75,7 +75,7 @@ export default function Products() {
           <h1 className="text-3xl font-bold">Товари</h1>
           <p className="text-muted-foreground">Керування каталогом товарів</p>
         </div>
-        <Button onClick={() => navigate("/admin/products/new")}>
+        <Button onClick={() => router.push("/admin/products/new")}>
           <Plus className="h-4 w-4 mr-2" />
           Додати товар
         </Button>

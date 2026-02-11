@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Link, useNavigate, Outlet } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Sun, User, Settings, LogOut, Search } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../supabase/client";
@@ -18,6 +19,8 @@ interface CatalogLayoutProps {
   renderButton?: (props: any) => React.ReactNode;
   /** Render a DropdownMenu */
   renderDropdownMenu?: (props: any) => React.ReactNode;
+  /** Children to render in the main content area (replaces Outlet) */
+  children?: React.ReactNode;
 }
 
 export function CatalogLayout({
@@ -26,9 +29,10 @@ export function CatalogLayout({
   renderCartDrawer,
   renderButton,
   renderDropdownMenu,
+  children,
 }: CatalogLayoutProps) {
   const { user, isLoading, isAdmin } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
@@ -53,7 +57,7 @@ export function CatalogLayout({
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-brand">
                 <Sun className="h-6 w-6 text-white" />
               </div>
@@ -62,31 +66,31 @@ export function CatalogLayout({
 
             <nav className="hidden md:flex items-center gap-6">
               <Link
-                to="/catalog"
+                href="/catalog"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 Каталог
               </Link>
               <Link
-                to="/properties"
+                href="/properties"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Бренди
               </Link>
               <Link
-                to="#"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Послуги
               </Link>
               <Link
-                to="#"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Про нас
               </Link>
               <Link
-                to="#"
+                href="#"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Контакти
@@ -103,10 +107,10 @@ export function CatalogLayout({
               <>
                 {user ? (
                   renderDropdownMenu ? (
-                    renderDropdownMenu({ user, isAdmin, handleSignOut, navigate })
+                    renderDropdownMenu({ user, isAdmin, handleSignOut, router })
                   ) : (
                     <button
-                      onClick={() => navigate("/profile")}
+                      onClick={() => router.push("/profile")}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm"
                     >
                       <User className="h-4 w-4" />
@@ -114,7 +118,7 @@ export function CatalogLayout({
                     </button>
                   )
                 ) : (
-                  <Link to="/auth" className="px-3 py-1.5 rounded-md border text-sm">
+                  <Link href="/auth" className="px-3 py-1.5 rounded-md border text-sm">
                     Увiйти
                   </Link>
                 )}
@@ -128,14 +132,14 @@ export function CatalogLayout({
       {renderCartDrawer?.()}
       {/* Content */}
       <main className="flex-1">
-        <Outlet />
+        {children}
       </main>
 
       {/* Footer */}
       <footer className="border-t py-8 bg-card">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-brand">
                 <Sun className="h-4 w-4 text-white" />
               </div>

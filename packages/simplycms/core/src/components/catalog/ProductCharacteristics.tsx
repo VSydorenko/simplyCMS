@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 interface PropertyValue {
   property_id: string;
@@ -49,7 +49,7 @@ export function ProductCharacteristics({ propertyValues }: ProductCharacteristic
     if (pv.property?.has_page && pv.option?.slug && pv.property?.slug) {
       return (
         <Link
-          to={`/properties/${pv.property.slug}/${pv.option.slug}`}
+          href={`/properties/${pv.property.slug}/${pv.option.slug}`}
           className="text-primary hover:underline"
         >
           {formattedValue}

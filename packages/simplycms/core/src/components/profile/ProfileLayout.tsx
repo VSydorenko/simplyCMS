@@ -1,18 +1,24 @@
 "use client";
 
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import Link from "next/link";
+import { usePathname, redirect } from "next/navigation";
 import { User, Package, Settings, LogOut } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../hooks/useAuth";
 
 const navItems = [
-  { to: "/profile", icon: User, label: "Профiль", end: true },
-  { to: "/profile/orders", icon: Package, label: "Мої замовлення" },
-  { to: "/profile/settings", icon: Settings, label: "Налаштування" },
+  { href: "/profile", icon: User, label: "Профiль", end: true },
+  { href: "/profile/orders", icon: Package, label: "Мої замовлення" },
+  { href: "/profile/settings", icon: Settings, label: "Налаштування" },
 ];
 
-export function ProfileLayout() {
+interface ProfileLayoutProps {
+  children?: React.ReactNode;
+}
+
+export function ProfileLayout({ children }: ProfileLayoutProps) {
   const { user, isLoading, signOut } = useAuth();
+  const pathname = usePathname();
 
   if (isLoading) {
     return (
@@ -32,7 +38,7 @@ export function ProfileLayout() {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    redirect("/auth");
   }
 
   return (
@@ -41,24 +47,26 @@ export function ProfileLayout() {
         {/* Sidebar */}
         <aside className="w-full md:w-64 shrink-0">
           <nav className="space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  cn(
+            {navItems.map((item) => {
+              const isActive = item.end
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </NavLink>
-            ))}
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
 
             <button
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -72,7 +80,7 @@ export function ProfileLayout() {
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

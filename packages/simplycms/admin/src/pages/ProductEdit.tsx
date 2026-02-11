@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -30,7 +30,7 @@ import { PluginSlot } from "@simplycms/plugins/PluginSlot";
 
 export default function ProductEdit() {
   const { productId } = useParams<{ productId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isNew = productId === "new";
@@ -112,7 +112,7 @@ export default function ProductEdit() {
     onSuccess: (newProduct) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       toast({ title: "Товар створено" });
-      navigate(`/admin/products/${newProduct.id}`);
+      router.push(`/admin/products/${newProduct.id}`);
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Помилка", description: error.message });
@@ -188,7 +188,7 @@ export default function ProductEdit() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/products")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/products")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

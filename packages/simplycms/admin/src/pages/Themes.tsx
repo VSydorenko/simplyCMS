@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -115,7 +115,7 @@ export default function Themes() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/admin/settings">
+          <Link href="/admin/settings">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -203,7 +203,7 @@ export default function Themes() {
                 <div className="flex gap-2">
                   {theme.is_active ? (
                     <Button variant="outline" className="flex-1" asChild>
-                      <Link to={`/admin/themes/${theme.id}`}>
+                      <Link href={`/admin/themes/${theme.id}`}>
                         <Settings className="h-4 w-4 mr-2" />
                         Налаштування
                       </Link>
@@ -218,7 +218,7 @@ export default function Themes() {
                         Активувати
                       </Button>
                       <Button variant="outline" size="icon" asChild>
-                        <Link to={`/admin/themes/${theme.id}`}>
+                        <Link href={`/admin/themes/${theme.id}`}>
                           <Settings className="h-4 w-4" />
                         </Link>
                       </Button>

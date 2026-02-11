@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -45,8 +45,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function ShippingMethodEdit() {
-  const { methodId } = useParams();
-  const navigate = useNavigate();
+  const { methodId } = useParams() as { methodId: string };
+  const router = useRouter();
   const queryClient = useQueryClient();
   const isNew = methodId === "new";
 
@@ -118,7 +118,7 @@ export default function ShippingMethodEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shipping-methods"] });
       toast.success(isNew ? "Службу створено" : "Зміни збережено");
-      navigate("/admin/shipping/methods");
+      router.push("/admin/shipping/methods");
     },
     onError: (error: Error) => {
       toast.error(`Помилка: ${error.message}`);
@@ -139,7 +139,7 @@ export default function ShippingMethodEdit() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

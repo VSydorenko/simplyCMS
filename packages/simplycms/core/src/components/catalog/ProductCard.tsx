@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Image, Star } from "lucide-react";
 
 interface ProductCardProps {
@@ -35,7 +35,7 @@ export function ProductCard({ product, rating }: ProductCardProps) {
   };
 
   return (
-    <Link to={`/catalog/${sectionSlug}/${product.slug}`}>
+    <Link href={`/catalog/${sectionSlug}/${product.slug}`}>
       <div className="group h-full overflow-hidden rounded-lg border bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
         <div className="aspect-square overflow-hidden bg-muted relative">
           {firstImage ? (

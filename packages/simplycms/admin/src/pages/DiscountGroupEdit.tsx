@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,9 +30,9 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function DiscountGroupEdit() {
-  const { groupId } = useParams();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { groupId } = useParams() as { groupId: string };
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const isNew = !groupId || groupId === "new";
 
@@ -116,7 +116,7 @@ export default function DiscountGroupEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discount-groups-tree"] });
       toast({ title: isNew ? "Групу створено" : "Групу оновлено" });
-      navigate("/admin/discounts");
+      router.push("/admin/discounts");
     },
     onError: (err: any) => {
       toast({ title: "Помилка", description: err.message, variant: "destructive" });
@@ -126,7 +126,7 @@ export default function DiscountGroupEdit() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/discounts")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push("/admin/discounts")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-3xl font-bold">{isNew ? "Нова група скидок" : "Редагування групи"}</h1>
@@ -226,7 +226,7 @@ export default function DiscountGroupEdit() {
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? "Збереження..." : "Зберегти"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate("/admin/discounts")}>
+            <Button type="button" variant="outline" onClick={() => router.push("/admin/discounts")}>
               Скасувати
             </Button>
           </div>

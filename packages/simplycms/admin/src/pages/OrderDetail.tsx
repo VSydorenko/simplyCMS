@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
@@ -53,8 +53,8 @@ interface OrderItem {
 }
 
 export default function OrderDetail() {
-  const { orderId } = useParams();
-  const navigate = useNavigate();
+  const { orderId } = useParams() as { orderId: string };
+  const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -309,7 +309,7 @@ export default function OrderDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Замовлення не знайдено</p>
-        <Button variant="link" onClick={() => navigate("/admin/orders")}>
+        <Button variant="link" onClick={() => router.push("/admin/orders")}>
           Повернутися до списку
         </Button>
       </div>
@@ -323,7 +323,7 @@ export default function OrderDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/orders")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
