@@ -19,6 +19,7 @@ import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "luc
 import { fetchModificationStockData, fetchModificationPropertyValues, enrichProductsWithAvailability } from "@/hooks/useProductsWithStock";
 import { usePriceType } from "@/hooks/usePriceType";
 import { resolvePrice } from "@/lib/priceUtils";
+import { useDiscountGroups, useDiscountContext, applyDiscount } from "@/hooks/useDiscountedPrice";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
@@ -29,6 +30,8 @@ export default function CatalogSection() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { priceTypeId, defaultPriceTypeId } = usePriceType();
+  const { data: discountGroups = [] } = useDiscountGroups();
+  const discountCtx = useDiscountContext();
 
   // Fetch all sections for chips
   const { data: sections } = useQuery({
@@ -122,17 +125,37 @@ export default function CatalogSection() {
     return rawProducts.map((p) => {
       const prices = (p as any).product_prices || [];
       let resolved;
-      if (p.has_modifications && p.modifications?.[0]) {
-        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, p.modifications[0].id);
+      const defaultMod = p.has_modifications && p.modifications?.[0] ? p.modifications[0] : null;
+      if (defaultMod) {
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, defaultMod.id);
       } else {
         resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, null);
       }
+      let finalPrice = resolved.price;
+      let oldPrice = resolved.oldPrice;
+
+      // Apply discounts
+      if (finalPrice !== null && discountGroups.length > 0) {
+        const result = applyDiscount(finalPrice, discountGroups, {
+          ...discountCtx,
+          quantity: 1,
+          cartTotal: 0,
+          productId: p.id,
+          modificationId: defaultMod?.id || null,
+          sectionId: (p as any).section_id || null,
+        });
+        if (result.totalDiscount > 0) {
+          oldPrice = finalPrice;
+          finalPrice = result.finalPrice;
+        }
+      }
+
       const stockStatus = p.has_modifications
-        ? (p.modifications?.[0]?.stock_status ?? "in_stock")
+        ? (defaultMod?.stock_status ?? "in_stock")
         : ((p as any).stock_status ?? "in_stock");
-      return { ...p, price: resolved.price, old_price: resolved.oldPrice, stock_status: stockStatus };
+      return { ...p, price: finalPrice, old_price: oldPrice, stock_status: stockStatus };
     });
-  }, [rawProducts, priceTypeId, defaultPriceTypeId]);
+  }, [rawProducts, priceTypeId, defaultPriceTypeId, discountGroups, discountCtx]);
 
   // Calculate price range
   const priceRange = useMemo(() => {

@@ -6,6 +6,8 @@ export interface CartItem {
   name: string;
   modificationName?: string;
   price: number;
+  basePrice?: number | null;
+  discountData?: any | null;
   quantity: number;
   image?: string;
   sku?: string;
