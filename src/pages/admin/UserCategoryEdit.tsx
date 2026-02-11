@@ -170,14 +170,14 @@ export default function UserCategoryEdit() {
               <FormField control={form.control} name="price_type_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Вид ціни</FormLabel>
-                  <Select value={field.value || ""} onValueChange={(v) => field.onChange(v || null)}>
+                  <Select value={field.value || "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="За замовчуванням (дефолтний вид ціни)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">За замовчуванням</SelectItem>
+                      <SelectItem value="__none__">За замовчуванням</SelectItem>
                       {priceTypes?.map((pt) => (
                         <SelectItem key={pt.id} value={pt.id}>
                           {pt.name} {pt.is_default ? "(дефолтний)" : ""}
