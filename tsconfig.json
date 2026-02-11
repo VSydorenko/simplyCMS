@@ -29,7 +29,7 @@
       "@simplycms/plugins/*": ["./packages/simplycms/plugin-system/src/*"],
       "@simplycms/themes": ["./packages/simplycms/theme-system/src"],
       "@simplycms/themes/*": ["./packages/simplycms/theme-system/src/*"],
-      "@simplycms/db/*": ["./packages/simplycms/db/*"],
+      "@simplycms/supabase/*": ["./packages/simplycms/supabase/*"],
       "@/*": ["./app/*"],
       "@themes/*": ["./themes/*"],
       "@plugins/*": ["./plugins/*"]

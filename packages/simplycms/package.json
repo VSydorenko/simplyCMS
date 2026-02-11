@@ -14,6 +14,6 @@
     "ui",
     "plugin-system",
     "theme-system",
-    "db"
+    "supabase"
   ]
 }

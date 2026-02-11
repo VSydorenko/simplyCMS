@@ -11,7 +11,7 @@ Open-source e-commerce CMS core packages for Next.js.
 | `@simplycms/ui` | shadcn/ui component library |
 | `@simplycms/plugins` | Plugin system (HookRegistry, PluginLoader, PluginSlot) |
 | `@simplycms/themes` | Theme system (ThemeRegistry, ThemeContext, ThemeResolver) |
-| `@simplycms/db` | Database migrations and edge functions |
+| `@simplycms/supabase` | Supabase migrations, edge functions, config |
 
 ## Usage
 
