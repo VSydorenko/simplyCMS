@@ -16,42 +16,89 @@ export type Database = {
     Tables: {
       banners: {
         Row: {
-          button_text: string | null
+          animation_duration: number
+          animation_type: string
+          buttons: Json | null
           created_at: string
+          date_from: string | null
+          date_to: string | null
+          desktop_image_url: string | null
           id: string
           image_url: string
           is_active: boolean
-          link_url: string | null
+          mobile_image_url: string | null
+          overlay_color: string | null
+          placement: string
+          schedule_days: number[] | null
+          schedule_time_from: string | null
+          schedule_time_to: string | null
+          section_id: string | null
+          slide_duration: number
           sort_order: number
           subtitle: string | null
+          text_position: string
           title: string
           updated_at: string
         }
         Insert: {
-          button_text?: string | null
+          animation_duration?: number
+          animation_type?: string
+          buttons?: Json | null
           created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          desktop_image_url?: string | null
           id?: string
           image_url: string
           is_active?: boolean
-          link_url?: string | null
+          mobile_image_url?: string | null
+          overlay_color?: string | null
+          placement?: string
+          schedule_days?: number[] | null
+          schedule_time_from?: string | null
+          schedule_time_to?: string | null
+          section_id?: string | null
+          slide_duration?: number
           sort_order?: number
           subtitle?: string | null
+          text_position?: string
           title: string
           updated_at?: string
         }
         Update: {
-          button_text?: string | null
+          animation_duration?: number
+          animation_type?: string
+          buttons?: Json | null
           created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          desktop_image_url?: string | null
           id?: string
           image_url?: string
           is_active?: boolean
-          link_url?: string | null
+          mobile_image_url?: string | null
+          overlay_color?: string | null
+          placement?: string
+          schedule_days?: number[] | null
+          schedule_time_from?: string | null
+          schedule_time_to?: string | null
+          section_id?: string | null
+          slide_duration?: number
           sort_order?: number
           subtitle?: string | null
+          text_position?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "banners_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       category_rules: {
         Row: {
