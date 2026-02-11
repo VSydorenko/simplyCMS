@@ -5,7 +5,8 @@ Updated: now
 Модуль скидок з деревовидною структурою груп. Кожна група має оператор (and/or/not/min/max) для визначення логіки застосування дочірніх скидок.
 
 ## Таблиці
-- `discount_groups` -- дерево груп (self-referencing parent_group_id), прив'язка до price_type_id
+- `discount_groups` -- дерево груп (self-referencing parent_group_id), оператор логіки
+- `discounts` -- окремі скидки в групі (percent/fixed_amount/fixed_price), прив'язка до price_type_id
 - `discounts` -- окремі скидки в групі (percent/fixed_amount/fixed_price)
 - `discount_targets` -- до чого застосовується (product/modification/section/all)
 - `discount_conditions` -- умови (user_category, min_quantity, min_order_amount, user_logged_in)

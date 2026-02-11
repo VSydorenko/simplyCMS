@@ -20,7 +20,6 @@ const schema = z.object({
   description: z.string().optional(),
   operator: z.enum(["and", "or", "not", "min", "max"]),
   parent_group_id: z.string().optional(),
-  price_type_id: z.string().min(1, "Оберіть вид ціни"),
   is_active: z.boolean(),
   priority: z.number().int(),
   starts_at: z.string().optional(),
@@ -43,20 +42,10 @@ export default function DiscountGroupEdit() {
       description: "",
       operator: "and",
       parent_group_id: searchParams.get("parentId") || "",
-      price_type_id: searchParams.get("priceTypeId") || "",
       is_active: true,
       priority: 0,
       starts_at: "",
       ends_at: "",
-    },
-  });
-
-  const { data: priceTypes = [] } = useQuery({
-    queryKey: ["price-types"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("price_types").select("id, name").order("sort_order");
-      if (error) throw error;
-      return data;
     },
   });
 
@@ -94,7 +83,6 @@ export default function DiscountGroupEdit() {
         description: existing.description || "",
         operator: existing.operator as any,
         parent_group_id: existing.parent_group_id || "",
-        price_type_id: existing.price_type_id,
         is_active: existing.is_active,
         priority: existing.priority,
         starts_at: existing.starts_at ? existing.starts_at.slice(0, 16) : "",
@@ -110,7 +98,6 @@ export default function DiscountGroupEdit() {
         description: data.description || null,
         operator: data.operator,
         parent_group_id: data.parent_group_id && data.parent_group_id !== "__root__" ? data.parent_group_id : null,
-        price_type_id: data.price_type_id,
         is_active: data.is_active,
         priority: data.priority,
         starts_at: data.starts_at || null,
@@ -182,20 +169,6 @@ export default function DiscountGroupEdit() {
                   </FormItem>
                 )} />
 
-                <FormField control={form.control} name="price_type_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Вид ціни</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {priceTypes.map((pt: any) => (
-                          <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
               </div>
 
               <FormField control={form.control} name="parent_group_id" render={({ field }) => (

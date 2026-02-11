@@ -36,7 +36,6 @@ export interface DiscountGroup {
   name: string;
   description: string | null;
   operator: GroupOperator;
-  price_type_id: string;
   is_active: boolean;
   priority: number;
   starts_at: string | null;

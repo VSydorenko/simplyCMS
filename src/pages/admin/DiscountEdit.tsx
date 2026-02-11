@@ -21,6 +21,7 @@ const schema = z.object({
   name: z.string().min(1, "Назва обов'язкова"),
   description: z.string().optional(),
   group_id: z.string().min(1, "Оберіть групу"),
+  price_type_id: z.string().min(1, "Оберіть вид ціни"),
   discount_type: z.enum(["percent", "fixed_amount", "fixed_price"]),
   discount_value: z.number().positive("Значення має бути додатнім"),
   priority: z.number().int(),
@@ -68,6 +69,7 @@ export default function DiscountEdit() {
       name: "",
       description: "",
       group_id: searchParams.get("groupId") || "",
+      price_type_id: searchParams.get("priceTypeId") || "",
       discount_type: "percent",
       discount_value: 10,
       priority: 0,
@@ -82,6 +84,15 @@ export default function DiscountEdit() {
     queryKey: ["discount-groups-list"],
     queryFn: async () => {
       const { data, error } = await supabase.from("discount_groups").select("id, name").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: priceTypes = [] } = useQuery({
+    queryKey: ["price-types"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("price_types").select("id, name").order("sort_order");
       if (error) throw error;
       return data;
     },
@@ -136,6 +147,7 @@ export default function DiscountEdit() {
         name: existing.name,
         description: existing.description || "",
         group_id: existing.group_id,
+        price_type_id: existing.price_type_id,
         discount_type: existing.discount_type as any,
         discount_value: Number(existing.discount_value),
         priority: existing.priority,
@@ -154,6 +166,7 @@ export default function DiscountEdit() {
         name: data.name,
         description: data.description || null,
         group_id: data.group_id,
+        price_type_id: data.price_type_id,
         discount_type: data.discount_type,
         discount_value: data.discount_value,
         priority: data.priority,
@@ -255,6 +268,21 @@ export default function DiscountEdit() {
                         <SelectContent>
                           {groups.map((g: any) => (
                             <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="price_type_id" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Вид ціни</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {priceTypes.map((pt: any) => (
+                            <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
