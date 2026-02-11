@@ -22,6 +22,7 @@ import { StockDisplay } from "@/components/catalog/StockDisplay";
 import { PluginSlot } from "@/components/plugins/PluginSlot";
 import { usePriceType } from "@/hooks/usePriceType";
 import { resolvePrice } from "@/lib/priceUtils";
+import { useDiscountGroups, useDiscountContext, applyDiscount } from "@/hooks/useDiscountedPrice";
 
 export default function ProductDetail() {
   const { sectionSlug, productSlug } = useParams<{
@@ -33,6 +34,8 @@ export default function ProductDetail() {
   const { addItem } = useCart();
   const { toast } = useToast();
   const { priceTypeId, defaultPriceTypeId } = usePriceType();
+  const { data: discountGroups = [] } = useDiscountGroups();
+  const discountCtx = useDiscountContext();
 
   // Fetch product with all related data
   const { data: product, isLoading } = useQuery({
@@ -299,6 +302,22 @@ export default function ProductDetail() {
     price = resolved.price ?? undefined;
     oldPrice = resolved.oldPrice;
     sku = (product as any).sku;
+  }
+
+  // Apply discounts
+  if (price !== undefined && discountGroups.length > 0) {
+    const discountResult = applyDiscount(price, discountGroups, {
+      ...discountCtx,
+      quantity: 1,
+      cartTotal: 0,
+      productId: product.id,
+      modificationId: hasModifications ? selectedMod?.id || null : null,
+      sectionId: section?.id || null,
+    });
+    if (discountResult.totalDiscount > 0) {
+      oldPrice = price;
+      price = discountResult.finalPrice;
+    }
   }
   
   const isInStock = stockStatus === "in_stock" || stockStatus === "on_order";

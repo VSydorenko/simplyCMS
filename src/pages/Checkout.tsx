@@ -230,7 +230,7 @@ export default function Checkout() {
 
       if (orderError) throw orderError;
 
-      // Create order items
+      // Create order items with discount data
       const orderItems = items.map((item) => ({
         order_id: order.id,
         product_id: item.productId,
@@ -241,6 +241,8 @@ export default function Checkout() {
         price: item.price,
         quantity: item.quantity,
         total: item.price * item.quantity,
+        base_price: (item as any).basePrice || null,
+        discount_data: (item as any).discountData || null,
       }));
 
       const { error: itemsError } = await supabase

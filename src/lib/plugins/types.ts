@@ -124,6 +124,7 @@ export type HookName =
   | "admin.product.form.after"
   | "admin.product.form.sidebar"
   | "admin.shipping.method.settings"
+  | "admin.discount.form.fields"
   // Public product hooks
   | "product.detail.before"
   | "product.detail.after"
@@ -136,6 +137,11 @@ export type HookName =
   | "checkout.shipping.form"
   | "checkout.shipping.validate"
   | "checkout.shipping.after"
+  // Discount hooks
+  | "discount.conditions.evaluate"
+  | "discount.before_apply"
+  | "discount.after_apply"
+  | "discount.types"
   // Order hooks
   | "order.actions"
   | "order.created"
