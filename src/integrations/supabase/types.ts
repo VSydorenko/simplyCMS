@@ -94,6 +94,186 @@ export type Database = {
           },
         ]
       }
+      discount_conditions: {
+        Row: {
+          condition_type: string
+          created_at: string
+          discount_id: string
+          id: string
+          operator: string
+          value: Json
+        }
+        Insert: {
+          condition_type: string
+          created_at?: string
+          discount_id: string
+          id?: string
+          operator?: string
+          value?: Json
+        }
+        Update: {
+          condition_type?: string
+          created_at?: string
+          discount_id?: string
+          id?: string
+          operator?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_conditions_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          operator: Database["public"]["Enums"]["discount_group_operator"]
+          parent_group_id: string | null
+          price_type_id: string
+          priority: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          operator?: Database["public"]["Enums"]["discount_group_operator"]
+          parent_group_id?: string | null
+          price_type_id: string
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          operator?: Database["public"]["Enums"]["discount_group_operator"]
+          parent_group_id?: string | null
+          price_type_id?: string
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_groups_parent_group_id_fkey"
+            columns: ["parent_group_id"]
+            isOneToOne: false
+            referencedRelation: "discount_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_groups_price_type_id_fkey"
+            columns: ["price_type_id"]
+            isOneToOne: false
+            referencedRelation: "price_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_targets: {
+        Row: {
+          created_at: string
+          discount_id: string
+          id: string
+          target_id: string | null
+          target_type: Database["public"]["Enums"]["discount_target_type"]
+        }
+        Insert: {
+          created_at?: string
+          discount_id: string
+          id?: string
+          target_id?: string | null
+          target_type?: Database["public"]["Enums"]["discount_target_type"]
+        }
+        Update: {
+          created_at?: string
+          discount_id?: string
+          id?: string
+          target_id?: string | null
+          target_type?: Database["public"]["Enums"]["discount_target_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_targets_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discounts: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_type: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          ends_at: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["discount_type"]
+          discount_value: number
+          ends_at?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["discount_type"]
+          discount_value?: number
+          ends_at?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discounts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "discount_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       languages: {
         Row: {
           code: string
@@ -175,7 +355,9 @@ export type Database = {
       }
       order_items: {
         Row: {
+          base_price: number | null
           created_at: string
+          discount_data: Json | null
           id: string
           modification_id: string | null
           name: string
@@ -187,7 +369,9 @@ export type Database = {
           total: number
         }
         Insert: {
+          base_price?: number | null
           created_at?: string
+          discount_data?: Json | null
           id?: string
           modification_id?: string | null
           name: string
@@ -199,7 +383,9 @@ export type Database = {
           total: number
         }
         Update: {
+          base_price?: number | null
           created_at?: string
+          discount_data?: Json | null
           id?: string
           modification_id?: string | null
           name?: string
@@ -1695,6 +1881,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      discount_group_operator: "and" | "or" | "not" | "min" | "max"
+      discount_target_type: "product" | "modification" | "section" | "all"
+      discount_type: "percent" | "fixed_amount" | "fixed_price"
       property_type:
         | "text"
         | "number"
@@ -1839,6 +2028,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      discount_group_operator: ["and", "or", "not", "min", "max"],
+      discount_target_type: ["product", "modification", "section", "all"],
+      discount_type: ["percent", "fixed_amount", "fixed_price"],
       property_type: [
         "text",
         "number",
