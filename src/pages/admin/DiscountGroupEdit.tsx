@@ -109,7 +109,7 @@ export default function DiscountGroupEdit() {
         name: data.name,
         description: data.description || null,
         operator: data.operator,
-        parent_group_id: data.parent_group_id || null,
+        parent_group_id: data.parent_group_id && data.parent_group_id !== "__root__" ? data.parent_group_id : null,
         price_type_id: data.price_type_id,
         is_active: data.is_active,
         priority: data.priority,
@@ -201,10 +201,10 @@ export default function DiscountGroupEdit() {
               <FormField control={form.control} name="parent_group_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Батьківська група (необов'язково)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select onValueChange={field.onChange} value={field.value || "__root__"}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Кореневий рівень" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="">Кореневий рівень</SelectItem>
+                      <SelectItem value="__root__">Кореневий рівень</SelectItem>
                       {parentGroups.map((g: any) => (
                         <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                       ))}
