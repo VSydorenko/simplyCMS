@@ -23,8 +23,18 @@ Updated: now
 - discount_group_operator: 'and' | 'or' | 'not' | 'min' | 'max'
 - discount_target_type: 'product' | 'modification' | 'section' | 'all'
 
-## TODO (наступні кроки)
-- useDiscountedPrice хук для фронтенду (каталог, картка, кошик)
-- Інтеграція в Checkout для фіксації discount_data
-- Plugin hooks (discount.conditions.evaluate, discount.before_apply, тощо)
+## Фронтенд-інтеграція
+- `src/hooks/useDiscountedPrice.ts` -- useDiscountGroups(), useDiscountContext(), applyDiscount()
+- Каталог (Catalog.tsx) -- знижки застосовуються при формуванні списку товарів
+- Картка товару (ProductDetail.tsx) -- знижки застосовуються до базової ціни
+- Checkout -- base_price та discount_data фіксуються в order_items
+
+## Plugin Hooks
+- `discount.conditions.evaluate` -- при перевірці умов
+- `discount.before_apply` -- перед застосуванням
+- `discount.after_apply` -- після застосування
+- `discount.types` -- реєстрація нових типів
+- `admin.discount.form.fields` -- додаткові поля у формі
+
+## TODO
 - Промокоди як плагін (condition_type: 'promo_code')
