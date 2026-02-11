@@ -1,264 +1,211 @@
 
+# Тема "Beauty" — клон дизайну AlpenStore
 
-# Система скидок (Discounts Module)
+## Огляд
 
-## Концепція
+Створення нової теми `beauty` на основі дизайну alpenstore.com.ua. Тема матиме теплу бежево-кремову кольорову палітру з коралово-червоними акцентами, горизонтальне категорійне меню, слайдер банерів, карусель брендів та секції товарів за категоріями на головній сторінці.
 
-Модуль скидок з деревовидною структурою груп, де логіка застосування визначається оператором групи (AND/OR/NOT/MIN/MAX). Кожна скидка прив'язана до виду ціни та може мати складні умови. Система розширювана через плагіни (хуки).
+---
 
-## Архітектура груп та скидок
+## Фаза 1: Базова структура теми та стилізація
 
-Структура -- дерево з групами-операторами та скидками-листками:
+### 1.1 Файлова структура
 
 ```text
-[Група "AND"]                  <- всі дочірні мають виконатись
-  ├── Скидка: -10% на розділ "Техніка"
-  ├── Скидка: -5% для VIP користувачів
-  └── [Група "MIN"]            <- обирається мінімальна знижка з дочірніх
-        ├── Скидка: -15% акційна
-        └── Скидка: -20% за кількість
-
-Результат: (-10% + -5%) + min(-15%, -20%) = -15% + -15% = -30%
+src/themes/beauty/
+  manifest.json        -- метадані, settings schema
+  index.tsx            -- головний модуль теми (ThemeModule)
+  styles.css           -- CSS-змінні для кольорової палітри beauty
+  components/
+    Header.tsx         -- хедер з announcement bar, лого, іконки, меню
+    Footer.tsx         -- футер з лого, слоганом, посиланнями, соцмережі
+    ProductCard.tsx    -- картка товару (бейдж знижки, рейтинг-заглушка)
+    BannerSlider.tsx   -- карусель банерів (embla-carousel)
+    BrandCarousel.tsx  -- горизонтальна карусель брендів
+    ProductCarousel.tsx -- карусель товарів секції
+    NewsletterSection.tsx -- блок підписки на розсилку (заглушка)
+    BlogPreview.tsx    -- секція "Останні статті" (заглушка)
+    AnnouncementBar.tsx -- верхня промо-стрічка
+  layouts/
+    BeautyCatalogLayout.tsx  -- макет каталогу з beauty-хедером/футером
+    BeautyProfileLayout.tsx  -- макет профілю
+  pages/
+    HomePage.tsx       -- головна сторінка
+    CatalogPage.tsx    -- обгортка каталогу
+    CatalogSectionPage.tsx
+    ProductPage.tsx    -- деталі товару в стилі AlpenStore
+    CartPage.tsx       -- обгортка
+    ... (решта сторінок — обгортки існуючих)
 ```
 
-Оператори груп:
-- **AND** (та): всі скидки в групі сумуються (складаються)
-- **OR** (або): застосовується перша підходяща скидка за пріоритетом
-- **NOT** (не): інвертує умову -- скидка НЕ застосовується, якщо умови виконані
-- **MIN** (мінімум): обирається найменша скидка серед підходящих
-- **MAX** (максимум): обирається найбільша скидка серед підходящих
+### 1.2 Кольорова палітра (manifest.json settings)
+
+| Параметр | Тип | За замовчуванням | Призначення |
+|---|---|---|---|
+| primaryColor | color | #D4574E (коралово-червоний) | Кнопки, акценти |
+| backgroundColor | color | #F5EDE3 (теплий беж) | Фон сторінки |
+| headerBgColor | color | #F5EDE3 | Фон хедера |
+| announcementBarBg | color | #F5EDE3 | Фон промо-стрічки |
+| announcementBarText | text | "При сумі замовлення понад 1500 грн - доставка безкоштовна!" | Текст промо-стрічки |
+| showAnnouncementBar | boolean | true | Показувати промо-стрічку |
+| logoUrl | text | "" | URL логотипу магазину |
+| storeName | text | "Store" | Назва магазину |
+| storeSlogan | text | "" | Слоган у футері |
+| showBrandCarousel | boolean | true | Карусель брендів |
+| showNewsletter | boolean | true | Блок підписки |
+| showBlogPreview | boolean | true | Блок статей |
+| productsPerRow | select | "4" | Товарів у рядку |
+| footerLinks | text | "" | JSON з посиланнями футера |
+| socialFacebook | text | "" | Посилання Facebook |
+| socialInstagram | text | "" | Посилання Instagram |
+
+### 1.3 CSS-змінні (styles.css)
+
+Тема інжектуватиме власні CSS-змінні через ThemeContext, перевизначаючи стандартні `--background`, `--card`, `--primary` тощо для створення теплої бежевої палітри замість холодного синього дефолту.
 
 ---
 
-## Етап 1: База даних
+## Фаза 2: Компоненти теми
 
-### 1.1 Таблиця `discount_groups`
+### 2.1 AnnouncementBar
+- Тонка стрічка зверху сторінки з промо-текстом (налаштовується через settings)
+- Бежевий фон, текст по центру, дрібний шрифт
 
-| Колонка | Тип | Опис |
-|---------|-----|------|
-| id | uuid PK | |
-| name | text NOT NULL | Назва групи |
-| description | text | Опис |
-| operator | varchar NOT NULL | 'and', 'or', 'not', 'min', 'max' |
-| parent_group_id | uuid FK self (nullable) | Батьківська група (null = кореневий рівень) |
-| price_type_id | uuid FK -> price_types NOT NULL | Вид ціни, до якого застосовується |
-| is_active | boolean DEFAULT true | |
-| priority | integer DEFAULT 0 | Порядок серед сусідніх груп |
-| starts_at | timestamptz (nullable) | Дата початку дії |
-| ends_at | timestamptz (nullable) | Дата закінчення дії |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
+### 2.2 Header
+- Три рівні:
+  1. AnnouncementBar (опціонально)
+  2. Лого по центру + іконки (пошук, акаунт, кошик) праворуч
+  3. Горизонтальне меню категорій (завантажується з БД — таблиця `sections`)
+- Sticky позиціонування
+- Без ThemeToggle (світла тема за замовчуванням, але dark mode підтримується)
 
-RLS: SELECT для всіх, ALL для адмінів.
+### 2.3 Footer
+- Блок підписки (email input + кнопка "Підписатись") — заглушка без бекенду
+- Лого + слоган ліворуч, посилання праворуч, іконки соцмереж
+- Copyright
 
-### 1.2 Таблиця `discounts`
+### 2.4 ProductCard (Beauty-стиль)
+- Зображення товару з hover-ефектом
+- Бейдж "Знижка X%" (якщо є скидка)
+- Бейдж "Безкоштовна доставка" (опціонально)
+- Назва товару
+- Ціна (нова + стара перекреслена)
+- Рейтинг-заглушка: "(0)" — кількість відгуків без функціоналу
 
-| Колонка | Тип | Опис |
-|---------|-----|------|
-| id | uuid PK | |
-| name | text NOT NULL | Назва скидки |
-| description | text | Опис |
-| group_id | uuid FK -> discount_groups NOT NULL | До якої групи належить |
-| discount_type | varchar NOT NULL | 'percent', 'fixed_amount', 'fixed_price' |
-| discount_value | numeric NOT NULL | Значення (%, сума знижки, або фінальна ціна) |
-| priority | integer DEFAULT 0 | Порядок всередині групи |
-| is_active | boolean DEFAULT true | |
-| starts_at | timestamptz (nullable) | Індивідуальні часові обмеження |
-| ends_at | timestamptz (nullable) | |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
+### 2.5 BannerSlider
+- Повноширинна карусель на базі embla-carousel (вже встановлений)
+- Індикатори-точки внизу
+- Автопрокрутка
 
-Типи знижок:
-- `percent` -- відсоток від базової ціни (value = 10 означає -10%)
-- `fixed_amount` -- фіксована сума знижки (value = 50 означає -50 грн)
-- `fixed_price` -- фінальна ціна (value = 999 означає ціна = 999 грн)
+### 2.6 BrandCarousel
+- Горизонтальна карусель логотипів брендів
+- Дані — з таблиці `property_options` для властивості-бренду
+- Стрілки навігації
 
-### 1.3 Таблиця `discount_targets` (до чого застосовується)
-
-| Колонка | Тип | Опис |
-|---------|-----|------|
-| id | uuid PK | |
-| discount_id | uuid FK -> discounts NOT NULL | |
-| target_type | varchar NOT NULL | 'product', 'modification', 'section', 'all' |
-| target_id | uuid (nullable) | ID товару/модифікації/розділу (null для 'all') |
-| created_at | timestamptz | |
-
-### 1.4 Таблиця `discount_conditions` (умови застосування)
-
-| Колонка | Тип | Опис |
-|---------|-----|------|
-| id | uuid PK | |
-| discount_id | uuid FK -> discounts NOT NULL | |
-| condition_type | varchar NOT NULL | 'user_category', 'min_quantity', 'min_order_amount', 'user_logged_in' |
-| operator | varchar NOT NULL | '=', '>=', '>', '<=', '<', 'in', 'not_in' |
-| value | jsonb NOT NULL | Значення умови |
-| created_at | timestamptz | |
-
-Приклади conditions:
-- `{ condition_type: 'user_category', operator: 'in', value: ["uuid1", "uuid2"] }` -- для VIP та Опт
-- `{ condition_type: 'min_quantity', operator: '>=', value: 5 }` -- від 5 одиниць
-- `{ condition_type: 'min_order_amount', operator: '>=', value: 1000 }` -- від 1000 грн
-- `{ condition_type: 'user_logged_in', operator: '=', value: true }` -- тільки авторизованим
-
-### 1.5 Зміни в `order_items`
-
-Додати колонки для фіксації деталей скидки:
-
-| Колонка | Тип | Опис |
-|---------|-----|------|
-| discount_data | jsonb (nullable) | `{ discount_id, discount_name, discount_type, discount_value, base_price, final_price, group_name }` |
-| base_price | numeric (nullable) | Ціна до знижки (price залишається як фінальна) |
+### 2.7 ProductCarousel
+- Горизонтальна карусель товарів певної категорії
+- Заголовок + посилання "Переглянути усі"
+- Автопрокрутка, стрілки
 
 ---
 
-## Етап 2: Бекенд-логіка обчислення
+## Фаза 3: Сторінки теми
 
-### 2.1 Хук `useDiscountedPrice`
+### 3.1 HomePage
+Структура зверху вниз:
+1. BannerSlider (банери)
+2. BrandCarousel ("Бренди")
+3. ProductCarousel ("Лідери продажів" — за популярністю)
+4. ProductCarousel ("Новинки" — за датою)
+5. По одному ProductCarousel для кожного кореневого розділу каталогу
+6. Текстовий блок "Про магазин" (з settings або статичний)
+7. BlogPreview ("Останні статті" — заглушка з картками)
 
-Алгоритм обчислення:
+### 3.2 CatalogPage / CatalogSectionPage
+- Використовує існуючу логіку фільтрації та сортування
+- Стилізація картки товару через beauty ProductCard
+- Бічна панель фільтрів залишається функціональною
 
-```text
-1. Завантажити всі активні discount_groups для поточного price_type_id
-   (з фільтром за датою: starts_at <= now <= ends_at або null)
-2. Для кожної кореневої групи рекурсивно обчислити:
-   a. Отримати всі discounts в групі
-   b. Для кожної скидки перевірити:
-      - чи targets включає поточний товар/модифікацію/розділ
-      - чи виконуються всі conditions
-   c. Обчислити знижку (% від бази, фіксована сума, фіксована ціна)
-   d. Застосувати оператор групи:
-      - AND: сумувати всі підходящі знижки
-      - OR: взяти першу підходящу за пріоритетом
-      - NOT: інвертувати (якщо умови виконані -- скидка НЕ діє)
-      - MIN: взяти мінімальну знижку
-      - MAX: взяти максимальну знижку
-   e. Якщо є дочірні групи -- рекурсивно обчислити їх та включити результат
-3. Фінальна ціна = base_price - total_discount (мінімум 0)
-```
+### 3.3 ProductPage
+- Хлібні крихти (breadcrumb)
+- Два стовпці: зображення ліворуч (галерея), інформація праворуч
+- Бренд-посилання зверху
+- Назва товару
+- Ціна + стара ціна
+- Модифікації (бейджі)
+- Кількість + кнопка "Купити" (коралова)
+- Вкладки: Опис / Характеристики / Відгуки (заглушка)
 
-### 2.2 Утиліта `resolveDiscount` (src/lib/discountEngine.ts)
-
-Чиста функція без залежностей від React:
-
-```text
-Input:
-  - basePrice: number
-  - discountGroups: DiscountGroup[] (з вкладеними discounts, targets, conditions)
-  - context: { userId?, userCategoryId?, quantity, cartTotal, productId, modificationId?, sectionId? }
-
-Output:
-  - finalPrice: number
-  - totalDiscount: number
-  - appliedDiscounts: Array<{ id, name, type, value, calculatedAmount }>
-  - rejectedDiscounts: Array<{ id, name, reason: string }> -- для валідатора!
-```
+### 3.4 Інші сторінки
+Cart, Checkout, Auth, Profile, Orders — обгортки існуючих компонентів з beauty-стилізацією через CSS-змінні (кольори автоматично змінюються).
 
 ---
 
-## Етап 3: Адмін-панель
+## Фаза 4: Розширення системи (нові механізми)
 
-### 3.1 Розділ "Скидки" (`/admin/discounts`)
+Функціонал, якого немає у нашій CMS, але який потрібен для теми:
 
-- Деревовидне відображення груп та скидок
-- CRUD для груп (назва, оператор, вид ціни, батьківська група, дати, активність)
-- CRUD для скидок всередині групи (тип, значення, пріоритет, дати)
-- Вкладка "Цілі" -- вибір товарів/модифікацій/розділів через Select з пошуком
-- Вкладка "Умови" -- конструктор умов (аналогічно до category_rules)
+### 4.1 Банерна система (нова таблиця `banners`)
+- Таблиця: `id`, `title`, `image_url`, `link_url`, `sort_order`, `is_active`, `created_at`
+- Адмін-сторінка для управління банерами
+- Завантаження зображень у Storage
 
-Сторінки:
-- `src/pages/admin/Discounts.tsx` -- дерево груп з вкладеними скидками
-- `src/pages/admin/DiscountGroupEdit.tsx` -- створення/редагування групи
-- `src/pages/admin/DiscountEdit.tsx` -- створення/редагування скидки (з targets та conditions)
+### 4.2 Announcement Bar (налаштування теми)
+- Вже покривається через `settings` теми — без окремої таблиці
 
-### 3.2 Валідатор цін (`/admin/price-validator`)
+### 4.3 Newsletter (заглушка)
+- Тільки UI-блок, без збереження email (можна додати пізніше як плагін)
 
-Окрема сторінка в адмін-панелі для діагностики ціноутворення:
+### 4.4 Blog Preview (заглушка)
+- Статичні картки-заглушки на головній сторінці
+- Повна система блогу — як окрема майбутня задача
 
-**Фільтри:**
-- Вибір користувача (з автокомплітом або "Гість")
-- Вибір товару (з автокомплітом)
-- Вибір модифікації (якщо є)
-- Кількість товару
-- Сума кошика
-
-**Результат показує повний ланцюжок:**
-
-```text
-1. Вид ціни: "Оптова" (з категорії користувача "VIP")
-   Причина: profiles.category_id -> user_categories.price_type_id
-
-2. Базова ціна: 1000 грн
-   Джерело: product_prices (price_type: "Оптова", product: "Товар X")
-
-3. Знайдені скидки (3):
-   [Застосовано] -10% "Літній розпродаж" -- targets: розділ "Техніка", conditions: всі виконані
-   [Застосовано] -5% "VIP знижка" -- targets: all, conditions: user_category = "VIP"
-   [Відхилено] -20% "За кількість від 10" -- conditions: min_quantity >= 10, поточна кількість: 3
-
-4. Обчислення:
-   Група "Основна" (AND): -10% + -5% = -15%
-   1000 - 150 = 850 грн
-
-5. Фінальна ціна: 850 грн (знижка: 150 грн, -15%)
-```
+### 4.5 Відгуки (заглушка)
+- Відображення "(0)" біля товарів
+- Вкладка "Відгуки" на сторінці товару з текстом "Відгуків поки немає"
+- Повна система відгуків — як окрема майбутня задача
 
 ---
 
-## Етап 4: Фронтенд-інтеграція
+## Фаза 5: Реєстрація та інтеграція
 
-### 4.1 Каталог та картка товару
+### 5.1 Реєстрація теми
+- Додати в `src/themes/themes.ts`:
+  ```
+  ThemeRegistry.register('beauty', () => import('./beauty/index'));
+  ```
 
-- В `resolvePrice` додати другий етап: після отримання базової ціни -- обчислити знижку
-- `ProductCard` показує перекреслену базову ціну + ціну зі знижкою + бейдж "-10%"
-- `ProductDetail` -- аналогічно, з деталями знижки
+### 5.2 Запис у БД
+- Додати запис у таблицю `themes` з name='beauty', display_name='Beauty Store', settings_schema з усіх settings з manifest.json
 
-### 4.2 Кошик
-
-- При додаванні товару обчислювати ціну зі знижкою (з урахуванням кількості та суми)
-- При зміні кількості -- перераховувати знижку (умови по кількості/сумі можуть змінитись)
-
-### 4.3 Оформлення замовлення
-
-- Фіксувати в `order_items.discount_data` деталі знижки
-- `order_items.base_price` = ціна до знижки
-- `order_items.price` = фінальна ціна після знижки
+### 5.3 Перемикання
+- Активувати через адмін-панель /admin/themes — вже існуючий механізм
 
 ---
 
-## Етап 5: Хуки для розширень (Plugin Hooks)
+## Порядок реалізації
 
-Нові хуки для системи плагінів:
-
-| Хук | Коли | Контекст |
-|-----|------|----------|
-| `discount.conditions.evaluate` | При перевірці умов | { discount, user, product, context } |
-| `discount.before_apply` | Перед застосуванням | { discount, basePrice, context } |
-| `discount.after_apply` | Після застосування | { discount, finalPrice, context } |
-| `discount.types` | Реєстрація нових типів | { registeredTypes } |
-| `admin.discount.form.fields` | Додаткові поля у формі | { discount } |
-
-Це дозволить пізніше додати промокоди як плагін (реєструє новий condition_type 'promo_code', додає UI поле введення коду в checkout через хук).
+| Крок | Що робимо | Залежності |
+|---|---|---|
+| 1 | manifest.json + styles.css + базові CSS-змінні | - |
+| 2 | AnnouncementBar, Header, Footer | Крок 1 |
+| 3 | BeautyCatalogLayout, BeautyProfileLayout | Крок 2 |
+| 4 | ProductCard (beauty-стиль) | Крок 1 |
+| 5 | BannerSlider + таблиця banners в БД | Крок 1 |
+| 6 | BrandCarousel, ProductCarousel | Крок 4 |
+| 7 | HomePage (збирає все разом) | Кроки 2-6 |
+| 8 | ProductPage (beauty-стиль) | Кроки 2, 4 |
+| 9 | Обгортки решти сторінок | Крок 3 |
+| 10 | index.tsx + реєстрація в themes.ts | Кроки 7-9 |
+| 11 | Запис у БД + тестування | Крок 10 |
 
 ---
 
-## Порядок виконання (покроково)
+## Технічні деталі
 
-1. **Крок 1**: Міграція БД -- створити всі 4 таблиці + зміни в order_items + RLS
-2. **Крок 2**: Створити `discountEngine.ts` -- чиста логіка обчислення з підтримкою дерева груп
-3. **Крок 3**: Створити адмін CRUD для груп скидок (`Discounts.tsx`, `DiscountGroupEdit.tsx`)
-4. **Крок 4**: Створити адмін CRUD для скидок (`DiscountEdit.tsx` з targets та conditions)
-5. **Крок 5**: Створити валідатор цін (`/admin/price-validator`)
-6. **Крок 6**: Створити хук `useDiscountedPrice` та інтегрувати в каталог, картку, кошик
-7. **Крок 7**: Оновити Checkout для фіксації discount_data в order_items
-8. **Крок 8**: Додати хуки для плагінів
-
-## Технічні примітки
-
-- Всі ціни обчислюються динамічно (% від базової ціни з product_prices)
-- `fixed_price` має найвищий пріоритет -- якщо задана фіксована ціна, вона перекриває % знижки
-- При конфлікті `fixed_price` з іншими скидками в групі AND -- `fixed_price` виграє (не сумується)
-- Часові обмеження перевіряються як на рівні групи, так і на рівні окремої скидки
-- NOT-група: якщо умови знижки в NOT-групі виконуються, знижка НЕ застосовується (інверсія)
-- Для Google/Facebook фідів фінальна ціна обчислюється тим же движком через edge function
-- Промокоди не реалізуються зараз, але архітектура готова (condition_type: 'promo_code')
-
+- **Embla Carousel** вже встановлений — використовуємо для всіх каруселей
+- **CSS-змінні** — тема перевизначає root-змінні через ThemeContext (існуючий механізм hexToHsl)
+- **Дані** — товари, розділи, бренди беруться з існуючих таблиць БД
+- **Нова таблиця** — тільки `banners` для слайдера на головній
+- **Адмін для банерів** — нова сторінка /admin/banners з CRUD
+- **Без нових залежностей** — все реалізується на існуючому стеку
