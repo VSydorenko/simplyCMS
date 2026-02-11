@@ -112,6 +112,17 @@ export default function Discounts() {
     },
   });
 
+  const deleteDiscount = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("discounts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discount-groups-tree"] });
+      toast({ title: "Скидку видалено" });
+    },
+  });
+
   const toggleExpanded = (id: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -198,11 +209,32 @@ export default function Discounts() {
                      {d.price_types.name}
                    </Badge>
                  )}
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/discount:opacity-100" asChild>
-                  <Link to={`/admin/discounts/${d.id}`}>
-                    <Pencil className="h-3 w-3" />
-                  </Link>
-                </Button>
+                <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/discount:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+                    <Link to={`/admin/discounts/${d.id}`}>
+                      <Pencil className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Видалити скидку?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Скидку «{d.name}» буде видалено назавжди.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Скасувати</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteDiscount.mutate(d.id)}>Видалити</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             ))}
 
