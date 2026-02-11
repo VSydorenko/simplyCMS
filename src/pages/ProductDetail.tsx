@@ -250,18 +250,37 @@ export default function ProductDetail() {
     }).format(value);
   };
 
-  // Build prices map for modifications
+  // Build prices map for modifications (with discounts applied)
   const modPrices = useMemo(() => {
     const productPrices = (product as any)?.product_prices || [];
     const map: Record<string, { price: number; oldPrice: number | null }> = {};
     modifications.forEach((mod) => {
       const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, mod.id);
       if (resolved.price !== null) {
-        map[mod.id] = { price: resolved.price, oldPrice: resolved.oldPrice };
+        let modPrice = resolved.price;
+        let modOldPrice = resolved.oldPrice;
+
+        // Apply discounts per modification
+        if (discountGroups.length > 0) {
+          const discountResult = applyDiscount(modPrice, discountGroups, {
+            ...discountCtx,
+            quantity: 1,
+            cartTotal: 0,
+            productId: product?.id || '',
+            modificationId: mod.id,
+            sectionId: section?.id || null,
+          });
+          if (discountResult.totalDiscount > 0) {
+            modOldPrice = modPrice;
+            modPrice = discountResult.finalPrice;
+          }
+        }
+
+        map[mod.id] = { price: modPrice, oldPrice: modOldPrice };
       }
     });
     return map;
-  }, [product, modifications, priceTypeId, defaultPriceTypeId]);
+  }, [product, modifications, priceTypeId, defaultPriceTypeId, discountGroups, discountCtx]);
 
   if (isLoading) {
     return (
@@ -305,8 +324,10 @@ export default function ProductDetail() {
   }
 
   // Apply discounts
+  let currentDiscountResult: ReturnType<typeof applyDiscount> | null = null;
+  let basePrice: number | undefined;
   if (price !== undefined && discountGroups.length > 0) {
-    const discountResult = applyDiscount(price, discountGroups, {
+    currentDiscountResult = applyDiscount(price, discountGroups, {
       ...discountCtx,
       quantity: 1,
       cartTotal: 0,
@@ -314,9 +335,10 @@ export default function ProductDetail() {
       modificationId: hasModifications ? selectedMod?.id || null : null,
       sectionId: section?.id || null,
     });
-    if (discountResult.totalDiscount > 0) {
+    if (currentDiscountResult.totalDiscount > 0) {
+      basePrice = price;
       oldPrice = price;
-      price = discountResult.finalPrice;
+      price = currentDiscountResult.finalPrice;
     }
   }
   
@@ -443,6 +465,14 @@ export default function ProductDetail() {
                   name: product.name,
                   modificationName: hasModifications ? selectedMod?.name : undefined,
                   price: price,
+                  basePrice: basePrice || null,
+                  discountData: currentDiscountResult && currentDiscountResult.totalDiscount > 0
+                    ? {
+                        appliedDiscounts: currentDiscountResult.appliedDiscounts,
+                        totalDiscount: currentDiscountResult.totalDiscount,
+                        basePrice: basePrice,
+                      }
+                    : null,
                   image: allImages[0],
                   sku: sku || undefined,
                 });

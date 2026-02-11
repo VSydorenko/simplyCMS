@@ -95,6 +95,11 @@ export function CartItem({ item }: CartItemProps) {
             <div className="font-semibold text-sm">
               {formatPrice(item.price * item.quantity)}
             </div>
+            {item.basePrice && item.basePrice > item.price && (
+              <div className="text-xs text-muted-foreground line-through">
+                {formatPrice(item.basePrice * item.quantity)}
+              </div>
+            )}
             {item.quantity > 1 && (
               <div className="text-xs text-muted-foreground">
                 {formatPrice(item.price)} × {item.quantity}
