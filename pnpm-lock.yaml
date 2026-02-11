@@ -330,6 +330,8 @@ importers:
 
   themes/default: {}
 
+  themes/solarstore: {}
+
 packages:
 
   '@adobe/css-tools@4.4.4':
