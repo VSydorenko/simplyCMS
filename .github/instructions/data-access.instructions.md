@@ -1,0 +1,131 @@
+---
+applyTo: "app/**/*.{ts,tsx},packages/simplycms/**/*.{ts,tsx}"
+description: "Правила роботи з даними та Supabase в SimplyCMS"
+---
+
+# Data Access Rules
+
+## ✅ ALWAYS
+
+### Supabase клієнти
+- **Server Components / Server Actions:** використовуй `createServerSupabase()` з `@simplycms/core/supabase/server` (cookie-based).
+- **Client Components:** використовуй `supabase` з `@simplycms/core/supabase/client` (browser client).
+- **Middleware:** використовуй `createServerClient` з `@supabase/ssr` напряму.
+- **API Routes:** використовуй `createServerSupabase()` для authenticated запитів.
+- Виконуй роботу з базою даних через MCP supabase, включаючи аналіз структури таблиць, RLS policies та виконання міграцій.
+
+### Storefront (SSR)
+- Data fetching у Server Components для SEO-сторінок:
+  ```typescript
+  // app/(storefront)/catalog/[sectionSlug]/page.tsx
+  export default async function CatalogSectionPage({ params }) {
+    const { sectionSlug } = await params;
+    const supabase = await createServerSupabase();
+    const { data: products } = await supabase
+      .from('products')
+      .select('*, sections(*)')
+      .eq('section_slug', sectionSlug)
+      .eq('is_active', true);
+
+    return <ThemedCatalogSectionPage products={products} />;
+  }
+  ```
+- ISR revalidation через `/api/revalidate` endpoint.
+- `generateMetadata` для SEO на кожній SSR-сторінці.
+
+### Admin (Client-side)
+- TanStack React Query для data fetching в адмін-панелі:
+  ```typescript
+  const { data: products } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => supabase.from('products').select('*'),
+  });
+  ```
+- `useMutation` з invalidation для CUD-операцій.
+- Після mutations — інвалідація відповідних query keys.
+
+### Типи та валідація
+- Генеруй типи після змін схеми: `pnpm db:generate-types`.
+- Не редагуй `types.ts` вручну — лише через генератор.
+- Zod schemas для валідації форм (react-hook-form + @hookform/resolvers/zod).
+
+### Міграції
+- Міграції ядра: `packages/simplycms/supabase/migrations/` (нумерація 001-099).
+- Міграції проекту: окрема нумерація 100+.
+- Створюй міграції через MCP supabase `apply_migration`.
+
+## Supabase Data Patterns
+
+### SSR Fetching (storefront)
+```typescript
+// Server Component
+const supabase = await createServerSupabase();
+const { data, error } = await supabase
+  .from('products')
+  .select('*, sections(name, slug)')
+  .eq('is_active', true)
+  .order('created_at', { ascending: false });
+```
+
+### Client Fetching (admin)
+```typescript
+// Client Component з TanStack Query
+const { data, isLoading } = useQuery({
+  queryKey: ['admin', 'products'],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+});
+```
+
+### Mutations (admin)
+```typescript
+const mutation = useMutation({
+  mutationFn: async (product: ProductInput) => {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(product)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    toast.success('Товар створено');
+  },
+  onError: (error) => {
+    toast.error(`Помилка: ${error.message}`);
+  },
+});
+```
+
+### On-demand ISR
+```typescript
+// Після збереження товару в адмінці — тригер revalidation
+await fetch('/api/revalidate', {
+  method: 'POST',
+  body: JSON.stringify({ type: 'product', slug, sectionSlug }),
+});
+```
+
+## ❌ NEVER
+- Не створюй локальні файли міграцій — завжди через MCP supabase.
+- Не використовуй прямий `supabase-js` без обгорток з `@simplycms/core`.
+- Не редагуй `types.ts` вручну — виключно через `pnpm db:generate-types`.
+- Не забувай ISR revalidation після змін даних в адмінці.
+- Не використовуй `queryClient.setQueryData()` для складних кейсів — invalidate замість цього.
+- Не роби DB calls з Server Components без try-catch обробки помилок.
+- Не хардкодь query keys — використовуй константи або фабрики.
+
+## ℹ️ Де шукати деталі
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 9 — SSR стратегія, ISR revalidation.
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 10 — автентифікація та Supabase SSR.
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 11 — міграції ядра vs проекту.
+- `packages/simplycms/core/src/supabase/` — клієнти Supabase.
+- `packages/simplycms/core/src/hooks/` — бізнес-хуки з data fetching.
