@@ -1,0 +1,20 @@
+{
+  "name": "@simplycms/themes",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ThemeRegistry": "./src/ThemeRegistry.ts",
+    "./ThemeContext": "./src/ThemeContext.tsx",
+    "./ThemeResolver": "./src/ThemeResolver.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@simplycms/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}

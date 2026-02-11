@@ -145,7 +145,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 │  │  ├── ui/          @simplycms/ui                         │  │
 │  │  ├── plugins/     @simplycms/plugins                    │  │
 │  │  ├── themes/      @simplycms/themes                     │  │
-│  │  └── db/          @simplycms/db                         │  │
+│  │  └── supabase/    @simplycms/supabase                    │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                          │ imports                             │
 │  ┌───────────────────────▼─────────────────────────────────┐  │
@@ -558,7 +558,7 @@ packages/simplycms/
 │   ├── package.json                # { "name": "@simplycms/themes" }
 │   └── tsconfig.json
 │
-├── db/                             # @simplycms/db
+├── supabase/                       # @simplycms/supabase
 │   ├── migrations/
 │   │   ├── 001_initial_schema.sql
 │   │   ├── 002_products.sql
@@ -574,7 +574,7 @@ packages/simplycms/
 │   │   └── get-guest-order/
 │   │       └── index.ts
 │   │
-│   ├── package.json                # { "name": "@simplycms/db" }
+│   ├── package.json                # { "name": "@simplycms/supabase" }
 │   └── tsconfig.json
 │
 ├── package.json                    # Workspace root для packages/simplycms/*
@@ -1068,7 +1068,7 @@ export const config = {
 ### 11.2 Міграції ядра vs міграції проекту
 
 ```
-packages/simplycms/db/migrations/      ← Міграції ядра (в subtree)
+packages/simplycms/supabase/migrations/ ← Міграції ядра (в subtree)
   001_initial_schema.sql
   002_products.sql
   ...
@@ -1122,8 +1122,8 @@ supabase/migrations/                   ← Міграції проекту (по
 - [ ] **@simplycms/core:** Створити CMSProvider
 - [ ] **@simplycms/plugins:** Перенести HookRegistry, PluginLoader, PluginSlot
 - [ ] **@simplycms/themes:** Перенести ThemeRegistry, ThemeContext, types
-- [ ] **@simplycms/db:** Перенести та впорядкувати міграції з `temp/supabase/migrations/`
-- [ ] **@simplycms/db:** Перенести Edge Functions
+- [ ] **@simplycms/supabase:** Перенести та впорядкувати міграції з `temp/supabase/migrations/`
+- [ ] **@simplycms/supabase:** Перенести Edge Functions
 
 #### Фаза 2: Публічні SSR-сторінки
 - [ ] Створити `app/layout.tsx` з провайдерами
@@ -1279,7 +1279,7 @@ supabase/migrations/                   ← Міграції проекту (по
       "@simplycms/ui/*": ["./packages/simplycms/ui/src/*"],
       "@simplycms/plugins/*": ["./packages/simplycms/plugin-system/src/*"],
       "@simplycms/themes/*": ["./packages/simplycms/theme-system/src/*"],
-      "@simplycms/db/*": ["./packages/simplycms/db/*"],
+      "@simplycms/supabase/*": ["./packages/simplycms/supabase/*"],
       "@/*": ["./app/*"],
       "@themes/*": ["./themes/*"],
       "@plugins/*": ["./plugins/*"]
@@ -1390,8 +1390,8 @@ temp/src/themes/beauty/*            → themes/beauty/* (опціонально)
 temp/src/integrations/supabase/*    → packages/simplycms/core/src/supabase/*
 temp/src/index.css                  → app/globals.css
 
-temp/supabase/migrations/*          → packages/simplycms/db/migrations/*
-temp/supabase/functions/*           → packages/simplycms/db/functions/*
+temp/supabase/migrations/*          → packages/simplycms/supabase/migrations/*
+temp/supabase/functions/*           → packages/simplycms/supabase/functions/*
 ```
 
 ---
