@@ -33,7 +33,7 @@ export default function DiscountGroupEdit() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNew = groupId === "new";
+  const isNew = !groupId || groupId === "new";
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
