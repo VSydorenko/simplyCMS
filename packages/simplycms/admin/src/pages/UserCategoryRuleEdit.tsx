@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -65,6 +65,11 @@ const stringOperators = [
   { value: "contains", label: "містить" },
 ];
 
+/** Чи є поле числовим */
+function isNumericField(field: string) {
+  return ["total_purchases", "registration_days", "orders_count"].includes(field);
+}
+
 const ruleSchema = z.object({
   name: z.string().min(1, "Назва обов'язкова"),
   description: z.string().optional(),
@@ -86,6 +91,112 @@ const ruleSchema = z.object({
 
 type RuleFormData = z.infer<typeof ruleSchema>;
 
+/** Рядок умови з useWatch замість form.watch */
+function ConditionRuleRow({
+  control,
+  index,
+  onRemove,
+  setValue,
+}: {
+  control: ReturnType<typeof useForm<z.infer<typeof ruleSchema>>>['control'];
+  index: number;
+  onRemove: () => void;
+  setValue: ReturnType<typeof useForm<z.infer<typeof ruleSchema>>>['setValue'];
+}) {
+  const fieldValue = useWatch({ control, name: `conditions.rules.${index}.field` });
+  const operators = isNumericField(fieldValue) ? numericOperators : stringOperators;
+
+  return (
+    <div className="flex items-start gap-2 p-4 border rounded-lg">
+      <FormField
+        control={control}
+        name={`conditions.rules.${index}.field`}
+        render={({ field }) => (
+          <FormItem className="flex-1">
+            <Select
+              value={field.value}
+              onValueChange={(v) => {
+                field.onChange(v);
+                setValue(
+                  `conditions.rules.${index}.operator`,
+                  isNumericField(v) ? ">=" : "="
+                );
+              }}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Поле" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {conditionFields.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
+        name={`conditions.rules.${index}.operator`}
+        render={({ field }) => (
+          <FormItem className="w-32">
+            <Select
+              value={field.value}
+              onValueChange={field.onChange}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Оператор" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {operators.map((op) => (
+                  <SelectItem key={op.value} value={op.value}>
+                    {op.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
+        name={`conditions.rules.${index}.value`}
+        render={({ field }) => (
+          <FormItem className="flex-1">
+            <FormControl>
+              <Input
+                type={isNumericField(fieldValue) ? "number" : "text"}
+                placeholder="Значення"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export default function UserCategoryRuleEdit() {
   const { ruleId } = useParams<{ ruleId: string }>();
   const router = useRouter();
@@ -95,7 +206,6 @@ export default function UserCategoryRuleEdit() {
 
   const form = useForm<RuleFormData>({
     // zodResolver + z.coerce.number() спричиняє TFieldValues mismatch
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(ruleSchema) as any,
     defaultValues: {
       name: "",
@@ -232,10 +342,6 @@ export default function UserCategoryRuleEdit() {
       });
     },
   });
-
-  const isNumericField = (field: string) => {
-    return ["total_purchases", "registration_days", "orders_count"].includes(field);
-  };
 
   if (!isNew && isLoading) {
     return <div className="p-8 text-center">Завантаження...</div>;
@@ -450,106 +556,15 @@ export default function UserCategoryRuleEdit() {
                 </p>
               )}
 
-              {fields.map((item, index) => {
-                const fieldValue = form.watch(`conditions.rules.${index}.field`);
-                const operators = isNumericField(fieldValue)
-                  ? numericOperators
-                  : stringOperators;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-2 p-4 border rounded-lg"
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`conditions.rules.${index}.field`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <Select
-                            value={field.value}
-                            onValueChange={(v) => {
-                              field.onChange(v);
-                              // Reset operator when field changes
-                              form.setValue(
-                                `conditions.rules.${index}.operator`,
-                                isNumericField(v) ? ">=" : "="
-                              );
-                            }}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Поле" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {conditionFields.map((f) => (
-                                <SelectItem key={f.value} value={f.value}>
-                                  {f.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`conditions.rules.${index}.operator`}
-                      render={({ field }) => (
-                        <FormItem className="w-32">
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Оператор" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {operators.map((op) => (
-                                <SelectItem key={op.value} value={op.value}>
-                                  {op.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`conditions.rules.${index}.value`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <Input
-                              type={isNumericField(fieldValue) ? "number" : "text"}
-                              placeholder="Значення"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remove(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                );
-              })}
+              {fields.map((item, index) => (
+                <ConditionRuleRow
+                  key={item.id}
+                  control={form.control}
+                  index={index}
+                  onRemove={() => remove(index)}
+                  setValue={form.setValue}
+                />
+              ))}
 
               <Button
                 type="button"

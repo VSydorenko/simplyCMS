@@ -37,7 +37,7 @@ import {
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AddProductToOrder } from "../components/AddProductToOrder";
 
 /** Застосована знижка в позиції замовлення */
@@ -116,12 +116,10 @@ export default function OrderDetail() {
     },
   });
 
-  // Initialize selected status when order loads
-  useEffect(() => {
-    if (order?.status_id && selectedStatus === null) {
-      setSelectedStatus(order.status_id);
-    }
-  }, [order?.status_id, selectedStatus]);
+  // Ініціалізація статусу при завантаженні замовлення (adjust state during render)
+  if (order?.status_id && selectedStatus === null) {
+    setSelectedStatus(order.status_id);
+  }
 
   // Update order mutation
   const updateOrderMutation = useMutation({

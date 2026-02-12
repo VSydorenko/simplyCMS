@@ -8,7 +8,7 @@ import { Switch } from "@simplycms/ui/switch";
 import { Badge } from "@simplycms/ui/badge";
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Plus, Trash2, GripVertical, Image, Clock, Calendar } from "lucide-react";
+import { Plus, Trash2, GripVertical, ImageIcon, Clock, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -77,7 +77,7 @@ export default function Banners() {
       {!banners?.length ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <Image className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-30" aria-hidden="true" />
             <p>Банерів поки немає</p>
           </CardContent>
         </Card>

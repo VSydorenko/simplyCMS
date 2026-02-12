@@ -25,10 +25,16 @@ export function BannerSlider({ placement = "home", sectionId, banners: initialBa
     setSelectedIndex(emblaApi.selectedScrollSnap());
   }, [emblaApi]);
 
+  // Ініціалізація selectedIndex при появі emblaApi (adjust state during render)
+  const [prevEmblaApi, setPrevEmblaApi] = useState(emblaApi);
+  if (emblaApi && emblaApi !== prevEmblaApi) {
+    setPrevEmblaApi(emblaApi);
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }
+
   useEffect(() => {
     if (!emblaApi || !banners?.length) return;
     emblaApi.on("select", onSelect);
-    onSelect();
 
     const currentBanner = banners[emblaApi.selectedScrollSnap()];
     const duration = currentBanner?.slide_duration || 5000;

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -49,7 +49,6 @@ import { uk } from "date-fns/locale";
 
 export default function UserEdit() {
   const { userId } = useParams<{ userId: string }>();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [historyOpen, setHistoryOpen] = useState(false);
 

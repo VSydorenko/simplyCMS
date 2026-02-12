@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, User, Settings, LogOut, Search } from "lucide-react";
+import { Sun, User, Search } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../supabase/client";
 import { useToast } from "../../hooks/use-toast";
@@ -27,7 +27,7 @@ export function CatalogLayout({
   renderThemeToggle,
   renderCartButton,
   renderCartDrawer,
-  renderButton,
+  renderButton: _renderButton,
   renderDropdownMenu,
   children,
 }: CatalogLayoutProps) {

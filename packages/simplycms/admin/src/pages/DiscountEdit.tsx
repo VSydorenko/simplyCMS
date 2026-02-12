@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -47,13 +47,6 @@ interface ConditionRow {
   operator: string;
   value: Json;
 }
-
-const conditionTypeLabels: Record<string, string> = {
-  user_category: "Категорія користувача",
-  min_quantity: "Мін. кількість",
-  min_order_amount: "Мін. сума замовлення",
-  user_logged_in: "Авторизований",
-};
 
 export default function DiscountEdit() {
   const { discountId } = useParams() as { discountId: string };
@@ -143,24 +136,25 @@ export default function DiscountEdit() {
     enabled: !isNew,
   });
 
-  useEffect(() => {
-    if (existing) {
-      form.reset({
-        name: existing.name,
-        description: existing.description || "",
-        group_id: existing.group_id,
-        price_type_id: existing.price_type_id,
-        discount_type: existing.discount_type as FormData['discount_type'],
-        discount_value: Number(existing.discount_value),
-        priority: existing.priority,
-        is_active: existing.is_active,
-        starts_at: existing.starts_at ? existing.starts_at.slice(0, 16) : "",
-        ends_at: existing.ends_at ? existing.ends_at.slice(0, 16) : "",
-      });
-      setTargets(existing.targets || []);
-      setConditions(existing.conditions || []);
-    }
-  }, [existing, form]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevExistingId, setPrevExistingId] = useState<string | null>(null);
+  if (existing && existing.id !== prevExistingId) {
+    setPrevExistingId(existing.id);
+    form.reset({
+      name: existing.name,
+      description: existing.description || "",
+      group_id: existing.group_id,
+      price_type_id: existing.price_type_id,
+      discount_type: existing.discount_type as FormData['discount_type'],
+      discount_value: Number(existing.discount_value),
+      priority: existing.priority,
+      is_active: existing.is_active,
+      starts_at: existing.starts_at ? existing.starts_at.slice(0, 16) : "",
+      ends_at: existing.ends_at ? existing.ends_at.slice(0, 16) : "",
+    });
+    setTargets(existing.targets || []);
+    setConditions(existing.conditions || []);
+  }
 
   const save = useMutation({
     mutationFn: async (data: FormData) => {

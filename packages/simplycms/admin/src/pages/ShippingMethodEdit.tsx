@@ -1,7 +1,7 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -125,7 +125,7 @@ export default function ShippingMethodEdit() {
     },
   });
 
-  const methodType = form.watch("type");
+  const methodType = useWatch({ control: form.control, name: "type" });
   const isSystem = method?.type === "system";
 
   if (!isNew && isLoading) {

@@ -51,7 +51,7 @@ export default function CatalogSectionPage({
   sectionSlug: propSectionSlug,
   initialSection,
   initialSections,
-  initialProducts,
+  initialProducts: _initialProducts,
 }: CatalogSectionPageProps = {}) {
   const params = useParams<{ sectionSlug: string }>();
   const sectionSlug = propSectionSlug || params.sectionSlug;

@@ -16,9 +16,6 @@ import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 
-/** Замовлення з приєднаним статусом */
-type OrderWithStatus = Awaited<ReturnType<typeof fetchOrders>>[number];
-
 async function fetchOrders() {
   const { data, error } = await supabase
     .from("orders")

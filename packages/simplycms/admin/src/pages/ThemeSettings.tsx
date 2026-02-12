@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ArrowLeft, Save, Palette } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface ThemeSetting {
   type: "color" | "boolean" | "select" | "text" | "number";
@@ -60,15 +60,16 @@ export default function ThemeSettings() {
     },
   });
 
-  useEffect(() => {
-    if (theme) {
-      const defaults: Record<string, unknown> = {};
-      Object.entries(theme.settings_schema).forEach(([key, setting]) => {
-        defaults[key] = setting.default;
-      });
-      setConfig({ ...defaults, ...theme.config });
-    }
-  }, [theme]);
+  // Ініціалізація конфігурації при завантаженні теми (adjust state during render)
+  const [prevThemeId, setPrevThemeId] = useState<string | null>(null);
+  if (theme && theme.id !== prevThemeId) {
+    setPrevThemeId(theme.id);
+    const defaults: Record<string, unknown> = {};
+    Object.entries(theme.settings_schema).forEach(([key, setting]) => {
+      defaults[key] = setting.default;
+    });
+    setConfig({ ...defaults, ...theme.config });
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

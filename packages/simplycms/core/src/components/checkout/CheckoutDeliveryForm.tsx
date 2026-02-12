@@ -45,7 +45,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const [popupOpen, setPopupOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [originalAddress, setOriginalAddress] = useState<SavedAddress | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
   const { data: methods, isLoading: methodsLoading } = useQuery({
     queryKey: ["checkout-shipping-methods"],
@@ -115,9 +114,10 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const currentCity = values.deliveryCity;
   const currentAddress = values.deliveryAddress;
 
-  useEffect(() => {
-    if (!originalAddress) { setHasChanges(false); return; }
-    setHasChanges(currentCity !== originalAddress.city || currentAddress !== originalAddress.address);
+  // hasChanges — виведений стан, не потребує окремого useState
+  const hasChanges = useMemo(() => {
+    if (!originalAddress) return false;
+    return currentCity !== originalAddress.city || currentAddress !== originalAddress.address;
   }, [currentCity, currentAddress, originalAddress]);
 
   const handleSelectAddress = (addressId: string) => {
@@ -150,7 +150,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
       queryClient.invalidateQueries({ queryKey: ["checkout-saved-addresses"] });
       toast({ title: "Адресу оновлено" });
       setOriginalAddress({ ...originalAddress!, city: currentCity, address: currentAddress });
-      setHasChanges(false);
     },
   });
 
@@ -172,7 +171,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
         onChange("savedAddressId", data.id);
         setOriginalAddress(data as SavedAddress);
       }
-      setHasChanges(false);
     },
   });
 
@@ -189,7 +187,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
       onChange("deliveryCity", "");
       onChange("deliveryAddress", "");
     }
-    setHasChanges(false);
   };
 
   const handleAddNew = () => {
@@ -216,7 +213,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
     if (methods && methods.length > 0 && !selectedMethodId) {
       onChange("shippingMethodId", methods[0].id);
     }
-  }, [methods, selectedMethodId]);
+  }, [methods, selectedMethodId, onChange]);
 
   const getRateInfo = (methodId: string) => {
     if (!rates) return null;

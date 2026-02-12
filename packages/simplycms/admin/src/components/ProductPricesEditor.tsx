@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Input } from "@simplycms/ui/input";
@@ -54,19 +54,22 @@ export function ProductPricesEditor({ productId, modificationId = null }: Produc
 
   const [prices, setPrices] = useState<Record<string, { price: string; old_price: string }>>({});
 
-  useEffect(() => {
-    if (priceTypes && existingPrices) {
-      const initial: Record<string, { price: string; old_price: string }> = {};
-      priceTypes.forEach((pt) => {
-        const existing = existingPrices.find((ep) => ep.price_type_id === pt.id);
-        initial[pt.id] = {
-          price: existing?.price?.toString() || "",
-          old_price: existing?.old_price?.toString() || "",
-        };
-      });
-      setPrices(initial);
-    }
-  }, [priceTypes, existingPrices]);
+  // Ініціалізація цін при завантаженні даних (adjust state during render)
+  const [prevPriceTypes, setPrevPriceTypes] = useState(priceTypes);
+  const [prevExistingPrices, setPrevExistingPrices] = useState(existingPrices);
+  if (priceTypes && existingPrices && (priceTypes !== prevPriceTypes || existingPrices !== prevExistingPrices)) {
+    setPrevPriceTypes(priceTypes);
+    setPrevExistingPrices(existingPrices);
+    const initial: Record<string, { price: string; old_price: string }> = {};
+    priceTypes.forEach((pt) => {
+      const existing = existingPrices.find((ep) => ep.price_type_id === pt.id);
+      initial[pt.id] = {
+        price: existing?.price?.toString() || "",
+        old_price: existing?.old_price?.toString() || "",
+      };
+    });
+    setPrices(initial);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

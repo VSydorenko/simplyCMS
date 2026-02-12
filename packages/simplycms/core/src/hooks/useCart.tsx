@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 
 export interface CartItem {
   productId: string;
@@ -32,36 +32,38 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = "simplycms-cart";
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
+  // Ініціалізація кошика з localStorage (SSR-safe через lazy initializer)
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const stored = localStorage.getItem(CART_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setItems(parsed);
-        }
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.error("Failed to load cart from localStorage:", e);
     }
-    setIsInitialized(true);
+    return [];
+  });
+  const [isOpen, setIsOpen] = useState(false);
+  const isInitializedRef = useRef(typeof window !== 'undefined');
+
+  // Помічаємо ініціалізацію після першого рендеру на клієнті
+  useEffect(() => {
+    isInitializedRef.current = true;
   }, []);
 
   // Save cart to localStorage when items change
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitializedRef.current) {
       try {
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
       } catch (e) {
         console.error("Failed to save cart to localStorage:", e);
       }
     }
-  }, [items, isInitialized]);
+  }, [items]);
 
   const addItem = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {

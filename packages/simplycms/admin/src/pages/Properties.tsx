@@ -32,9 +32,7 @@ import { Label } from "@simplycms/ui/label";
 import { Switch } from "@simplycms/ui/switch";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-import type { Tables, TablesInsert, Enums } from "@simplycms/core/supabase/types";
-
-type SectionProperty = Tables<"section_properties">;
+import type { TablesInsert, Enums } from "@simplycms/core/supabase/types";
 
 const propertyTypes = [
   { value: "text", label: "Текст" },

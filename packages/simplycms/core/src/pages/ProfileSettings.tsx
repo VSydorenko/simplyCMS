@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@simp
 import { Button } from "@simplycms/ui/button";
 import { Input } from "@simplycms/ui/input";
 import { Skeleton } from "@simplycms/ui/skeleton";
-import { Separator } from "@simplycms/ui/separator";
 import {
   Form,
   FormControl,

@@ -42,7 +42,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({
   content,
   onChange,
-  placeholder = "Введіть текст...",
+  placeholder: _placeholder = "Введіть текст...",
   className,
 }: RichTextEditorProps) {
   const editor = useEditor({

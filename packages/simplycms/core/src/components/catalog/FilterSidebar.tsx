@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { X } from "lucide-react";
@@ -57,11 +57,12 @@ export function FilterSidebar({
     priceRange?.max || 100000,
   ]);
 
-  useEffect(() => {
-    if (priceRange) {
-      setLocalPriceRange([priceRange.min, priceRange.max]);
-    }
-  }, [priceRange]);
+  // Синхронізація діапазону цін при зміні (adjust state during render)
+  const [prevPriceRange, setPrevPriceRange] = useState(priceRange);
+  if (priceRange && priceRange !== prevPriceRange) {
+    setPrevPriceRange(priceRange);
+    setLocalPriceRange([priceRange.min, priceRange.max]);
+  }
 
   const { data: properties } = useQuery({
     queryKey: ["section-filter-properties", sectionId],
@@ -123,13 +124,16 @@ export function FilterSidebar({
 
   const [localNumericRanges, setLocalNumericRanges] = useState<Record<string, [number, number]>>({});
 
-  useEffect(() => {
+  // Синхронізація числових діапазонів при зміні (adjust state during render)
+  const [prevNumericRanges, setPrevNumericRanges] = useState(numericPropertyRanges);
+  if (numericPropertyRanges !== prevNumericRanges) {
+    setPrevNumericRanges(numericPropertyRanges);
     const newRanges: Record<string, [number, number]> = {};
     Object.entries(numericPropertyRanges).forEach(([code, range]) => {
       newRanges[code] = [range.min, range.max];
     });
     setLocalNumericRanges(newRanges);
-  }, [numericPropertyRanges]);
+  }
 
   const handleCheckboxChange = (propertySlug: string, optionId: string, checked: boolean) => {
     const current = filters[propertySlug] || [];
@@ -141,10 +145,6 @@ export function FilterSidebar({
       ...filters,
       [propertySlug]: updated.length > 0 ? updated : undefined,
     });
-  };
-
-  const handlePriceChange = (values: number[]) => {
-    setLocalPriceRange([values[0], values[1]]);
   };
 
   const handlePriceCommit = () => {

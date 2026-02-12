@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ChevronRight, ChevronDown, Percent, DollarSign, Tag, Trash2, Pencil, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, ChevronRight, ChevronDown, Percent, DollarSign, Tag, Trash2, Pencil } from "lucide-react";
 import { Button } from "@simplycms/ui/button";
 import { Badge } from "@simplycms/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
@@ -11,7 +10,7 @@ import { Switch } from "@simplycms/ui/switch";
 import { supabase } from "@simplycms/core/supabase/client";
 import { toast } from "@simplycms/core/hooks/use-toast";
 import type { Tables } from "@simplycms/core/supabase/types";
-import type { DiscountType } from "@simplycms/core/lib/discountEngine";
+
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -59,7 +58,6 @@ interface DiscountGroup {
 }
 
 export default function Discounts() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -135,15 +133,17 @@ export default function Discounts() {
   const toggleExpanded = (id: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
 
   function renderGroup(group: DiscountGroup, depth: number = 0) {
     const isExpanded = expandedGroups.has(group.id);
-    const hasChildren = (group.children?.length || 0) > 0 || (group.discounts?.length || 0) > 0;
-
     return (
       <div key={group.id} style={{ marginLeft: depth * 24 }} className="border-l-2 border-muted pl-4 mb-2">
         <div className="flex items-center gap-2 py-2 group">

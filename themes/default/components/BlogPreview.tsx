@@ -1,7 +1,7 @@
 "use client";
 
 import { useThemeSettings } from "@simplycms/core/hooks/useThemeSettings";
-import { Image } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 
 const mockArticles = [
   {
@@ -40,7 +40,7 @@ export function BlogPreview() {
           {mockArticles.map((article) => (
             <div key={article.id} className="group cursor-pointer">
               <div className="aspect-video rounded-md bg-muted mb-3 overflow-hidden flex items-center justify-center">
-                <Image className="h-10 w-10 text-muted-foreground/30" />
+                <ImageIcon className="h-10 w-10 text-muted-foreground/30" aria-hidden="true" />
               </div>
               <p className="text-xs text-muted-foreground mb-1">{article.date}</p>
               <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors mb-1">

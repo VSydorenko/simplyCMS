@@ -98,7 +98,7 @@ export default function Auth() {
         });
         router.push("/");
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",
@@ -160,7 +160,7 @@ export default function Auth() {
         });
         router.push("/");
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",
@@ -188,7 +188,7 @@ export default function Auth() {
           description: error.message,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",

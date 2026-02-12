@@ -136,37 +136,39 @@
 > - `chart.tsx` — `any` залишено для типів payload Recharts з `eslint-disable` коментарями, оскільки Recharts API сам використовує `any` внутрішньо. Функція `getPayloadConfigFromPayload` типізована як `Record<string, any>`.
 > - Додатково типізовано: `ReviewDetail.tsx`, `OrderDetail.tsx`, `UserCategoryRules.tsx`, `SectionPropertiesManager.tsx`, `AddProductToOrder.tsx`, `StockByPointManager.tsx` — файли, що не були явно в списку, але містили `any`.
 
-### Фаза 6: ESLint cleanup (~3-4 год)
+### Фаза 6: ESLint cleanup ✅
 
-- [ ] **6.1.** **Errors** (блокують CI):
+- [x] **6.1.** **Errors** (блокують CI):
   - `Catalog.tsx:117` — `prefer-const`: `let resolved` → `const`
   - `NotFound.tsx:18` — `@next/next/no-html-link-for-pages`: `<a>` → `<Link>`
 
-- [ ] **6.2.** `@next/next/no-assign-module-variable` — перейменувати `module` на `pluginModule`/`themeModule`:
+- [x] **6.2.** `@next/next/no-assign-module-variable` — перейменувати `module` на `pluginModule`/`themeModule`:
   - `InstallPluginDialog.tsx`, `PluginSettings.tsx`, `PluginLoader.ts`, `ThemeRegistry.ts`
 
-- [ ] **6.3.** `react-hooks/set-state-in-effect` warnings (~13 місць) — рефакторнути setState в useEffect:
+- [x] **6.3.** `react-hooks/set-state-in-effect` warnings (~13 місць) — рефакторнути setState в useEffect:
   - Admin: `AllProductProperties`, `ProductPricesEditor`, `ProductPropertyValues`, `StockByPointManager`, `BannerEdit`, `DiscountEdit`, `OrderDetail`, `ProductEdit`, `PropertyEdit`, `PropertyOptionEdit`, `SectionEdit`, `ThemeSettings`
   - Core: `FilterSidebar`, `CheckoutDeliveryForm`, `CheckoutRecipientForm`, `useCart`
   - Theme: `BannerSlider`
   
-  Рішення: useMemo для derived state, useState initializer, useCallback. НЕ eslint-disable.
+  Рішення: useMemo для derived state, useState initializer, "adjust state during render" патерн (React docs). НЕ eslint-disable.
 
-- [ ] **6.4.** `react-hooks/static-components` — компоненти в рендер-функціях:
-  - `ReviewRichTextEditor.tsx` — `ToolbarButton` → винести за межі
-  - `ActiveFilters.tsx` — `Button` → винести за межі
+- [x] **6.4.** `react-hooks/static-components` — компоненти в рендер-функціях:
+  - `ReviewRichTextEditor.tsx` — `ToolbarButton` → винесено за межі
+  - `ActiveFilters.tsx` — `DefaultBadge`, `DefaultButton` → винесено за межі
 
-- [ ] **6.5.** `@typescript-eslint/no-unused-vars` (~20 місць) — видалити невикористовувані імпорти/змінні (повний перелік файлів: ImageUpload, InstallPluginDialog, RichTextEditor, StockByPointManager, DiscountEdit, Discounts, OrderStatuses, PickupPointEdit, PluginSettings, Products, Reviews, Settings, UserEdit, CatalogLayout, FilterSidebar, ProductReviews, ReviewRichTextEditor, use-toast, Auth, ProfileSettings, calendar).
+- [x] **6.5.** `@typescript-eslint/no-unused-vars` (~25 місць) — видалено невикористовувані імпорти/змінні (ImageUpload, InstallPluginDialog, RichTextEditor, StockByPointManager, DiscountEdit, Discounts, OrderStatuses, Orders, PickupPointEdit, PluginSettings, Products, Properties, Reviews, Settings, UserEdit, CatalogLayout, FilterSidebar, ProductReviews, ReviewRichTextEditor, use-toast, Auth, Catalog, CatalogSection, PropertyPage, ProfileSettings, calendar).
 
-- [ ] **6.6.** `jsx-a11y/alt-text` (~7 місць) — додати `alt` атрибут: ProductModifications, Banners, Products, Sections, BlogPreview, ProductCard (themes/default), ProductCard (core/components).
+- [x] **6.6.** `jsx-a11y/alt-text` (~7 місць) — перейменовано lucide `Image` → `ImageIcon` (false positive через збіг імен з next/image): ProductModifications, Banners, Products, Sections, BlogPreview, ProductCard (themes/default), ProductCard (core/components).
 
-- [ ] **6.7.** `react-hooks/exhaustive-deps` — ImageUpload, CheckoutDeliveryForm, CheckoutRecipientForm. Виправити через додавання deps або useCallback.
+- [x] **6.7.** `react-hooks/exhaustive-deps` — ImageUpload (`handleFileSelect` → useCallback chain), CheckoutDeliveryForm, CheckoutRecipientForm. Виправлено через додавання deps та useCallback.
 
-- [ ] **6.8.** `react-hooks/incompatible-library` — `form.watch()` в ShippingMethodEdit, UserCategoryRuleEdit. Розглянути `useWatch`.
+- [x] **6.8.** `react-hooks/incompatible-library` — `form.watch()` в ShippingMethodEdit, UserCategoryRuleEdit. Замінено на `useWatch` з react-hook-form. UserCategoryRuleEdit: винесено `ConditionRuleRow` як окремий компонент.
 
-- [ ] **6.9.** `react-hooks/purity` — `Math.random()` в `sidebar.tsx:538`. Замінити на стабільний seed.
+- [x] **6.9.** `react-hooks/purity` — `Math.random()` в `sidebar.tsx:538`. Замінено на стабільний seed через `useId()`.
 
-- [ ] **6.10.** `@typescript-eslint/no-unused-expressions` — `Discounts.tsx:131`.
+- [x] **6.10.** `@typescript-eslint/no-unused-expressions` — `Discounts.tsx:131`. Замінено на if/else.
+
+> **Додатково виправлено:** Видалено непотрібні `eslint-disable` директиви для `@typescript-eslint/no-explicit-any` в `PriceTypeEdit.tsx`, `UserCategoryRuleEdit.tsx`, `chart.tsx` (правило не активне в поточному ESLint конфігу — буде увімкнене у Фазі 7).
 
 ### Фаза 7: Фіналізація (~30 хв)
 

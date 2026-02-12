@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -107,32 +107,33 @@ export default function BannerEdit() {
     },
   });
 
-  useEffect(() => {
-    if (banner) {
-      setForm({
-        title: banner.title || "",
-        subtitle: banner.subtitle || "",
-        image_url: banner.image_url || "",
-        desktop_image_url: banner.desktop_image_url || "",
-        mobile_image_url: banner.mobile_image_url || "",
-        placement: banner.placement || "home",
-        section_id: banner.section_id || "",
-        buttons: (Array.isArray(banner.buttons) ? banner.buttons : []) as unknown as BannerButton[],
-        date_from: banner.date_from ? banner.date_from.slice(0, 16) : "",
-        date_to: banner.date_to ? banner.date_to.slice(0, 16) : "",
-        schedule_days: (banner.schedule_days as number[]) || [],
-        schedule_time_from: banner.schedule_time_from || "",
-        schedule_time_to: banner.schedule_time_to || "",
-        slide_duration: banner.slide_duration || 5000,
-        animation_type: banner.animation_type || "slide",
-        animation_duration: banner.animation_duration || 500,
-        overlay_color: banner.overlay_color || "rgba(0,0,0,0.4)",
-        text_position: banner.text_position || "left",
-        sort_order: banner.sort_order || 0,
-        is_active: banner.is_active ?? true,
-      });
-    }
-  }, [banner]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevBannerId, setPrevBannerId] = useState<string | null>(null);
+  if (banner && banner.id !== prevBannerId) {
+    setPrevBannerId(banner.id);
+    setForm({
+      title: banner.title || "",
+      subtitle: banner.subtitle || "",
+      image_url: banner.image_url || "",
+      desktop_image_url: banner.desktop_image_url || "",
+      mobile_image_url: banner.mobile_image_url || "",
+      placement: banner.placement || "home",
+      section_id: banner.section_id || "",
+      buttons: (Array.isArray(banner.buttons) ? banner.buttons : []) as unknown as BannerButton[],
+      date_from: banner.date_from ? banner.date_from.slice(0, 16) : "",
+      date_to: banner.date_to ? banner.date_to.slice(0, 16) : "",
+      schedule_days: (banner.schedule_days as number[]) || [],
+      schedule_time_from: banner.schedule_time_from || "",
+      schedule_time_to: banner.schedule_time_to || "",
+      slide_duration: banner.slide_duration || 5000,
+      animation_type: banner.animation_type || "slide",
+      animation_duration: banner.animation_duration || 500,
+      overlay_color: banner.overlay_color || "rgba(0,0,0,0.4)",
+      text_position: banner.text_position || "left",
+      sort_order: banner.sort_order || 0,
+      is_active: banner.is_active ?? true,
+    });
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

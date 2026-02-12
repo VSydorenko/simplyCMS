@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -105,20 +105,20 @@ export default function PropertyEdit() {
     enabled: !!propertyId,
   });
 
-  // Set form data when property loads
-  useEffect(() => {
-    if (property) {
-      setFormData({
-        name: property.name || "",
-        slug: property.slug || "",
-        property_type: property.property_type || "text",
-        is_required: property.is_required ?? false,
-        is_filterable: property.is_filterable ?? false,
-        has_page: property.has_page ?? false,
-        sort_order: property.sort_order || 0,
-      });
-    }
-  }, [property]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevPropertyId, setPrevPropertyId] = useState<string | null>(null);
+  if (property && property.id !== prevPropertyId) {
+    setPrevPropertyId(property.id);
+    setFormData({
+      name: property.name || "",
+      slug: property.slug || "",
+      property_type: property.property_type || "text",
+      is_required: property.is_required ?? false,
+      is_filterable: property.is_filterable ?? false,
+      has_page: property.has_page ?? false,
+      sort_order: property.sort_order || 0,
+    });
+  }
 
   // Property mutations
   const updatePropertyMutation = useMutation({

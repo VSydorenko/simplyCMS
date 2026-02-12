@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Upload, X, Loader2, GripVertical, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@simplycms/core/lib/utils";
 
 interface ImageUploadProps {
@@ -28,7 +28,7 @@ export function ImageUpload({
   const [dragOver, setDragOver] = useState(false);
   const { toast } = useToast();
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     const allowedExts = ["jpg", "jpeg", "png", "webp", "gif"];
     
@@ -74,9 +74,9 @@ export function ImageUpload({
       .getPublicUrl(fileName);
 
     return urlData.publicUrl;
-  };
+  }, [folder, bucket, toast]);
 
-  const handleFileSelect = async (files: FileList | null) => {
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0 || disabled) return;
 
     const remainingSlots = maxImages - images.length;
@@ -107,7 +107,7 @@ export function ImageUpload({
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [disabled, maxImages, images, onImagesChange, toast, uploadFile]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -115,7 +115,7 @@ export function ImageUpload({
       setDragOver(false);
       handleFileSelect(e.dataTransfer.files);
     },
-    [images, maxImages, disabled]
+    [handleFileSelect]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -141,7 +141,7 @@ export function ImageUpload({
       if (pathMatch) {
         await supabase.storage.from(bucket).remove([pathMatch[1]]);
       }
-    } catch (e) {
+    } catch {
       // Ignore deletion errors for external URLs
     }
   };

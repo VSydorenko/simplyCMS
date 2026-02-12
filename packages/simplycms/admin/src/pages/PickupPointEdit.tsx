@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@simplycms/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Badge } from "@simplycms/ui/badge";
 import { Input } from "@simplycms/ui/input";
 import { Switch } from "@simplycms/ui/switch";

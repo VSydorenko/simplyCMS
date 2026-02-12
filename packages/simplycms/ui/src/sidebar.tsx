@@ -533,10 +533,12 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean;
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
+  // Стабільна ширина скелетону на основі useId
+  const uniqueId = React.useId();
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+    const charCode = uniqueId.charCodeAt(uniqueId.length - 1) || 0;
+    return `${(charCode % 40) + 50}%`;
+  }, [uniqueId]);
 
   return (
     <div

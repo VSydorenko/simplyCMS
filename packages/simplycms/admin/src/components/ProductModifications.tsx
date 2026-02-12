@@ -29,7 +29,7 @@ import {
   CollapsibleTrigger,
 } from "@simplycms/ui/collapsible";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Plus, Trash2, Loader2, Image, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Loader2, ImageIcon, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { ProductPropertyValues } from "./ProductPropertyValues";
 import { StockStatusSelect } from "./StockStatusSelect";
@@ -418,7 +418,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                         <NextImage src={modImages[0]} alt="" width={32} height={32} className="object-cover rounded" />
                       ) : (
                         <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
-                          <Image className="h-4 w-4 text-muted-foreground" />
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         </div>
                       )}
                     </TableCell>

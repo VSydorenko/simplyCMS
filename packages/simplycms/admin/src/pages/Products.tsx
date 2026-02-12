@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@simplycms/ui/table";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Plus, Trash2, Loader2, Image } from "lucide-react";
+import { Plus, Trash2, Loader2, ImageIcon } from "lucide-react";
 import type { Tables } from "@simplycms/core/supabase/types";
 import type { Json } from "@simplycms/core/supabase/types";
 
@@ -124,7 +124,7 @@ export default function Products() {
                         />
                       ) : (
                         <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                          <Image className="h-4 w-4 text-muted-foreground" />
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         </div>
                       )}
                     </TableCell>

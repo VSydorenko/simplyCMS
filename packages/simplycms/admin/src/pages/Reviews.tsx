@@ -1,11 +1,9 @@
 "use client";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { supabase } from "@simplycms/core/supabase/client";
-import { Button } from "@simplycms/ui/button";
 import { Badge } from "@simplycms/ui/badge";
-import { Input } from "@simplycms/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@simplycms/ui/select";
 import { Card, CardContent } from "@simplycms/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@simplycms/ui/table";

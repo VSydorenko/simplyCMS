@@ -17,7 +17,7 @@ import {
 } from "@simplycms/ui/dialog";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Loader2 } from "lucide-react";
-import { installPlugin, getRegisteredPluginModules } from "@simplycms/plugins";
+import { getRegisteredPluginModules } from "@simplycms/plugins";
 import { Badge } from "@simplycms/ui/badge";
 
 interface InstallPluginDialogProps {
@@ -48,9 +48,9 @@ export function InstallPluginDialog({ trigger }: InstallPluginDialogProps) {
       // Get hooks from module if it exists
       let hooks: { name: string; priority?: number }[] = [];
       if (moduleExists) {
-        const module = registeredModules.get(formData.name);
-        if (module?.manifest?.hooks) {
-          hooks = module.manifest.hooks;
+        const pluginModule = registeredModules.get(formData.name);
+        if (pluginModule?.manifest?.hooks) {
+          hooks = pluginModule.manifest.hooks;
         }
       }
 
@@ -111,14 +111,14 @@ export function InstallPluginDialog({ trigger }: InstallPluginDialogProps) {
   };
 
   const handleModuleSelect = (moduleName: string) => {
-    const module = registeredModules.get(moduleName);
+    const pluginModule = registeredModules.get(moduleName);
     setFormData((prev) => ({
       ...prev,
       name: moduleName,
-      displayName: module?.manifest?.displayName || moduleName,
-      version: module?.manifest?.version || "1.0.0",
-      description: module?.manifest?.description || "",
-      author: module?.manifest?.author || "",
+      displayName: pluginModule?.manifest?.displayName || moduleName,
+      version: pluginModule?.manifest?.version || "1.0.0",
+      description: pluginModule?.manifest?.description || "",
+      author: pluginModule?.manifest?.author || "",
     }));
   };
 

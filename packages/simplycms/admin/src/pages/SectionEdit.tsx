@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -49,20 +49,21 @@ export default function SectionEdit() {
     enabled: !isNew,
   });
 
-  useEffect(() => {
-    if (section) {
-      setFormData({
-        name: section.name || "",
-        slug: section.slug || "",
-        description: section.description || "",
-        meta_title: section.meta_title || "",
-        meta_description: section.meta_description || "",
-        sort_order: section.sort_order || 0,
-        is_active: section.is_active ?? true,
-      });
-      setSectionImage(section.image_url ? [section.image_url] : []);
-    }
-  }, [section]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevSectionId, setPrevSectionId] = useState<string | null>(null);
+  if (section && section.id !== prevSectionId) {
+    setPrevSectionId(section.id);
+    setFormData({
+      name: section.name || "",
+      slug: section.slug || "",
+      description: section.description || "",
+      meta_title: section.meta_title || "",
+      meta_description: section.meta_description || "",
+      sort_order: section.sort_order || 0,
+      is_active: section.is_active ?? true,
+    });
+    setSectionImage(section.image_url ? [section.image_url] : []);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

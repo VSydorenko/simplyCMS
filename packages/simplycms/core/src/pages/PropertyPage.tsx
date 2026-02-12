@@ -22,7 +22,7 @@ export interface PropertyOptionPageProps {
 export default function PropertyPage({
   property: initialProperty,
   option: initialOption,
-  products: initialProducts,
+  products: _initialProducts,
 }: PropertyOptionPageProps = {}) {
   const params = useParams();
   const propertySlug = params?.propertySlug as string | undefined;

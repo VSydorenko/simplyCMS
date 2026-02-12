@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -79,26 +79,27 @@ export default function ProductEdit() {
     },
   });
 
-  useEffect(() => {
-    if (product) {
-      setFormData({
-        name: product.name || "",
-        slug: product.slug || "",
-        short_description: product.short_description || "",
-        description: product.description || "",
-        meta_title: product.meta_title || "",
-        meta_description: product.meta_description || "",
-        section_id: product.section_id || "",
-        is_active: product.is_active ?? true,
-        is_featured: product.is_featured ?? false,
-        has_modifications: product.has_modifications ?? true,
-        sku: product.sku || "",
-        stock_status: product.stock_status || "in_stock",
-      });
-      const productImages = product.images;
-      setImages(Array.isArray(productImages) ? productImages.map(String) : []);
-    }
-  }, [product]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevProductId, setPrevProductId] = useState<string | null>(null);
+  if (product && product.id !== prevProductId) {
+    setPrevProductId(product.id);
+    setFormData({
+      name: product.name || "",
+      slug: product.slug || "",
+      short_description: product.short_description || "",
+      description: product.description || "",
+      meta_title: product.meta_title || "",
+      meta_description: product.meta_description || "",
+      section_id: product.section_id || "",
+      is_active: product.is_active ?? true,
+      is_featured: product.is_featured ?? false,
+      has_modifications: product.has_modifications ?? true,
+      sku: product.sku || "",
+      stock_status: product.stock_status || "in_stock",
+    });
+    const productImages = product.images;
+    setImages(Array.isArray(productImages) ? productImages.map(String) : []);
+  }
 
   const createMutation = useMutation({
     mutationFn: async (data: TablesInsert<"products">) => {

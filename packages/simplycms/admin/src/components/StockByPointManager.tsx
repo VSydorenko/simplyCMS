@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Input } from "@simplycms/ui/input";
@@ -23,11 +23,6 @@ interface StockByPointManagerProps {
   productId?: string | null;
   modificationId?: string | null;
   showCard?: boolean;
-}
-
-interface StockRecord {
-  pickup_point_id: string;
-  quantity: number;
 }
 
 export function StockByPointManager({
@@ -63,20 +58,22 @@ export function StockByPointManager({
     enabled: !!(productId || modificationId),
   });
 
-  // Initialize stock data when existing stock loads
-  useEffect(() => {
-    if (existingStock && pickupPoints.length > 0) {
-      const newStockData: Record<string, number> = {};
-      pickupPoints.forEach((point) => {
-        const existing = existingStock.find(
-          (s) => s.pickup_point_id === point.id
-        );
-        newStockData[point.id] = existing?.quantity ?? 0;
-      });
-      setStockData(newStockData);
-      setHasChanges(false);
-    }
-  }, [existingStock, pickupPoints]);
+  // Ініціалізація даних залишків (adjust state during render)
+  const [prevExistingStock, setPrevExistingStock] = useState(existingStock);
+  const [prevPickupPoints, setPrevPickupPoints] = useState(pickupPoints);
+  if (existingStock && pickupPoints.length > 0 && (existingStock !== prevExistingStock || pickupPoints !== prevPickupPoints)) {
+    setPrevExistingStock(existingStock);
+    setPrevPickupPoints(pickupPoints);
+    const newStockData: Record<string, number> = {};
+    pickupPoints.forEach((point) => {
+      const existing = existingStock.find(
+        (s) => s.pickup_point_id === point.id
+      );
+      newStockData[point.id] = existing?.quantity ?? 0;
+    });
+    setStockData(newStockData);
+    setHasChanges(false);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

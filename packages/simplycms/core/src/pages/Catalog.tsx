@@ -46,7 +46,7 @@ export interface CatalogPageProps {
 
 export default function CatalogPage({
   initialSections,
-  initialProducts,
+  initialProducts: _initialProducts,
 }: CatalogPageProps = {}) {
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [sortBy, setSortBy] = useState<SortOption>("popular");
