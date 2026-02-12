@@ -26,7 +26,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: product.name,
       description: product.description || `Buy ${product.name} at SimplyCMS Store`,
-      images: images.length > 0 ? images.map((img: string) => ({ url: img })) : undefined,
+      images: images.length > 0 
+        ? images
+            .filter((img): img is string => typeof img === 'string')
+            .map((img) => ({ url: img }))
+        : undefined,
     },
   };
 }
