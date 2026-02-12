@@ -199,9 +199,10 @@ packages/simplycms/core/src/supabase/client.ts, server.ts, middleware.ts
 All consumer code (admin, core hooks, themes, app/ pages)
 ```
 
-### Core Repo Autonomous Compilation
+### DB Types Contract
 
-`packages/simplycms/core/src/supabase/reference-types.ts` is a copy of generated types that allows the core repo (simplyCMS-core) to compile independently. When the site's `@simplycms/db-types` alias is unavailable (i.e., in the core repo), the core repo's own tsconfig maps the alias to this file instead.
+The core packages are not intended to compile as a standalone repository without a host site.
+Database types are owned by the site and must be provided via the `@simplycms/db-types` path alias.
 
 ## CI/CD
 
