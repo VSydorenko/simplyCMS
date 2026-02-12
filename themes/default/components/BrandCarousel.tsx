@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import useEmblaCarousel from "embla-carousel-react";
@@ -60,13 +61,15 @@ export function BrandCarousel() {
                 <div key={brand.id} className="flex-[0_0_120px] md:flex-[0_0_150px] min-w-0">
                   <Link
                     href={`/properties/${brand.propertySlug}/${brand.slug}`}
-                    className="flex items-center justify-center h-20 rounded-md border border-border/40 bg-card hover:border-primary/30 transition-colors p-4"
+                    className="relative flex items-center justify-center h-20 rounded-md border border-border/40 bg-card hover:border-primary/30 transition-colors p-4"
                   >
                     {brand.image_url ? (
-                      <img
+                      <NextImage
                         src={brand.image_url}
                         alt={brand.name}
-                        className="max-h-full max-w-full object-contain opacity-60 hover:opacity-100 transition-opacity"
+                        fill
+                        sizes="150px"
+                        className="object-contain opacity-60 hover:opacity-100 transition-opacity"
                       />
                     ) : (
                       <span className="text-xs text-muted-foreground font-medium text-center">

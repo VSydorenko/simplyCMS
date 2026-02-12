@@ -1,4 +1,5 @@
 "use client";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -108,13 +109,12 @@ export default function Products() {
                   >
                     <TableCell>
                       {firstImage ? (
-                        <img
+                        <NextImage
                           src={firstImage}
                           alt={product.name}
-                          className="h-10 w-10 object-cover rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
+                          width={40}
+                          height={40}
+                          className="object-cover rounded"
                         />
                       ) : (
                         <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">

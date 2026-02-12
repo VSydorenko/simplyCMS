@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import {
   Battery,
@@ -360,11 +361,13 @@ function SolarProductCard({ product }: { product: Product }) {
   return (
     <Link href={href} className="block group">
       <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-        <div className="aspect-square overflow-hidden bg-[hsl(var(--muted))]">
-          <img
+        <div className="relative aspect-square overflow-hidden bg-[hsl(var(--muted))]">
+          <NextImage
             src={imageUrl}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
         <CardContent className="p-4">

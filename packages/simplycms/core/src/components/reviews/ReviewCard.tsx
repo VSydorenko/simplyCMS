@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
+import NextImage from "next/image";
 import { Trash2 } from "lucide-react";
 import { StarRating } from "./StarRating";
 import { useAuth } from "../../hooks/useAuth";
@@ -35,7 +36,7 @@ export function ReviewCard({ review, onDelete }: ReviewCardProps) {
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
               {review.profile?.avatar_url ? (
-                <img src={review.profile.avatar_url} alt={displayName} className="h-10 w-10 rounded-full object-cover" />
+                <NextImage src={review.profile.avatar_url} alt={displayName} width={40} height={40} className="rounded-full object-cover" />
               ) : (
                 initials
               )}
@@ -92,13 +93,19 @@ export function ReviewCard({ review, onDelete }: ReviewCardProps) {
         {review.images.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             {review.images.map((url, i) => (
-              <img
+              <button
                 key={i}
-                src={url}
-                alt={`Фото ${i + 1}`}
-                className="h-20 w-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity border"
+                className="relative h-20 w-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border"
                 onClick={() => setLightboxImage(url)}
-              />
+              >
+                <NextImage
+                  src={url}
+                  alt={`Фото ${i + 1}`}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
+              </button>
             ))}
           </div>
         )}
@@ -110,11 +117,15 @@ export function ReviewCard({ review, onDelete }: ReviewCardProps) {
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
           onClick={() => setLightboxImage(null)}
         >
-          <img
-            src={lightboxImage}
-            alt="Збiльшене фото"
-            className="max-w-full max-h-full object-contain rounded-lg"
-          />
+          <div className="relative w-full h-full">
+            <NextImage
+              src={lightboxImage}
+              alt="Збiльшене фото"
+              fill
+              sizes="100vw"
+              className="object-contain rounded-lg"
+            />
+          </div>
         </div>
       )}
     </>

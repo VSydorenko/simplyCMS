@@ -1,4 +1,5 @@
 "use client";
+import NextImage from "next/image";
 import { useState, useCallback } from "react";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -206,13 +207,12 @@ export function ImageUpload({
               key={url}
               className="relative group aspect-square bg-muted rounded-lg overflow-hidden"
             >
-              <img
+              <NextImage
                 src={url}
                 alt={`Image ${index + 1}`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
+                fill
+                sizes="(max-width: 768px) 25vw, 200px"
+                className="object-cover"
               />
               {/* Overlay with actions */}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">

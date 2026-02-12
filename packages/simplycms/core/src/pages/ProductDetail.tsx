@@ -24,8 +24,6 @@ import {
 import { StockDisplay } from "../components/catalog/StockDisplay";
 import { PluginSlot } from "@simplycms/plugins/PluginSlot";
 import { ProductReviews } from "../components/reviews/ProductReviews";
-import { StarRating } from "../components/reviews/StarRating";
-import { useProductReviews } from "../hooks/useProductReviews";
 import { usePriceType } from "../hooks/usePriceType";
 import { resolvePrice } from "../lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "../hooks/useDiscountedPrice";
@@ -35,7 +33,6 @@ export default function ProductDetailPage() {
     sectionSlug: string;
     productSlug: string;
   }>();
-  const sectionSlug = params.sectionSlug;
   const productSlug = params.productSlug;
   const router = useRouter();
   const pathname = usePathname();
@@ -136,7 +133,7 @@ export default function ProductDetailPage() {
       await Promise.all(
         modificationIds.map(async (modId: string) => {
           const { data, error } = await supabase.rpc("get_stock_info", {
-            p_product_id: null,
+            p_product_id: undefined,
             p_modification_id: modId,
           });
 
@@ -176,27 +173,29 @@ export default function ProductDetailPage() {
   const modSlugFromUrl = searchParams.get("mod");
 
   useEffect(() => {
-    if (hasModifications && modifications.length > 0) {
-      // Try to find modification by slug from URL
-      if (modSlugFromUrl) {
-        const modFromUrl = modifications.find((m) => m.slug === modSlugFromUrl);
-        if (modFromUrl) {
-          setSelectedModId(modFromUrl.id);
-          return;
-        }
-      }
-      // Fall back to default modification
-      if (!selectedModId) {
-        const defaultMod =
-          modifications.find((m) => m.is_default) || modifications[0];
-        setSelectedModId(defaultMod.id);
-        // Update URL with default modification slug
-        if (defaultMod.slug) {
-          router.replace(pathname + "?mod=" + defaultMod.slug);
-        }
+    if (!hasModifications || modifications.length === 0) return;
+
+    // Визначаємо цільову модифікацію: з URL або за замовчуванням
+    let targetMod = modSlugFromUrl
+      ? modifications.find((m) => m.slug === modSlugFromUrl)
+      : undefined;
+
+    if (!targetMod && !selectedModId) {
+      targetMod = modifications.find((m) => m.is_default) || modifications[0];
+    }
+
+    if (targetMod && targetMod.id !== selectedModId) {
+      // Використовуємо flushSync-подібний підхід через callback ref
+      const id = targetMod.id;
+      const slug = targetMod.slug;
+      // Batch: оновлюємо стан та URL разом
+      setSelectedModId(id);
+      if (slug) {
+        router.replace(pathname + "?mod=" + slug);
       }
     }
-  }, [modifications, modSlugFromUrl, selectedModId, router, pathname, hasModifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modifications, modSlugFromUrl, hasModifications]);
 
   const selectedMod = modifications.find((m) => m.id === selectedModId);
 
@@ -224,7 +223,7 @@ export default function ProductDetailPage() {
     }
 
     return productImages;
-  }, [product?.images, selectedMod, hasModifications]);
+  }, [product, selectedMod, hasModifications]);
 
   // Property values with property info - combine product and selected modification properties
   const propertyValues = useMemo(() => {
@@ -402,7 +401,7 @@ export default function ProductDetailPage() {
             )}
             <div className="flex items-start justify-between gap-4">
               <h1 className="text-3xl font-bold">{product.name}</h1>
-              <div className="flex items-center gap-2 flex-shrink-0 pt-1">
+              <div className="flex items-center gap-2 shrink-0 pt-1">
                 {stockStatus === "on_order" && (
                   <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
                     Під замовлення
@@ -463,7 +462,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-wrap gap-3">
             <Button
               size="lg"
-              className="flex-1 min-w-[200px]"
+              className="flex-1 min-w-50"
               disabled={!isInStock || price === undefined}
               onClick={() => {
                 if (price === undefined) return;
@@ -506,7 +505,7 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Section navigation */}
-      <div className="mt-12 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="mt-12 sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <nav className="flex gap-1">
           <button
             onClick={() => document.getElementById('section-description')?.scrollIntoView({ behavior: 'smooth' })}

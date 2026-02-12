@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import NextImage from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
@@ -99,11 +100,13 @@ export default function PropertyDetailPage() {
             >
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden">
                 {option.image_url && (
-                  <div className="aspect-square overflow-hidden">
-                    <img
+                  <div className="relative aspect-square overflow-hidden">
+                    <NextImage
                       src={option.image_url}
                       alt={option.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                 )}

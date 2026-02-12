@@ -1,4 +1,5 @@
 "use client";
+import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -184,8 +185,8 @@ export default function AdminReviewDetail() {
           {review.images.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {(review.images as string[]).map((url: string, i: number) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                  <img src={url} alt={`Фото ${i + 1}`} className="h-24 w-24 object-cover rounded-lg border hover:opacity-80 transition-opacity" />
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative block h-24 w-24">
+                  <NextImage src={url} alt={`Фото ${i + 1}`} fill sizes="96px" className="object-cover rounded-lg border hover:opacity-80 transition-opacity" />
                 </a>
               ))}
             </div>

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -163,10 +164,12 @@ export default function Themes() {
               {/* Preview image */}
               <div className="relative h-48 bg-muted rounded-t-lg overflow-hidden">
                 {theme.preview_image ? (
-                  <img
+                  <NextImage
                     src={theme.preview_image}
                     alt={theme.display_name}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">

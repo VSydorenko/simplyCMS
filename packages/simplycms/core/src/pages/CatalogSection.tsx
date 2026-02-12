@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -485,10 +486,12 @@ export default function CatalogSectionPage() {
               className="cursor-pointer px-3 py-1.5 text-sm gap-2"
             >
               {s.image_url ? (
-                <img
+                <NextImage
                   src={s.image_url}
                   alt=""
-                  className="w-4 h-4 rounded object-cover"
+                  width={16}
+                  height={16}
+                  className="rounded object-cover"
                 />
               ) : (
                 <FolderOpen className="w-3 h-3" />

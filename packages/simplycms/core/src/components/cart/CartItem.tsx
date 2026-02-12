@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { Minus, Plus, X } from "lucide-react";
 import { type CartItem as CartItemType, useCart } from "../../hooks/useCart";
 
@@ -21,12 +22,14 @@ export function CartItem({ item }: CartItemProps) {
   return (
     <div className="flex gap-4 py-4 border-b last:border-0">
       {/* Image */}
-      <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted">
+      <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted">
         {item.image ? (
-          <img
+          <NextImage
             src={item.image}
             alt={item.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="80px"
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">

@@ -1,4 +1,5 @@
 "use client";
+import NextImage from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Button } from "@simplycms/ui/button";
@@ -86,8 +87,8 @@ export default function Banners() {
             <Card key={b.id} className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/admin/banners/${b.id}`)}>
               <div className="flex items-center gap-4 p-4">
                 <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
-                <div className="h-16 w-28 rounded bg-muted overflow-hidden shrink-0">
-                  <img src={b.image_url} alt={b.title} className="h-full w-full object-cover" />
+                <div className="relative h-16 w-28 rounded bg-muted overflow-hidden shrink-0">
+                  <NextImage src={b.image_url} alt={b.title} fill sizes="112px" className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
+import NextImage from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
@@ -180,11 +181,13 @@ export default function PropertyPage() {
       {/* Hero section */}
       <div className="mb-8">
         {imageUrl && (
-          <div className="w-full h-48 md:h-64 mb-6 rounded-xl overflow-hidden">
-            <img
+          <div className="relative w-full h-48 md:h-64 mb-6 rounded-xl overflow-hidden">
+            <NextImage
               src={imageUrl}
               alt={displayName}
-              className="w-full h-full object-cover"
+              fill
+              sizes="100vw"
+              className="object-cover"
             />
           </div>
         )}

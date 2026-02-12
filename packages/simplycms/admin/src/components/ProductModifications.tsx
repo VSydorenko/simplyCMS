@@ -1,4 +1,5 @@
 "use client";
+import NextImage from "next/image";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -414,8 +415,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                     </TableCell>
                     <TableCell>
                       {modImages.length > 0 ? (
-                        <img src={modImages[0]} alt="" className="h-8 w-8 object-cover rounded"
-                          onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                        <NextImage src={modImages[0]} alt="" width={32} height={32} className="object-cover rounded" />
                       ) : (
                         <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
                           <Image className="h-4 w-4 text-muted-foreground" />

@@ -13,7 +13,7 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="solarstore-theme min-h-screen bg-[hsl(var(--background))] flex flex-col">
+    <div className="solarstore-theme min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />

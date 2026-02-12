@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import NextImage from "next/image";
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -28,13 +29,13 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       {/* Main image */}
       <div className="aspect-square rounded-lg bg-muted overflow-hidden cursor-zoom-in relative group">
         {currentImage ? (
-          <img
+          <NextImage
             src={currentImage}
             alt={productName}
-            className="w-full h-full object-contain transition-transform group-hover:scale-105"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder.svg";
-            }}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-contain transition-transform group-hover:scale-105"
+            priority
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -75,19 +76,18 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               key={index}
               onClick={() => setCurrentIndex(index)}
               className={cn(
-                "flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors",
+                "relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors",
                 index === currentIndex
                   ? "border-primary"
                   : "border-transparent hover:border-muted-foreground/50"
               )}
             >
-              <img
+              <NextImage
                 src={image}
                 alt={`${productName} ${index + 1}`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
+                fill
+                sizes="80px"
+                className="object-cover"
               />
             </button>
           ))}
