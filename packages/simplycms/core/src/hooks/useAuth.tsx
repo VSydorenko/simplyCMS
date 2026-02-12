@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .maybeSingle();
 
             setIsAdmin(!error && !!data);
-          }, 0);
+          });
         } else {
           setIsAdmin(false);
         }

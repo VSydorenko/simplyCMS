@@ -7,15 +7,17 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "pnpm exec eslint .",
+    "lint:fix": "pnpm exec eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "cms:pull": "git subtree pull --prefix=packages/simplycms simplycms-core main --squash",
     "cms:push": "git subtree push --prefix=packages/simplycms simplycms-core main",
     "cms:push:branch": "git subtree push --prefix=packages/simplycms simplycms-core",
     "cms:diff": "git diff HEAD -- packages/simplycms/",
-    "db:migrate": "supabase migration up",
-    "db:generate-types": "supabase gen types typescript --local > packages/simplycms/core/src/supabase/types.ts"
+    "db:migrate": "node supabase/scripts/migrate.mjs",
+    "db:generate-types": "node supabase/scripts/update-types.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -60,6 +62,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.4",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.563.0",
@@ -81,7 +84,10 @@
       "esbuild",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "next": "$next"
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

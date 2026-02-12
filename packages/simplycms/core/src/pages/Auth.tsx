@@ -68,7 +68,7 @@ export default function Auth() {
 
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           if (err.path[0]) {
             fieldErrors[err.path[0].toString()] = err.message;
           }
@@ -98,7 +98,7 @@ export default function Auth() {
         });
         router.push("/");
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",
@@ -125,7 +125,7 @@ export default function Auth() {
 
       if (!result.success) {
         const fieldErrors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           if (err.path[0]) {
             fieldErrors[err.path[0].toString()] = err.message;
           }
@@ -139,7 +139,7 @@ export default function Auth() {
         email: registerEmail,
         password: registerPassword,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: window.location.origin + '/auth/callback',
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -160,7 +160,7 @@ export default function Auth() {
         });
         router.push("/");
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",
@@ -177,7 +177,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: window.location.origin + '/auth/callback',
         },
       });
 
@@ -188,7 +188,7 @@ export default function Auth() {
           description: error.message,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Помилка",

@@ -8,8 +8,9 @@ export const metadata: Metadata = { title: 'Характеристики' };
 export default async function Properties() {
   const supabase = await createServerSupabaseClient();
   const { data: properties } = await supabase
-    .from('properties')
-    .select('*, property_values(*)')
+    .from('section_properties')
+    .select('*, property_options(*)')
+    .eq('has_page', true)
     .order('name');
 
   return <PropertiesPage properties={properties || []} />;

@@ -29,13 +29,13 @@ import {
   CollapsibleTrigger,
 } from "@simplycms/ui/collapsible";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Plus, Trash2, Loader2, Image, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Loader2, ImageIcon, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
 import { ImageUpload } from "./ImageUpload";
 import { ProductPropertyValues } from "./ProductPropertyValues";
 import { StockStatusSelect } from "./StockStatusSelect";
 import { StockByPointManager } from "./StockByPointManager";
 import { ProductPricesEditor } from "./ProductPricesEditor";
-import type { Tables } from "@simplycms/core/supabase/types";
+import type { Tables, TablesInsert } from "@simplycms/core/supabase/types";
 import type { StockStatus } from "@simplycms/core/hooks/useStock";
 
 type ProductModification = Tables<"product_modifications">;
@@ -84,7 +84,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
   });
 
   const getDefaultPrice = (modId: string) => {
-    const entry = modPrices?.find((p: any) => p.modification_id === modId && (p.price_types as any)?.is_default);
+    const entry = modPrices?.find((p) => p.modification_id === modId && p.price_types?.is_default);
     return entry;
   };
 
@@ -95,7 +95,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
       
       const { error } = await supabase
         .from("product_modifications")
-        .insert([{ ...data, product_id: productId, sort_order: maxSortOrder + 1 } as any]);
+        .insert([{ ...data, product_id: productId, sort_order: maxSortOrder + 1 } as TablesInsert<"product_modifications">]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -418,7 +418,7 @@ export function ProductModifications({ productId, sectionId }: ProductModificati
                         <NextImage src={modImages[0]} alt="" width={32} height={32} className="object-cover rounded" />
                       ) : (
                         <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
-                          <Image className="h-4 w-4 text-muted-foreground" />
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         </div>
                       )}
                     </TableCell>

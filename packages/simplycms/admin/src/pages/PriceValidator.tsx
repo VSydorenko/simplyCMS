@@ -10,8 +10,19 @@ import { Badge } from "@simplycms/ui/badge";
 import { Label } from "@simplycms/ui/label";
 import { Separator } from "@simplycms/ui/separator";
 import { supabase } from "@simplycms/core/supabase/client";
-import { resolvePrice } from "@simplycms/core/lib/priceUtils";
-import { resolveDiscount, type DiscountGroup, type DiscountContext } from "@simplycms/core/lib/discountEngine";
+import { resolvePrice, type PriceEntry } from "@simplycms/core/lib/priceUtils";
+import { resolveDiscount, type DiscountGroup, type DiscountContext, type GroupOperator, type AppliedDiscount, type RejectedDiscount } from "@simplycms/core/lib/discountEngine";
+
+/** Крок валідації ціни */
+interface ValidationStep {
+  title: string;
+  value: string;
+  reason: string;
+  status: 'ok' | 'error' | 'info';
+  oldPrice?: number | null;
+  applied?: AppliedDiscount[];
+  rejected?: RejectedDiscount[];
+}
 
 export default function PriceValidator() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -19,7 +30,7 @@ export default function PriceValidator() {
   const [selectedModificationId, setSelectedModificationId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
   const [cartTotal, setCartTotal] = useState<number>(0);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ValidationStep[] | null>(null);
 
   // Load users (profiles)
   const { data: users = [] } = useQuery({
@@ -83,17 +94,17 @@ export default function PriceValidator() {
   const validate = async () => {
     if (!selectedProductId) return;
 
-    const steps: any[] = [];
-    const product = products.find((p: any) => p.id === selectedProductId);
+    const steps: ValidationStep[] = [];
+    const product = products.find((p) => p.id === selectedProductId);
 
     // Step 1: Determine price type
     let priceTypeId: string | null = null;
     let priceTypeName = "";
     let priceTypeReason = "";
 
-    const user = users.find((u: any) => u.user_id === selectedUserId);
+    const user = users.find((u) => u.user_id === selectedUserId);
     if (user && user.user_categories) {
-      const cat = user.user_categories as any;
+      const cat = user.user_categories;
       if (cat.price_type_id && cat.price_types) {
         priceTypeId = cat.price_type_id;
         priceTypeName = cat.price_types.name;
@@ -124,7 +135,7 @@ export default function PriceValidator() {
 
     const modId = selectedModificationId || null;
     const resolved = resolvePrice(
-      (prices || []) as any,
+      (prices || []) as PriceEntry[],
       priceTypeId,
       defaultPriceType?.id || null,
       modId
@@ -169,7 +180,7 @@ export default function PriceValidator() {
       }
 
       // Load groups for these discounts
-      const groupIds = [...new Set(dbDiscounts.map((d: any) => d.group_id))];
+      const groupIds = [...new Set(dbDiscounts.map((d) => d.group_id))];
       const { data: dbGroups } = await supabase
         .from("discount_groups")
         .select("*")
@@ -184,7 +195,7 @@ export default function PriceValidator() {
           id: g.id,
           name: g.name,
           description: g.description,
-          operator: g.operator as any,
+          operator: g.operator as GroupOperator,
           is_active: g.is_active,
           priority: g.priority,
           starts_at: g.starts_at,
@@ -284,7 +295,7 @@ export default function PriceValidator() {
                 <SelectTrigger><SelectValue placeholder="Гість (без авторизації)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__guest__">Гість</SelectItem>
-                  {users.map((u: any) => (
+                  {users.map((u) => (
                     <SelectItem key={u.user_id} value={u.user_id}>
                       {u.first_name || ""} {u.last_name || ""} ({u.email || "без email"})
                     </SelectItem>
@@ -298,7 +309,7 @@ export default function PriceValidator() {
               <Select value={selectedProductId} onValueChange={(v) => { setSelectedProductId(v); setSelectedModificationId(""); }}>
                 <SelectTrigger><SelectValue placeholder="Оберіть товар" /></SelectTrigger>
                 <SelectContent>
-                  {products.map((p: any) => (
+                  {products.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -313,7 +324,7 @@ export default function PriceValidator() {
                 <SelectTrigger><SelectValue placeholder="Без модифікації" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Без модифікації</SelectItem>
-                  {modifications.map((m: any) => (
+                  {modifications.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -344,7 +355,7 @@ export default function PriceValidator() {
             <CardTitle>Результат аналізу</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {result.map((step: any, idx: number) => (
+            {result.map((step, idx) => (
               <div key={idx}>
                 <div className="flex items-start gap-3">
                   {step.status === "ok" && <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />}
@@ -365,7 +376,7 @@ export default function PriceValidator() {
                     {/* Applied discounts */}
                     {step.applied && step.applied.length > 0 && (
                       <div className="mt-2 space-y-1">
-                        {step.applied.map((d: any) => (
+                        {step.applied.map((d) => (
                           <div key={d.id} className="flex items-center gap-2 text-sm">
                             <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                             <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-xs">
@@ -385,7 +396,7 @@ export default function PriceValidator() {
                     {/* Rejected discounts */}
                     {step.rejected && step.rejected.length > 0 && (
                       <div className="mt-2 space-y-1">
-                        {step.rejected.map((d: any) => (
+                        {step.rejected.map((d) => (
                           <div key={d.id} className="flex items-center gap-2 text-sm">
                             <XCircle className="h-3.5 w-3.5 text-red-400" />
                             <Badge variant="outline" className="bg-red-50 dark:bg-red-950 text-xs">

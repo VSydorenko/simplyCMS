@@ -6,7 +6,9 @@
 pnpm install          # Install dependencies
 pnpm dev              # Start dev server (Turbopack)
 pnpm build            # Production build
-pnpm lint             # ESLint (next lint)
+pnpm typecheck        # TypeScript type check
+pnpm lint             # ESLint
+pnpm lint:fix         # ESLint (auto-fix)
 pnpm test             # Run tests (vitest run)
 pnpm test:watch       # Tests in watch mode
 ```
@@ -40,13 +42,19 @@ simplyCMS/
 │   ├── layout.tsx                    # Root layout (Inter font, ThemeProvider, Toaster)
 │   └── providers.tsx                 # Client providers (CMSProvider, ThemeProvider)
 │
+├── supabase/                         # Site-level database (owned by project, not core)
+│   ├── config.toml                   # Supabase project config (site-specific)
+│   ├── migrations/                   # SQL migrations (30+ files, core seed + site-specific)
+│   ├── functions/                    # Edge Functions (get-guest-order)
+│   └── types.ts                      # Auto-generated TypeScript types (pnpm db:generate-types)
+│
 ├── packages/simplycms/               # Core CMS (Git Subtree from simplyCMS-core)
 │   ├── core/src/       @simplycms/core      # Hooks, types, Supabase clients, components
 │   ├── admin/src/      @simplycms/admin     # Admin layouts, pages, components (57 files)
 │   ├── ui/src/          @simplycms/ui       # shadcn/ui design system (50+ components)
 │   ├── plugin-system/  @simplycms/plugins   # HookRegistry, PluginLoader, PluginSlot
 │   ├── theme-system/   @simplycms/themes    # ThemeRegistry, ThemeContext, ThemeResolver
-│   └── supabase/                            # SQL migrations, Edge Functions
+│   └── schema/                              # Seed migrations (reference for new projects)
 │
 ├── themes/default/                   # Default storefront theme (layouts, pages, components)
 ├── plugins/                          # Local plugins directory
@@ -54,7 +62,7 @@ simplyCMS/
 ├── docs/                             # Documentation and analysis files
 │
 ├── simplycms.config.ts               # CMS config (Supabase, SEO, locale, currency)
-├── middleware.ts                      # Auth middleware (admin role guard, profile guard)
+├── proxy.ts                           # Auth proxy (admin role guard, profile guard)
 ├── next.config.ts                    # Next.js config (transpilePackages, remote images)
 ├── tailwind.config.ts                # Tailwind v4 (CSS variables, custom colors, animations)
 └── pnpm-workspace.yaml               # Workspace: packages/simplycms/*, themes/*, plugins/*
@@ -64,6 +72,7 @@ simplyCMS/
 
 | Import | Path |
 |--------|------|
+| `@simplycms/db-types` | `supabase/types.ts` |
 | `@simplycms/core` | `packages/simplycms/core/src` |
 | `@simplycms/admin` | `packages/simplycms/admin/src` |
 | `@simplycms/ui` | `packages/simplycms/ui/src` |
@@ -86,14 +95,14 @@ simplyCMS/
 ### Data Flow
 
 ```
-Storefront: Browser → middleware.ts (auth) → Server Component → Supabase → HTML → hydration → Client Components
-Admin:      Browser → middleware.ts (admin guard) → Client Component → Supabase (browser client)
+Storefront: Browser → proxy.ts (auth) → Server Component → Supabase → HTML → hydration → Client Components
+Admin:      Browser → proxy.ts (admin guard) → Client Component → Supabase (browser client)
 ```
 
 ### Authentication
 
 - Cookie-based sessions via `@supabase/ssr` (not localStorage tokens)
-- `middleware.ts` guards `/admin` (requires `admin` role in `user_roles` table) and `/profile` (requires auth)
+- `proxy.ts` guards `/admin` (requires `admin` role in `user_roles` table) and `/profile` (requires auth)
 - Redirects unauthenticated users to `/auth`
 
 ### Theme System
@@ -118,6 +127,8 @@ Admin:      Browser → middleware.ts (admin guard) → Client Component → Sup
 - Browser client: `getSupabaseBrowserClient()` for client components
 - UUID primary keys, `created_at`/`updated_at` timestamps on all tables
 - Key tables: products, modifications, orders, discounts, shipping_zones, shipping_methods, prices, price_types, modifications_stock, sections, product_reviews, user_roles, banners
+- **Database ownership:** Migrations, config, types, and edge functions live at the **site level** (`supabase/`), not in the core package. Core provides Supabase client factories typed via `@simplycms/db-types` path alias
+- **Type bridge:** `@simplycms/db-types` → `supabase/types.ts` (site-generated); core's `supabase/types.ts` re-exports from this alias
 
 ## Key Conventions
 
@@ -151,6 +162,8 @@ Admin:      Browser → middleware.ts (admin guard) → Client Component → Sup
 Required (copy `.env.example` to `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
+- `SUPABASE_PROJECT_ID` — Supabase project ref for CLI operations
+- `SUPABASE_ACCESS_TOKEN` — Personal access token for Management API (types, migrations)
 - `NEXT_PUBLIC_SITE_URL` — Public site URL (production)
 - `REVALIDATION_SECRET` — ISR revalidation token (optional)
 
@@ -167,17 +180,36 @@ pnpm cms:diff                  # View local core changes
 
 ## Database Commands
 
+All DB commands use `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` from `.env.local` via Management API.
+
 ```bash
-pnpm db:migrate                # Apply Supabase migrations
-pnpm db:generate-types         # Regenerate TypeScript types from schema
+pnpm db:migrate                # Apply Supabase migrations (from supabase/migrations/)
+pnpm db:generate-types         # Regenerate TypeScript types to supabase/types.ts
 ```
 
-After schema changes, always run `pnpm db:generate-types` to keep `packages/simplycms/core/src/supabase/types.ts` in sync.
+After schema changes, always run `pnpm db:generate-types` to keep `supabase/types.ts` in sync. The generated types are bridged to the core package via the `@simplycms/db-types` path alias in `tsconfig.json`.
+
+### Database Architecture
+
+```
+supabase/types.ts (site-level, auto-generated)
+    ↑ mapped via tsconfig: @simplycms/db-types
+packages/simplycms/core/src/supabase/types.ts (re-export stub)
+    ↑ relative import: ./types
+packages/simplycms/core/src/supabase/client.ts, server.ts, proxy.ts
+    ↑ path import: @simplycms/core/supabase/*
+All consumer code (admin, core hooks, themes, app/ pages)
+```
+
+### DB Types Contract
+
+The core packages are not intended to compile as a standalone repository without a host site.
+Database types are owned by the site and must be provided via the `@simplycms/db-types` path alias.
 
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/workflow.yml`) runs on push/PR to `main`:
-- **TypeScript job:** `pnpm install` → `pnpm build` → `pnpm lint`
+- **TypeScript job:** `pnpm install` → `pnpm build` → `pnpm typecheck` → `pnpm lint`
 - **Test job:** `pnpm install` → `pnpm test`
 
 ## Rules
@@ -198,7 +230,7 @@ GitHub Actions workflow (`.github/workflows/workflow.yml`) runs on push/PR to `m
 - Hardcode Supabase URLs (use env variables)
 - Access Supabase directly without `@simplycms/core` wrappers
 - Edit files in `temp/` (read-only reference from prior SPA architecture)
-- Place auth logic outside `middleware.ts` and `auth/` routes
+- Place auth logic outside `proxy.ts` and `auth/` routes
 
 ## Additional Documentation
 

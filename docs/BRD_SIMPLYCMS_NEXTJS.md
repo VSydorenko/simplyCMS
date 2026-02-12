@@ -145,7 +145,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 │  │  ├── ui/          @simplycms/ui                         │  │
 │  │  ├── plugins/     @simplycms/plugins                    │  │
 │  │  ├── themes/      @simplycms/themes                     │  │
-│  │  └── supabase/    @simplycms/supabase                    │  │
+│  │  └── schema/     Seed-міграції (референс)                  │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                          │ imports                             │
 │  ┌───────────────────────▼─────────────────────────────────┐  │
@@ -158,7 +158,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 │  └─────────────────────────────────────────────────────────┘  │
 │                                                               │
 │  simplycms.config.ts  ← Конфігурація CMS                     │
-│  middleware.ts        ← Auth + routing middleware              │
+│  proxy.ts             ← Auth + routing proxy                   │
 │  next.config.ts       ← Next.js конфігурація                  │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -169,7 +169,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 Browser Request
     │
     ▼
-middleware.ts (auth check, redirects)
+proxy.ts (auth check, redirects)
     │
     ├── Public page → Server Component → Supabase (server client) → HTML response
     │                                                                    │
@@ -326,7 +326,7 @@ simplyCMS/
 │
 ├── simplycms.config.ts             # Конфігурація CMS
 ├── next.config.ts                  # Next.js конфігурація
-├── middleware.ts                   # Auth middleware
+├── proxy.ts                        # Auth proxy
 ├── tailwind.config.ts              # Tailwind конфігурація
 ├── tsconfig.json                   # TypeScript конфігурація
 ├── turbo.json                      # Turborepo конфігурація (якщо потрібен)
@@ -447,7 +447,7 @@ packages/simplycms/
 │   │   ├── supabase/
 │   │   │   ├── server.ts           # createServerClient (cookie-based)
 │   │   │   ├── client.ts           # createBrowserClient
-│   │   │   ├── middleware.ts       # updateSession helper для middleware
+│   │   │   ├── proxy.ts            # updateSession helper для proxy
 │   │   │   └── types.ts           # Database types (generated)
 │   │   │
 │   │   ├── hooks/
@@ -558,7 +558,7 @@ packages/simplycms/
 │   ├── package.json                # { "name": "@simplycms/themes" }
 │   └── tsconfig.json
 │
-├── supabase/                       # @simplycms/supabase
+├── supabase/                       # БД проекту (міграції, типи, Edge Functions)
 │   ├── migrations/
 │   │   ├── 001_initial_schema.sql
 │   │   ├── 002_products.sql
@@ -574,7 +574,7 @@ packages/simplycms/
 │   │   └── get-guest-order/
 │   │       └── index.ts
 │   │
-│   ├── package.json                # { "name": "@simplycms/supabase" }
+│   ├── package.json                # (site-level, не входить в subtree)
 │   └── tsconfig.json
 │
 ├── package.json                    # Workspace root для packages/simplycms/*
@@ -980,7 +980,7 @@ export async function POST(request: Request) {
 │                                                      │
 │  Browser                Server                       │
 │  ┌──────┐              ┌──────────────────────┐      │
-│  │Cookie│◄────────────►│ middleware.ts         │      │
+│  │Cookie│◄────────────►│ proxy.ts              │      │
 │  │(auth)│              │ - updateSession()    │      │
 │  └──────┘              │ - auth guard         │      │
 │                        │ - admin guard        │      │
@@ -999,16 +999,16 @@ export async function POST(request: Request) {
 └──────────────────────────────────────────────────────┘
 ```
 
-### 10.2 Middleware
+### 10.2 Proxy
 
 ```typescript
-// middleware.ts
-import { createMiddlewareClient } from '@simplycms/core/supabase/middleware';
+// proxy.ts
+import { createProxySupabaseClient } from '@simplycms/core/supabase/proxy';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const { supabase, response } = createMiddlewareClient(request);
+export async function proxy(request: NextRequest) {
+  const { supabase, response } = await createProxySupabaseClient(request);
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
@@ -1051,8 +1051,10 @@ export const config = {
 |--------------|------------|
 | `supabase.auth.onAuthStateChange()` | Cookie-based через `@supabase/ssr` |
 | JWT в localStorage | HTTP-only cookies |
-| Client-side admin check (setTimeout) | Server-side middleware check |
+| Client-side admin check (setTimeout) | Server-side proxy check |
 | `useAuth()` hook з client state | `useAuth()` hook + server helper |
+
+> Примітка: в актуальній реалізації auth guards виконуються через `proxy.ts` (Next.js 16 конвеншен).
 
 ---
 
@@ -1068,12 +1070,12 @@ export const config = {
 ### 11.2 Міграції ядра vs міграції проекту
 
 ```
-packages/simplycms/supabase/migrations/ ← Міграції ядра (в subtree)
+packages/simplycms/schema/seed-migrations/ ← Seed-міграції ядра (референс SQL для bootstrap)
   001_initial_schema.sql
   002_products.sql
   ...
 
-supabase/migrations/                   ← Міграції проекту (поза subtree)
+supabase/migrations/                   ← Актуальні міграції проекту (поза subtree)
   100_custom_tables.sql                 ← Кастомні таблиці проекту
 ```
 
@@ -1115,19 +1117,19 @@ supabase/migrations/                   ← Міграції проекту (по
 #### Фаза 1: Ядро (packages/simplycms/)
 - [ ] Створити структуру пакетів (core, admin, ui, plugins, themes, db)
 - [ ] **@simplycms/ui:** Перенести shadcn/ui компоненти з `temp/src/components/ui/`
-- [ ] **@simplycms/core:** Перенести Supabase клієнт, створити server/client/middleware варіанти
+- [ ] **@simplycms/core:** Перенести Supabase клієнт, створити server/client/proxy варіанти
 - [ ] **@simplycms/core:** Перенести хуки (useAuth → cookie-based, useCart, usePriceType, etc.)
 - [ ] **@simplycms/core:** Перенести бізнес-логіку (discountEngine, priceUtils, shipping)
 - [ ] **@simplycms/core:** Перенести TypeScript типи
 - [ ] **@simplycms/core:** Створити CMSProvider
 - [ ] **@simplycms/plugins:** Перенести HookRegistry, PluginLoader, PluginSlot
 - [ ] **@simplycms/themes:** Перенести ThemeRegistry, ThemeContext, types
-- [ ] **@simplycms/supabase:** Перенести та впорядкувати міграції з `temp/supabase/migrations/`
-- [ ] **@simplycms/supabase:** Перенести Edge Functions
+- [ ] **supabase/:** Перенести та впорядкувати міграції з `temp/supabase/migrations/`
+- [ ] **supabase/:** Перенести Edge Functions
 
 #### Фаза 2: Публічні SSR-сторінки
 - [ ] Створити `app/layout.tsx` з провайдерами
-- [ ] Створити `middleware.ts`
+- [ ] Створити `proxy.ts`
 - [ ] Створити `app/(storefront)/layout.tsx` (MainLayout з теми)
 - [ ] **Головна сторінка:** `app/(storefront)/page.tsx` — SSR з банерами, featured товарами
 - [ ] **Каталог:** `app/(storefront)/catalog/page.tsx` — SSR + клієнтські фільтри
@@ -1256,7 +1258,7 @@ supabase/migrations/                   ← Міграції проекту (по
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "pnpm exec eslint .",
     "test": "vitest run",
     "cms:pull": "git subtree pull --prefix=packages/simplycms simplycms-core main --squash",
     "cms:push": "git subtree push --prefix=packages/simplycms simplycms-core main",
@@ -1279,7 +1281,7 @@ supabase/migrations/                   ← Міграції проекту (по
       "@simplycms/ui/*": ["./packages/simplycms/ui/src/*"],
       "@simplycms/plugins/*": ["./packages/simplycms/plugin-system/src/*"],
       "@simplycms/themes/*": ["./packages/simplycms/theme-system/src/*"],
-      "@simplycms/supabase/*": ["./packages/simplycms/supabase/*"],
+      "@simplycms/db-types": ["./supabase/types.ts"],
       "@/*": ["./app/*"],
       "@themes/*": ["./themes/*"],
       "@plugins/*": ["./plugins/*"]
@@ -1390,8 +1392,8 @@ temp/src/themes/beauty/*            → themes/beauty/* (опціонально)
 temp/src/integrations/supabase/*    → packages/simplycms/core/src/supabase/*
 temp/src/index.css                  → app/globals.css
 
-temp/supabase/migrations/*          → packages/simplycms/supabase/migrations/*
-temp/supabase/functions/*           → packages/simplycms/supabase/functions/*
+temp/supabase/migrations/*          → supabase/migrations/* (рівень проекту)
+temp/supabase/functions/*           → supabase/functions/* (рівень проекту)
 ```
 
 ---
@@ -1401,7 +1403,7 @@ temp/supabase/functions/*           → packages/simplycms/supabase/functions/*
 - [ ] Next.js проект ініціалізовано і запускається
 - [ ] Workspace з пакетами працює (імпорти між пакетами)
 - [ ] Supabase SSR працює (cookie-based auth)
-- [ ] Middleware захищає /admin і /profile
+- [ ] Proxy захищає /admin і /profile
 - [ ] Головна сторінка рендериться на сервері (SSR)
 - [ ] Каталог рендериться на сервері (SSR + ISR)
 - [ ] Картка товару рендериться на сервері з metadata

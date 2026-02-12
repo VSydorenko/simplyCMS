@@ -22,7 +22,6 @@ export function ProductReviews({ productId, renderEditor, renderImageUpload }: P
   const {
     reviews,
     approvedReviews,
-    userReview,
     hasUserReview,
     avgRating,
     reviewCount,

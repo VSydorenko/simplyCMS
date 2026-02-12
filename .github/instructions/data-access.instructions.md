@@ -10,7 +10,7 @@ description: "Правила роботи з даними та Supabase в Simpl
 ### Supabase клієнти
 - **Server Components / Server Actions:** використовуй `createServerSupabase()` з `@simplycms/core/supabase/server` (cookie-based).
 - **Client Components:** використовуй `supabase` з `@simplycms/core/supabase/client` (browser client).
-- **Middleware:** використовуй `createServerClient` з `@supabase/ssr` напряму.
+- **Proxy:** використовуй `createProxySupabaseClient()` з `@simplycms/core/supabase/proxy` (cookie-based session refresh + guards).
 - **API Routes:** використовуй `createServerSupabase()` для authenticated запитів.
 - Виконуй роботу з базою даних через MCP supabase, включаючи аналіз структури таблиць, RLS policies та виконання міграцій.
 
@@ -46,12 +46,14 @@ description: "Правила роботи з даними та Supabase в Simpl
 
 ### Типи та валідація
 - Генеруй типи після змін схеми: `pnpm db:generate-types`.
-- Не редагуй `types.ts` вручну — лише через генератор.
+- Не редагуй `supabase/types.ts` вручну — лише через генератор.
+- DB команди працюють через `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` з `.env.local` (Management API).
 - Zod schemas для валідації форм (react-hook-form + @hookform/resolvers/zod).
 
 ### Міграції
-- Міграції ядра: `packages/simplycms/supabase/migrations/` (нумерація 001-099).
-- Міграції проекту: окрема нумерація 100+.
+- Всі міграції живуть на рівні проекту: `supabase/migrations/`.
+- Seed-міграції ядра (reference): `packages/simplycms/schema/seed-migrations/`.
+- Сайт може додавати власні міграції поруч з seed-файлами.
 - Створюй міграції через MCP supabase `apply_migration`.
 
 ## Supabase Data Patterns
@@ -117,7 +119,7 @@ await fetch('/api/revalidate', {
 ## ❌ NEVER
 - Не створюй локальні файли міграцій — завжди через MCP supabase.
 - Не використовуй прямий `supabase-js` без обгорток з `@simplycms/core`.
-- Не редагуй `types.ts` вручну — виключно через `pnpm db:generate-types`.
+- Не редагуй `supabase/types.ts` вручну — виключно через `pnpm db:generate-types`.
 - Не забувай ISR revalidation після змін даних в адмінці.
 - Не використовуй `queryClient.setQueryData()` для складних кейсів — invalidate замість цього.
 - Не роби DB calls з Server Components без try-catch обробки помилок.

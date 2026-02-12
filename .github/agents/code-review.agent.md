@@ -27,7 +27,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 **ВАЖЛИВО:** Аналізуй код виключно через read_file, grep_search, semantic_search.
 
 **ЗАБОРОНЕНО:**
-- ❌ НЕ запускай команди: `typecheck`, `lint`, `build`, `test`, `pnpm`, `npm`, `git`
+- ❌ НЕ запускай команди: `typecheck`, `lint`, `lint:fix`, `build`, `test`, `pnpm`, `npm`, `git`
 - ❌ НЕ використовуй git commands: `git diff`, `git log`, `git status`
 - ❌ НЕ компілюй та не запускай скрипти
 
@@ -78,8 +78,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 - **Authentication:**
   - [ ] Cookie-based auth через `@supabase/ssr`
-  - [ ] Auth guards в `middleware.ts` (admin → admin role, profile → auth)
-  - [ ] Auth логіка НЕ за межами middleware та auth/ route
+  - [ ] Auth guards в `proxy.ts` (admin → admin role, profile → auth)
+  - [ ] Auth логіка НЕ за межами proxy та auth/ route
 
 **MCP Integration Check:**
 Перевір чи використовувалися MCP сервери для:
@@ -138,7 +138,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 - **Authentication:**
   - [ ] Cookie-based sessions (не localStorage JWT)
-  - [ ] Middleware guards для захищених маршрутів
+  - [ ] Proxy guards для захищених маршрутів
   - [ ] Перевірка ролей для адмін-доступу
 
 - **Validation:**

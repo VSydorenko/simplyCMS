@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
+import { parseBannerRow } from "../lib/bannerUtils";
 
 export interface BannerButton {
   text: string;
@@ -76,11 +77,7 @@ export function useBanners(placement: string, sectionId?: string) {
       const { data } = await query;
       if (!data) return [];
 
-      const banners: Banner[] = data.map((b) => ({
-        ...b,
-        buttons: (Array.isArray(b.buttons) ? b.buttons : []) as unknown as BannerButton[],
-        schedule_days: b.schedule_days as number[] | null,
-      }));
+      const banners: Banner[] = data.map(parseBannerRow);
 
       return banners.filter(isBannerVisible);
     },

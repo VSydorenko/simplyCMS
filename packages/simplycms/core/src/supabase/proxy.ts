@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./types";
 
-export async function createMiddlewareSupabaseClient(request: NextRequest) {
+export async function createProxySupabaseClient(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });

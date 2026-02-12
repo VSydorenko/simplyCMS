@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { useAuth } from "./useAuth";
 import { usePriceType } from "./usePriceType";
-import { resolveDiscount, type DiscountGroup, type DiscountContext, type DiscountResult } from "../lib/discountEngine";
+import { resolveDiscount, type DiscountGroup, type DiscountContext, type DiscountResult, type GroupOperator, type DiscountType } from "../lib/discountEngine";
 
 /** Loads all active discount groups for the given price type, with nested discounts/targets/conditions */
 export function useDiscountGroups() {
@@ -25,7 +25,7 @@ export function useDiscountGroups() {
       if (!dbDiscounts?.length) return [];
 
       // Collect group ids from discounts
-      const groupIds = [...new Set(dbDiscounts.map((d: any) => d.group_id))];
+      const groupIds = [...new Set(dbDiscounts.map((d) => d.group_id))];
 
       const { data: dbGroups, error: gErr } = await supabase
         .from("discount_groups")
@@ -37,8 +37,8 @@ export function useDiscountGroups() {
 
       // Also load parent groups that might not have discounts for this price type
       const parentIds = dbGroups
-        .map((g: any) => g.parent_group_id)
-        .filter((id: any) => id && !groupIds.includes(id));
+        .map((g) => g.parent_group_id)
+        .filter((id): id is string => !!id && !groupIds.includes(id));
 
       let allGroups = [...dbGroups];
       if (parentIds.length > 0) {
@@ -57,7 +57,7 @@ export function useDiscountGroups() {
           id: g.id,
           name: g.name,
           description: g.description,
-          operator: g.operator as any,
+          operator: g.operator as GroupOperator,
           is_active: g.is_active,
           priority: g.priority,
           starts_at: g.starts_at,
@@ -74,14 +74,14 @@ export function useDiscountGroups() {
             id: d.id,
             name: d.name,
             description: d.description,
-            discount_type: d.discount_type as any,
+            discount_type: d.discount_type as DiscountType,
             discount_value: Number(d.discount_value),
             priority: d.priority,
             is_active: d.is_active,
             starts_at: d.starts_at,
             ends_at: d.ends_at,
-            targets: (d as any).discount_targets || [],
-            conditions: (d as any).discount_conditions || [],
+            targets: d.discount_targets || [],
+            conditions: d.discount_conditions || [],
           });
         }
       }

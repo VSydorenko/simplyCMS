@@ -5,8 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Loader2, ChevronRight, Tag } from "lucide-react";
+import type { Tables } from "../supabase/types";
 
-export default function PropertiesPage() {
+export interface PropertiesPageProps {
+  properties?: Tables<'section_properties'>[];
+}
+
+export default function PropertiesPage({
+  properties: initialProperties,
+}: PropertiesPageProps = {}) {
   // Fetch properties with has_page = true
   const { data: properties, isLoading } = useQuery({
     queryKey: ["public-properties-with-pages"],
@@ -19,6 +26,7 @@ export default function PropertiesPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialProperties,
   });
 
   // Fetch option counts for each property

@@ -13,7 +13,7 @@ import {
 } from "@simplycms/ui/select";
 import { Checkbox } from "@simplycms/ui/checkbox";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Tables } from "@simplycms/core/supabase/types";
 
 type SectionProperty = Tables<"section_properties">;
@@ -131,23 +131,24 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
     enabled: !!entityId,
   });
 
-  useEffect(() => {
-    if (existingValues) {
-      const valuesMap: Record<string, { 
-        value: string | null; 
-        numeric_value: number | null;
-        option_id: string | null;
-      }> = {};
-      existingValues.forEach((v: any) => {
-        valuesMap[v.property_id] = { 
-          value: v.value, 
-          numeric_value: v.numeric_value,
-          option_id: v.option_id || null
-        };
-      });
-      setValues(valuesMap);
-    }
-  }, [existingValues]);
+  // Ініціалізація значень при завантаженні даних (adjust state during render)
+  const [prevExistingValues, setPrevExistingValues] = useState(existingValues);
+  if (existingValues && existingValues !== prevExistingValues) {
+    setPrevExistingValues(existingValues);
+    const valuesMap: Record<string, { 
+      value: string | null; 
+      numeric_value: number | null;
+      option_id: string | null;
+    }> = {};
+    existingValues.forEach((v) => {
+      valuesMap[v.property_id] = { 
+        value: v.value, 
+        numeric_value: v.numeric_value,
+        option_id: v.option_id || null
+      };
+    });
+    setValues(valuesMap);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async ({ 
@@ -161,7 +162,7 @@ export function ProductPropertyValues({ productId, modificationId, sectionId }: 
       numericValue: number | null;
       optionId?: string | null;
     }) => {
-      const existingValue = existingValues?.find((v: any) => v.property_id === propertyId);
+      const existingValue = existingValues?.find((v) => v.property_id === propertyId);
       
       if (entityType === "modification") {
         if (existingValue) {

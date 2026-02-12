@@ -40,13 +40,15 @@ simplyCMS/
 │   ├── auth/                       # Login/Register + OAuth callback
 │   └── api/                        # API Routes (revalidation, guest orders, health)
 │
+├── supabase/                       # Site-level database (config, migrations, types, functions)
+│
 ├── packages/simplycms/             # GIT SUBTREE → Core repo
 │   ├── core/       @simplycms/core     # Hooks, lib, types, providers, components
 │   ├── admin/      @simplycms/admin    # Admin layouts, pages, components
 │   ├── ui/         @simplycms/ui       # shadcn/ui design system (50+ components)
 │   ├── plugin-system/ @simplycms/plugins  # HookRegistry, PluginLoader, PluginSlot
 │   ├── theme-system/  @simplycms/themes   # ThemeRegistry, ThemeContext, ThemeResolver
-│   └── supabase/      # Migrations, Edge Functions, config
+│   └── schema/        # Seed migrations (reference for new projects)
 │
 ├── themes/                         # Local themes
 │   └── default/                    # Default theme (layouts, pages, components, styles)
@@ -55,7 +57,7 @@ simplyCMS/
 ├── temp/                           # Reference SPA project (read-only, migration source)
 │
 ├── simplycms.config.ts             # CMS configuration (theme, plugins, supabase, SEO)
-├── middleware.ts                    # Auth middleware (admin guard, profile guard)
+├── proxy.ts                         # Auth proxy (admin guard, profile guard)
 └── next.config.ts                  # Next.js config (transpilePackages, images)
 ```
 
@@ -68,7 +70,7 @@ simplyCMS/
 | `packages/simplycms/ui` | `@simplycms/ui` | Design system (50+ shadcn/ui components) |
 | `packages/simplycms/plugin-system` | `@simplycms/plugins` | Hook registry, plugin loader, PluginSlot component |
 | `packages/simplycms/theme-system` | `@simplycms/themes` | Theme registry, context, resolver |
-| `packages/simplycms/supabase` | — | DB migrations, Edge Functions, Supabase config |
+| `packages/simplycms/schema` | — | Seed migrations (reference for new projects) |
 
 ## Setup Commands
 
@@ -84,6 +86,7 @@ pnpm build
 pnpm test
 
 # Code Quality
+pnpm typecheck
 pnpm lint
 
 # Git Subtree (core sync)
@@ -91,9 +94,9 @@ pnpm cms:pull      # Pull core updates
 pnpm cms:push      # Push core changes
 pnpm cms:diff      # View core changes
 
-# Database
-pnpm db:generate-types   # Regenerate TypeScript types from Supabase
-pnpm db:migrate          # Apply migrations
+# Database (uses SUPABASE_PROJECT_ID + SUPABASE_ACCESS_TOKEN from .env.local)
+pnpm db:generate-types   # Regenerate TypeScript types to supabase/types.ts
+pnpm db:migrate          # Apply migrations (link + db push --linked)
 ```
 
 ## Architecture
@@ -111,7 +114,7 @@ pnpm db:migrate          # Apply migrations
 ### Data Flow
 
 ```
-Browser → middleware.ts (auth) → Server Component (SSR) → Supabase → HTML
+Browser → proxy.ts (auth) → Server Component (SSR) → Supabase → HTML
                                        ↓ hydration
                                  Client Components (cart, filters, forms)
 
@@ -130,7 +133,7 @@ Admin → Client Component → Supabase (browser client) → SPA behavior
 
 ### Authentication
 - Supabase SSR with cookie-based sessions (`@supabase/ssr`)
-- Middleware guards `/admin` (requires admin role) and `/profile` (requires auth)
+- Proxy guards `/admin` (requires admin role) and `/profile` (requires auth)
 - No multi-tenancy — single store per project
 
 ## Migration Context
@@ -160,7 +163,7 @@ The project is migrating from a React SPA (Vite + React Router) in `./temp/` to 
 - Direct Supabase client usage without `@simplycms/core` wrappers
 - Edit files in `temp/` (read-only reference)
 - Code > 150 lines without splitting
-- Auth logic outside middleware.ts and auth/ route
+- Auth logic outside proxy.ts and auth/ route
 
 ## Detailed Instructions
 

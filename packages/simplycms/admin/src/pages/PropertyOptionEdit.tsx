@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
@@ -84,21 +84,24 @@ export default function PropertyOptionEdit() {
     enabled: isNew && !!propertyId,
   });
 
-  useEffect(() => {
-    if (option) {
-      setFormData({
-        name: option.name || "",
-        slug: option.slug || "",
-        sort_order: option.sort_order || 0,
-        description: option.description || "",
-        image_url: option.image_url || "",
-        meta_title: option.meta_title || "",
-        meta_description: option.meta_description || "",
-      });
-    } else if (isNew && optionsCount !== undefined) {
-      setFormData(prev => ({ ...prev, sort_order: optionsCount }));
-    }
-  }, [option, isNew, optionsCount]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevOptionId, setPrevOptionId] = useState<string | null>(null);
+  const [prevOptionsCount, setPrevOptionsCount] = useState<number | undefined>(undefined);
+  if (option && option.id !== prevOptionId) {
+    setPrevOptionId(option.id);
+    setFormData({
+      name: option.name || "",
+      slug: option.slug || "",
+      sort_order: option.sort_order || 0,
+      description: option.description || "",
+      image_url: option.image_url || "",
+      meta_title: option.meta_title || "",
+      meta_description: option.meta_description || "",
+    });
+  } else if (isNew && optionsCount !== undefined && optionsCount !== prevOptionsCount) {
+    setPrevOptionsCount(optionsCount);
+    setFormData(prev => ({ ...prev, sort_order: optionsCount }));
+  }
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

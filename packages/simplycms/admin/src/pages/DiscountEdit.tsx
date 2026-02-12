@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@simplycms/ui/tabs";
 import { Badge } from "@simplycms/ui/badge";
 import { supabase } from "@simplycms/core/supabase/client";
 import { toast } from "@simplycms/core/hooks/use-toast";
+import type { Json } from "@simplycms/core/supabase/types";
 
 const schema = z.object({
   name: z.string().min(1, "Назва обов'язкова"),
@@ -44,15 +45,8 @@ interface ConditionRow {
   id?: string;
   condition_type: string;
   operator: string;
-  value: any;
+  value: Json;
 }
-
-const conditionTypeLabels: Record<string, string> = {
-  user_category: "Категорія користувача",
-  min_quantity: "Мін. кількість",
-  min_order_amount: "Мін. сума замовлення",
-  user_logged_in: "Авторизований",
-};
 
 export default function DiscountEdit() {
   const { discountId } = useParams() as { discountId: string };
@@ -142,24 +136,25 @@ export default function DiscountEdit() {
     enabled: !isNew,
   });
 
-  useEffect(() => {
-    if (existing) {
-      form.reset({
-        name: existing.name,
-        description: existing.description || "",
-        group_id: existing.group_id,
-        price_type_id: existing.price_type_id,
-        discount_type: existing.discount_type as any,
-        discount_value: Number(existing.discount_value),
-        priority: existing.priority,
-        is_active: existing.is_active,
-        starts_at: existing.starts_at ? existing.starts_at.slice(0, 16) : "",
-        ends_at: existing.ends_at ? existing.ends_at.slice(0, 16) : "",
-      });
-      setTargets(existing.targets || []);
-      setConditions(existing.conditions || []);
-    }
-  }, [existing, form]);
+  // Ініціалізація форми при завантаженні даних (adjust state during render)
+  const [prevExistingId, setPrevExistingId] = useState<string | null>(null);
+  if (existing && existing.id !== prevExistingId) {
+    setPrevExistingId(existing.id);
+    form.reset({
+      name: existing.name,
+      description: existing.description || "",
+      group_id: existing.group_id,
+      price_type_id: existing.price_type_id,
+      discount_type: existing.discount_type as FormData['discount_type'],
+      discount_value: Number(existing.discount_value),
+      priority: existing.priority,
+      is_active: existing.is_active,
+      starts_at: existing.starts_at ? existing.starts_at.slice(0, 16) : "",
+      ends_at: existing.ends_at ? existing.ends_at.slice(0, 16) : "",
+    });
+    setTargets(existing.targets || []);
+    setConditions(existing.conditions || []);
+  }
 
   const save = useMutation({
     mutationFn: async (data: FormData) => {
@@ -214,7 +209,7 @@ export default function DiscountEdit() {
       toast({ title: isNew ? "Скидку створено" : "Скидку оновлено" });
       router.push("/admin/discounts");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Помилка", description: err.message, variant: "destructive" });
     },
   });
@@ -267,7 +262,7 @@ export default function DiscountEdit() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {groups.map((g: any) => (
+                          {groups.map((g) => (
                             <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -282,7 +277,7 @@ export default function DiscountEdit() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {priceTypes.map((pt: any) => (
+                          {priceTypes.map((pt) => (
                             <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -395,7 +390,7 @@ export default function DiscountEdit() {
                         >
                           <SelectTrigger className="flex-1"><SelectValue placeholder="Оберіть товар" /></SelectTrigger>
                           <SelectContent>
-                            {products.map((p: any) => (
+                            {products.map((p) => (
                               <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -413,7 +408,7 @@ export default function DiscountEdit() {
                         >
                           <SelectTrigger className="flex-1"><SelectValue placeholder="Оберіть розділ" /></SelectTrigger>
                           <SelectContent>
-                            {sections.map((s: any) => (
+                            {sections.map((s) => (
                               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -475,7 +470,7 @@ export default function DiscountEdit() {
 
                       {c.condition_type === "user_category" && (
                         <div className="flex-1 flex flex-wrap gap-1">
-                          {userCategories.map((uc: any) => {
+                          {userCategories.map((uc) => {
                             const selected = Array.isArray(c.value) && c.value.includes(uc.id);
                             return (
                               <Badge
@@ -486,7 +481,7 @@ export default function DiscountEdit() {
                                   const updated = [...conditions];
                                   const vals = Array.isArray(c.value) ? [...c.value] : [];
                                   if (selected) {
-                                    updated[idx] = { ...c, value: vals.filter((v: string) => v !== uc.id) };
+                                    updated[idx] = { ...c, value: vals.filter((v) => v !== uc.id) };
                                   } else {
                                     updated[idx] = { ...c, value: [...vals, uc.id] };
                                   }
@@ -522,7 +517,7 @@ export default function DiscountEdit() {
                           <Input
                             type="number"
                             className="w-32"
-                            value={c.value}
+                            value={c.value as string | number}
                             onChange={(e) => {
                               const updated = [...conditions];
                               updated[idx] = { ...c, value: Number(e.target.value) };

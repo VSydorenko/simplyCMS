@@ -63,7 +63,7 @@ export default function AdminReviewDetail() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ status, comment }: { status: string; comment?: string }) => {
-      const updateData: any = { status };
+      const updateData: { status: string; admin_comment?: string } = { status };
       if (comment !== undefined) updateData.admin_comment = comment;
       const { error } = await supabase
         .from("product_reviews")

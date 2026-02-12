@@ -108,10 +108,10 @@ export default function UserCategoryRules() {
         description: `Змінено категорію у ${data || 0} користувачів`,
       });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Помилка",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Невідома помилка',
         variant: "destructive",
       });
     } finally {

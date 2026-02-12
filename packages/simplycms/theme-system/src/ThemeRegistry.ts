@@ -57,8 +57,8 @@ class ThemeRegistryClass {
     // Load the theme
     console.log(`[ThemeRegistry] Loading theme: ${name}`);
     try {
-      const module = await loader();
-      const theme = module.default;
+      const themeModule = await loader();
+      const theme = themeModule.default;
 
       // Validate theme structure
       this.validateTheme(name, theme);

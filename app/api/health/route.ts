@@ -5,14 +5,16 @@ import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
 // Використання: відвідайте /api/health на продакшені
 export async function GET() {
   try {
-    const diagnostics: Record<string, any> = {
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      checks: {},
-    };
+    interface HealthCheck {
+      success?: boolean;
+      error?: string | null;
+      [key: string]: unknown;
+    }
+
+    const checks: Record<string, HealthCheck> = {};
 
     // Перевірка змінних середовища
-    diagnostics.checks.envVars = {
+    checks.envVars = {
       NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       supabaseUrlValue: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...',
@@ -25,27 +27,29 @@ export async function GET() {
       // Простий запит для перевірки підключення
       const { data, error } = await supabase.from('banners').select('count').limit(1);
       
-      diagnostics.checks.supabaseConnection = {
+      checks.supabaseConnection = {
         success: !error,
         error: error?.message || null,
         dataReceived: !!data,
       };
     } catch (supabaseError) {
-      diagnostics.checks.supabaseConnection = {
+      checks.supabaseConnection = {
         success: false,
         error: supabaseError instanceof Error ? supabaseError.message : 'Unknown error',
       };
     }
 
     // Визначення загального статусу
-    const allChecksPass = Object.values(diagnostics.checks).every(
-      (check: any) => check.success !== false
+    const allChecksPass = Object.values(checks).every(
+      (check) => check.success !== false
     );
 
     return NextResponse.json(
       {
         status: allChecksPass ? 'healthy' : 'degraded',
-        ...diagnostics,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        checks,
       },
       { status: allChecksPass ? 200 : 503 }
     );

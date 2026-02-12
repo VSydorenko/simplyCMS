@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('slug, updated_at, sections(slug)')
     .eq('is_active', true);
 
-  const productPages: MetadataRoute.Sitemap = (products || []).map((product: any) => ({
+  const productPages: MetadataRoute.Sitemap = (products || []).map((product) => ({
     url: `${BASE_URL}/catalog/${product.sections?.slug || 'products'}/${product.slug}`,
     lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
     changeFrequency: 'weekly' as const,

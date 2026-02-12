@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, ChevronRight, Save } from "lucide-react";
 import { supabase } from "../../supabase/client";
@@ -11,8 +11,8 @@ import { RecipientSelectorPopup } from "./RecipientSelectorPopup";
 import { RecipientSaveDialog } from "./RecipientSaveDialog";
 
 interface CheckoutRecipientFormProps {
-  values: Record<string, any>;
-  onChange: (field: string, value: any) => void;
+  values: Record<string, string | boolean>;
+  onChange: (field: string, value: string | boolean) => void;
 }
 
 interface SavedRecipient {
@@ -34,12 +34,11 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const hasDifferentRecipient = values.hasDifferentRecipient;
-  const selectedRecipientId = values.savedRecipientId;
+  const selectedRecipientId = values.savedRecipientId as string | undefined;
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [originalRecipient, setOriginalRecipient] = useState<SavedRecipient | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
   const { data: savedRecipients } = useQuery({
     queryKey: ["checkout-saved-recipients", user?.id],
@@ -64,27 +63,32 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
 
   const showMoreButton = savedRecipients && savedRecipients.length > MAX_VISIBLE_CARDS;
 
-  const currentValues = {
-    firstName: values.recipientFirstName,
-    lastName: values.recipientLastName,
-    phone: values.recipientPhone,
-    email: values.recipientEmail,
-    city: values.recipientCity,
-    address: values.recipientAddress,
-    notes: values.recipientNotes,
-  };
+  const currentValues = useMemo(() => ({
+    firstName: String(values.recipientFirstName || ''),
+    lastName: String(values.recipientLastName || ''),
+    phone: String(values.recipientPhone || ''),
+    email: String(values.recipientEmail || ''),
+    city: String(values.recipientCity || ''),
+    address: String(values.recipientAddress || ''),
+    notes: String(values.recipientNotes || ''),
+  }), [
+    values.recipientFirstName, values.recipientLastName,
+    values.recipientPhone, values.recipientEmail,
+    values.recipientCity, values.recipientAddress, values.recipientNotes,
+  ]);
 
-  useEffect(() => {
-    if (!originalRecipient) { setHasChanges(false); return; }
-    const changed =
+  // hasChanges — виведений стан, не потребує окремого useState
+  const hasChanges = useMemo(() => {
+    if (!originalRecipient) return false;
+    return (
       currentValues.firstName !== originalRecipient.first_name ||
       currentValues.lastName !== originalRecipient.last_name ||
       currentValues.phone !== originalRecipient.phone ||
       (currentValues.email || "") !== (originalRecipient.email || "") ||
       currentValues.city !== originalRecipient.city ||
       currentValues.address !== originalRecipient.address ||
-      (currentValues.notes || "") !== (originalRecipient.notes || "");
-    setHasChanges(changed);
+      (currentValues.notes || "") !== (originalRecipient.notes || "")
+    );
   }, [currentValues, originalRecipient]);
 
   const handleSelectRecipient = (recipientId: string) => {
@@ -112,9 +116,9 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
     onChange("recipientNotes", recipient.notes || "");
   };
 
-  const clearRecipientFields = () => {
+  const clearRecipientFields = useCallback(() => {
     ["recipientFirstName", "recipientLastName", "recipientPhone", "recipientEmail", "recipientCity", "recipientAddress", "recipientNotes"].forEach(f => onChange(f, ""));
-  };
+  }, [onChange]);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -136,7 +140,6 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checkout-saved-recipients"] });
       toast({ title: "Отримувача оновлено" });
-      setHasChanges(false);
     },
   });
 
@@ -168,7 +171,6 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
         onChange("savedRecipientId", data.id);
         setOriginalRecipient(data as SavedRecipient);
       }
-      setHasChanges(false);
     },
   });
 
@@ -180,7 +182,6 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
   const handleCancelChanges = () => {
     if (originalRecipient) fillRecipientFields(originalRecipient);
     else clearRecipientFields();
-    setHasChanges(false);
   };
 
   const handleAddNew = () => {
@@ -190,13 +191,21 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
     setPopupOpen(false);
   };
 
+  // Скидання отримувача при вимкненні опції (adjust state during render)
+  const [prevHasDifferentRecipient, setPrevHasDifferentRecipient] = useState(hasDifferentRecipient);
+  if (hasDifferentRecipient !== prevHasDifferentRecipient) {
+    setPrevHasDifferentRecipient(hasDifferentRecipient);
+    if (!hasDifferentRecipient) {
+      setOriginalRecipient(null);
+    }
+  }
+
   useEffect(() => {
     if (!hasDifferentRecipient) {
       onChange("savedRecipientId", "");
-      setOriginalRecipient(null);
       clearRecipientFields();
     }
-  }, [hasDifferentRecipient]);
+  }, [hasDifferentRecipient, onChange, clearRecipientFields]);
 
   return (
     <>
@@ -211,7 +220,7 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={hasDifferentRecipient || false}
+              checked={!!hasDifferentRecipient}
               onChange={(e) => onChange("hasDifferentRecipient", e.target.checked)}
               className="rounded mt-0.5"
             />
@@ -308,7 +317,7 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
           open={popupOpen}
           onOpenChange={setPopupOpen}
           recipients={savedRecipients}
-          selectedId={selectedRecipientId}
+          selectedId={selectedRecipientId ?? null}
           onSelect={handleSelectRecipient}
           onAddNew={handleAddNew}
         />

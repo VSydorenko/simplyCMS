@@ -10,9 +10,20 @@ import { ProductCard } from "../components/catalog/ProductCard";
 import { Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@simplycms/ui/button";
 import { usePriceType } from "../hooks/usePriceType";
-import { resolvePrice } from "../lib/priceUtils";
+import { resolvePrice, type PriceEntry } from "../lib/priceUtils";
+import type { Tables } from "../supabase/types";
 
-export default function PropertyPage() {
+export interface PropertyOptionPageProps {
+  property?: Tables<'section_properties'> & Record<string, unknown>;
+  option?: Tables<'property_options'> & Record<string, unknown>;
+  products?: Array<Tables<'products'> & Record<string, unknown>>;
+}
+
+export default function PropertyPage({
+  property: initialProperty,
+  option: initialOption,
+  products: _initialProducts,
+}: PropertyOptionPageProps = {}) {
   const params = useParams();
   const propertySlug = params?.propertySlug as string | undefined;
   const optionSlug = params?.optionSlug as string | undefined;
@@ -35,6 +46,7 @@ export default function PropertyPage() {
       return data;
     },
     enabled: !!propertyCode,
+    initialData: initialProperty,
   });
 
   // Fetch option by slug (now includes page data)
@@ -51,6 +63,7 @@ export default function PropertyPage() {
       return data;
     },
     enabled: !!property?.id && !!optionSlug,
+    initialData: initialOption,
   });
 
   // Fetch products with this property value
@@ -79,7 +92,7 @@ export default function PropertyPage() {
       const productIds = new Set<string>();
       productLevelValues?.forEach(pv => productIds.add(pv.product_id));
       modLevelValues?.forEach(mv => {
-        const productId = (mv.product_modifications as any)?.product_id;
+        const productId = (mv.product_modifications as { product_id: string } | null)?.product_id;
         if (productId) productIds.add(productId);
       });
 
@@ -90,7 +103,7 @@ export default function PropertyPage() {
         .select(`
           *,
           sections(id, slug, name),
-          product_modifications(stock_status, is_default, sort_order),
+          product_modifications(id, stock_status, is_default, sort_order),
           product_prices(price_type_id, price, old_price, modification_id)
         `)
         .in("id", Array.from(productIds))
@@ -101,11 +114,12 @@ export default function PropertyPage() {
       return data.map((product) => {
         const mods = product.product_modifications || [];
         const defaultMod =
-          mods.find((m: any) => m.is_default) ||
-          mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
+          mods.find((m) => m.is_default) ||
+          [...mods].sort((a, b) => a.sort_order - b.sort_order)[0];
         const images = product.images as string[] | null;
         return {
           ...product,
+          has_modifications: product.has_modifications ?? false,
           images: Array.isArray(images) ? images : [],
           section: product.sections,
           modifications: defaultMod ? [defaultMod] : [],
@@ -120,17 +134,17 @@ export default function PropertyPage() {
   const products = useMemo(() => {
     if (!rawProducts) return undefined;
     return rawProducts.map((p) => {
-      const prices = (p as any).product_prices || [];
-      const hasModifications = (p as any).has_modifications ?? true;
+      const prices = (p.product_prices ?? []) as PriceEntry[];
+      const hasModifications = p.has_modifications ?? true;
       let resolved;
       if (hasModifications && p.modifications?.[0]) {
-        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, (p.modifications[0] as any).id);
+        resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, p.modifications[0].id);
       } else {
         resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, null);
       }
       const stockStatus = hasModifications
         ? (p.modifications?.[0]?.stock_status ?? "in_stock")
-        : ((p as any).stock_status ?? "in_stock");
+        : (p.stock_status ?? "in_stock");
       return { ...p, price: resolved.price, old_price: resolved.oldPrice, stock_status: stockStatus };
     });
   }, [rawProducts, priceTypeId, defaultPriceTypeId]);

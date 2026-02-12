@@ -31,7 +31,7 @@ export function usePriceType() {
         .eq("user_id", user.id)
         .single();
       if (error) return null;
-      return (data?.category as any)?.price_type_id || null;
+      return (data?.category as { price_type_id: string | null } | null)?.price_type_id || null;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,

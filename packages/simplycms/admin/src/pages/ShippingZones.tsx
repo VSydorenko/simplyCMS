@@ -113,7 +113,7 @@ export default function ShippingZones() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {zones.map((zone: any) => (
+                {zones.map((zone) => (
                   <TableRow
                     key={zone.id}
                     className="cursor-pointer hover:bg-muted/50"
@@ -141,7 +141,7 @@ export default function ShippingZones() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground max-w-[200px] truncate">
-                        {zone.cities?.length > 0 
+                        {zone.cities && zone.cities.length > 0 
                           ? zone.cities.slice(0, 3).join(", ") + (zone.cities.length > 3 ? ` +${zone.cities.length - 3}` : "")
                           : "—"}
                       </div>

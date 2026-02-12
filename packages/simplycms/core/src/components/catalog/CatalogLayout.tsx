@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, User, Settings, LogOut, Search } from "lucide-react";
+import { Sun, User, Search } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../supabase/client";
 import { useToast } from "../../hooks/use-toast";
@@ -16,9 +16,9 @@ interface CatalogLayoutProps {
   /** Render the cart drawer */
   renderCartDrawer?: () => React.ReactNode;
   /** Render a Button component */
-  renderButton?: (props: any) => React.ReactNode;
+  renderButton?: (props: Record<string, unknown>) => React.ReactNode;
   /** Render a DropdownMenu */
-  renderDropdownMenu?: (props: any) => React.ReactNode;
+  renderDropdownMenu?: (props: Record<string, unknown>) => React.ReactNode;
   /** Children to render in the main content area (replaces Outlet) */
   children?: React.ReactNode;
 }
@@ -27,7 +27,7 @@ export function CatalogLayout({
   renderThemeToggle,
   renderCartButton,
   renderCartDrawer,
-  renderButton,
+  renderButton: _renderButton,
   renderDropdownMenu,
   children,
 }: CatalogLayoutProps) {

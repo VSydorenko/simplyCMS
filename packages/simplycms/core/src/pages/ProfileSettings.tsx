@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@simp
 import { Button } from "@simplycms/ui/button";
 import { Input } from "@simplycms/ui/input";
 import { Skeleton } from "@simplycms/ui/skeleton";
-import { Separator } from "@simplycms/ui/separator";
 import {
   Form,
   FormControl,
@@ -48,7 +47,7 @@ export default function ProfileSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<{ first_name?: string; last_name?: string } | null>(null);
+  const [profileData, setProfileData] = useState<{ first_name?: string | null; last_name?: string | null } | null>(null);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -85,7 +84,7 @@ export default function ProfileSettingsPage() {
           setAvatarUrl(data.avatar_url);
           setProfileData({ first_name: data.first_name, last_name: data.last_name });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error loading profile:", error);
       } finally {
         setIsLoading(false);
@@ -115,11 +114,11 @@ export default function ProfileSettingsPage() {
         title: "Збережено",
         description: "Ваші дані успішно оновлено",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating profile:", error);
       toast({
         title: "Помилка",
-        description: error.message || "Не вдалось зберегти дані",
+        description: error instanceof Error ? error.message : "Не вдалось зберегти дані",
         variant: "destructive",
       });
     } finally {
@@ -142,11 +141,11 @@ export default function ProfileSettingsPage() {
         title: "Пароль змінено",
         description: "Ваш пароль успішно оновлено",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error changing password:", error);
       toast({
         title: "Помилка",
-        description: error.message || "Не вдалось змінити пароль",
+        description: error instanceof Error ? error.message : "Не вдалось змінити пароль",
         variant: "destructive",
       });
     } finally {

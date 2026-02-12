@@ -33,6 +33,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
 import { toast } from "../hooks/use-toast";
+import type { Json } from "../supabase/types";
 
 interface OrderDetails {
   id: string;
@@ -65,7 +66,7 @@ interface OrderDetails {
     name: string;
     price: number;
     base_price: number | null;
-    discount_data: any | null;
+    discount_data: Json | null;
     quantity: number;
     total: number;
   }[];
@@ -155,11 +156,15 @@ export default function ProfileOrderDetailPage() {
         throw new Error("Статус 'Скасовано' не знайдено");
       }
 
+      if (!user?.id) {
+        throw new Error("Користувач не авторизований");
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({ status_id: cancelledStatus.id })
         .eq("id", order.id)
-        .eq("user_id", user?.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -169,11 +174,11 @@ export default function ProfileOrderDetailPage() {
       });
 
       router.push("/profile/orders");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error cancelling order:", error);
       toast({
         title: "Помилка",
-        description: error.message || "Не вдалось скасувати замовлення",
+        description: error instanceof Error ? error.message : "Не вдалось скасувати замовлення",
         variant: "destructive",
       });
     } finally {

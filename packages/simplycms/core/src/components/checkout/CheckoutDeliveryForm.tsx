@@ -13,8 +13,8 @@ import { AddressSelectorPopup } from "./AddressSelectorPopup";
 import { AddressSaveDialog } from "./AddressSaveDialog";
 
 interface CheckoutDeliveryFormProps {
-  values: Record<string, any>;
-  onChange: (field: string, value: any) => void;
+  values: Record<string, string | boolean>;
+  onChange: (field: string, value: string | boolean) => void;
   subtotal: number;
   onShippingCostChange: (cost: number) => void;
 }
@@ -39,13 +39,12 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const selectedMethodId = values.shippingMethodId;
-  const selectedAddressId = values.savedAddressId;
+  const selectedMethodId = values.shippingMethodId as string | undefined;
+  const selectedAddressId = values.savedAddressId as string | undefined;
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [originalAddress, setOriginalAddress] = useState<SavedAddress | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
   const { data: methods, isLoading: methodsLoading } = useQuery({
     queryKey: ["checkout-shipping-methods"],
@@ -112,12 +111,13 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const isPickup = selectedMethod?.code === "pickup";
   const showAddressFields = selectedMethod && !isPickup;
 
-  const currentCity = values.deliveryCity;
-  const currentAddress = values.deliveryAddress;
+  const currentCity = String(values.deliveryCity || '');
+  const currentAddress = String(values.deliveryAddress || '');
 
-  useEffect(() => {
-    if (!originalAddress) { setHasChanges(false); return; }
-    setHasChanges(currentCity !== originalAddress.city || currentAddress !== originalAddress.address);
+  // hasChanges — виведений стан, не потребує окремого useState
+  const hasChanges = useMemo(() => {
+    if (!originalAddress) return false;
+    return currentCity !== originalAddress.city || currentAddress !== originalAddress.address;
   }, [currentCity, currentAddress, originalAddress]);
 
   const handleSelectAddress = (addressId: string) => {
@@ -150,7 +150,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
       queryClient.invalidateQueries({ queryKey: ["checkout-saved-addresses"] });
       toast({ title: "Адресу оновлено" });
       setOriginalAddress({ ...originalAddress!, city: currentCity, address: currentAddress });
-      setHasChanges(false);
     },
   });
 
@@ -172,7 +171,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
         onChange("savedAddressId", data.id);
         setOriginalAddress(data as SavedAddress);
       }
-      setHasChanges(false);
     },
   });
 
@@ -189,7 +187,6 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
       onChange("deliveryCity", "");
       onChange("deliveryAddress", "");
     }
-    setHasChanges(false);
   };
 
   const handleAddNew = () => {
@@ -216,7 +213,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
     if (methods && methods.length > 0 && !selectedMethodId) {
       onChange("shippingMethodId", methods[0].id);
     }
-  }, [methods, selectedMethodId]);
+  }, [methods, selectedMethodId, onChange]);
 
   const getRateInfo = (methodId: string) => {
     if (!rates) return null;
@@ -294,7 +291,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
             <div className="pt-4 border-t">
               <label className="text-sm font-medium mb-1 block">Оберiть пункт самовивозу *</label>
               <select
-                value={values.pickupPointId || ""}
+                value={String(values.pickupPointId || "")}
                 onChange={(e) => onChange("pickupPointId", e.target.value)}
                 className="w-full px-3 py-2 border rounded-md text-sm"
               >
@@ -390,7 +387,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
           open={popupOpen}
           onOpenChange={setPopupOpen}
           addresses={savedAddresses}
-          selectedId={selectedAddressId}
+          selectedId={selectedAddressId ?? null}
           onSelect={handleSelectAddress}
           onAddNew={handleAddNew}
         />

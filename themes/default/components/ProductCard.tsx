@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import NextImage from "next/image";
-import { Image, Star } from "lucide-react";
+import { ImageIcon, Star } from "lucide-react";
 
 interface ProductCardProps {
   product: {
@@ -50,7 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Image className="h-12 w-12 text-muted-foreground/40" />
+            <ImageIcon className="h-12 w-12 text-muted-foreground/40" aria-hidden="true" />
           </div>
         )}
 

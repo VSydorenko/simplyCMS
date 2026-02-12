@@ -58,7 +58,7 @@ export default function DiscountGroupEdit() {
         .select("id, name")
         .order("name");
       if (error) throw error;
-      return data.filter((g: any) => g.id !== groupId);
+      return data.filter((g) => g.id !== groupId);
     },
   });
 
@@ -82,7 +82,7 @@ export default function DiscountGroupEdit() {
       form.reset({
         name: existing.name,
         description: existing.description || "",
-        operator: existing.operator as any,
+        operator: existing.operator as FormData['operator'],
         parent_group_id: existing.parent_group_id || "",
         is_active: existing.is_active,
         priority: existing.priority,
@@ -118,7 +118,7 @@ export default function DiscountGroupEdit() {
       toast({ title: isNew ? "Групу створено" : "Групу оновлено" });
       router.push("/admin/discounts");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Помилка", description: err.message, variant: "destructive" });
     },
   });
@@ -179,7 +179,7 @@ export default function DiscountGroupEdit() {
                     <FormControl><SelectTrigger><SelectValue placeholder="Кореневий рівень" /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="__root__">Кореневий рівень</SelectItem>
-                      {parentGroups.map((g: any) => (
+                      {parentGroups.map((g) => (
                         <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                       ))}
                     </SelectContent>

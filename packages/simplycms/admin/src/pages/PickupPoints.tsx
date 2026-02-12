@@ -111,7 +111,7 @@ export default function PickupPoints() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {points.map((point: any) => (
+                {points.map((point) => (
                   <TableRow
                     key={point.id}
                     className="cursor-pointer hover:bg-muted/50"

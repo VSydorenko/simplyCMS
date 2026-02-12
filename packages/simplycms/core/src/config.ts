@@ -1,10 +1,13 @@
+import type { ThemeModule } from '@simplycms/themes/types';
+import type { PluginModule } from '@simplycms/plugins/types';
+
 export interface SimplyCMSConfig {
   supabase?: { url?: string; anonKey?: string };
   seo?: { siteName?: string; defaultTitle?: string; titleTemplate?: string };
   locale?: string;
   currency?: string;
-  theme?: any;
-  plugins?: any[];
+  theme?: ThemeModule;
+  plugins?: PluginModule[];
 }
 
 export function defineConfig(config: SimplyCMSConfig): SimplyCMSConfig {

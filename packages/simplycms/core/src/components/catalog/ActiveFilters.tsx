@@ -22,20 +22,29 @@ interface ActiveFiltersProps {
 
 export type { ActiveFilter };
 
-export function ActiveFilters({ filters, onRemoveFilter, onClearAll, renderBadge, renderButton }: ActiveFiltersProps) {
-  if (filters.length === 0) return null;
-
-  const Badge = renderBadge || (({ children, className }: any) => (
+/** Бейдж за замовчуванням */
+function DefaultBadge({ children, className }: { variant?: string; className?: string; children: React.ReactNode }) {
+  return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground ${className || ""}`}>
       {children}
     </span>
-  ));
+  );
+}
 
-  const Button = renderButton || (({ children, onClick, className }: any) => (
+/** Кнопка за замовчуванням */
+function DefaultButton({ children, onClick, className }: { variant?: string; size?: string; onClick: () => void; className?: string; children: React.ReactNode }) {
+  return (
     <button onClick={onClick} className={`text-sm hover:underline ${className || ""}`}>
       {children}
     </button>
-  ));
+  );
+}
+
+export function ActiveFilters({ filters, onRemoveFilter, onClearAll, renderBadge, renderButton }: ActiveFiltersProps) {
+  if (filters.length === 0) return null;
+
+  const Badge = renderBadge || DefaultBadge;
+  const Button = renderButton || DefaultButton;
 
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">

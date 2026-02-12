@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
-import { Toaster } from 'sonner';
+import { Toaster as SonnerToaster } from 'sonner';
+import { Toaster } from '@simplycms/ui/toaster';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -20,7 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             {children}
           </Providers>
-          <Toaster richColors position="top-right" />
+          <Toaster />
+          <SonnerToaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>

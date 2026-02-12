@@ -17,6 +17,34 @@ import {
 import { cn } from "../../lib/utils";
 import { useCallback, useEffect } from "react";
 
+/** Кнопка тулбару редактора */
+function ToolbarButton({
+  isActive,
+  onClick,
+  disabled,
+  children,
+}: {
+  isActive?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "h-8 w-8 flex items-center justify-center rounded text-sm",
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent",
+        disabled && "opacity-50 cursor-not-allowed"
+      )}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+}
+
 interface ReviewRichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -27,7 +55,6 @@ interface ReviewRichTextEditorProps {
 export function ReviewRichTextEditor({
   content,
   onChange,
-  placeholder = "Напишiть ваш вiдгук...",
   className,
 }: ReviewRichTextEditorProps) {
   const editor = useEditor({
@@ -77,31 +104,6 @@ export function ReviewRichTextEditor({
   }, [editor]);
 
   if (!editor) return null;
-
-  const ToolbarButton = ({
-    isActive,
-    onClick,
-    disabled,
-    children,
-  }: {
-    isActive?: boolean;
-    onClick: () => void;
-    disabled?: boolean;
-    children: React.ReactNode;
-  }) => (
-    <button
-      type="button"
-      className={cn(
-        "h-8 w-8 flex items-center justify-center rounded text-sm",
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent",
-        disabled && "opacity-50 cursor-not-allowed"
-      )}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
 
   return (
     <div className={cn("border rounded-lg overflow-hidden bg-background", className)}>

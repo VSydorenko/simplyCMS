@@ -1,6 +1,7 @@
 import { hookRegistry } from "./HookRegistry";
 import type { Plugin, PluginModule } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@simplycms/core/supabase/types";
 
 // Map of available plugins (will be populated by dynamic imports)
 const pluginModules: Map<string, PluginModule> = new Map();
@@ -33,10 +34,10 @@ export async function loadPlugins(supabase: SupabaseClient): Promise<Plugin[]> {
 
     for (const plugin of plugins || []) {
       try {
-        const module = pluginModules.get(plugin.name);
+        const pluginModule = pluginModules.get(plugin.name);
 
-        if (module) {
-          module.register(hookRegistry);
+        if (pluginModule) {
+          pluginModule.register(hookRegistry);
           loadedPlugins.push(plugin as Plugin);
           console.log(`Plugin "${plugin.display_name}" loaded successfully`);
         } else {
@@ -56,15 +57,15 @@ export async function loadPlugins(supabase: SupabaseClient): Promise<Plugin[]> {
 
 // Activate a specific plugin
 export async function activatePlugin(supabase: SupabaseClient, pluginName: string): Promise<boolean> {
-  const module = pluginModules.get(pluginName);
+  const pluginModule = pluginModules.get(pluginName);
 
-  if (!module) {
+  if (!pluginModule) {
     console.error(`Plugin module "${pluginName}" not found`);
     return false;
   }
 
   try {
-    module.register(hookRegistry);
+    pluginModule.register(hookRegistry);
 
     const { error } = await supabase
       .from("plugins")
@@ -86,10 +87,10 @@ export async function activatePlugin(supabase: SupabaseClient, pluginName: strin
 
 // Deactivate a specific plugin
 export async function deactivatePlugin(supabase: SupabaseClient, pluginName: string): Promise<boolean> {
-  const module = pluginModules.get(pluginName);
+  const pluginModule = pluginModules.get(pluginName);
 
-  if (module?.unregister) {
-    module.unregister(hookRegistry);
+  if (pluginModule?.unregister) {
+    pluginModule.unregister(hookRegistry);
   }
 
   try {
@@ -141,7 +142,7 @@ export async function updatePluginConfig(
   const { error } = await supabase
     .from("plugins")
      
-    .update({ config: config as any, updated_at: new Date().toISOString() })
+    .update({ config: config as unknown as Json, updated_at: new Date().toISOString() })
     .eq("name", pluginName);
 
   if (error) {

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
 import { Input } from "@simplycms/ui/input";
@@ -16,17 +16,13 @@ import {
 } from "@simplycms/ui/table";
 import { toast } from "sonner";
 import { Loader2, Save, Building } from "lucide-react";
+import type { TablesInsert } from "@simplycms/core/supabase/types";
 import { usePickupPointsCount, usePickupPoints } from "@simplycms/core/hooks/useStock";
 
 interface StockByPointManagerProps {
   productId?: string | null;
   modificationId?: string | null;
   showCard?: boolean;
-}
-
-interface StockRecord {
-  pickup_point_id: string;
-  quantity: number;
 }
 
 export function StockByPointManager({
@@ -62,20 +58,22 @@ export function StockByPointManager({
     enabled: !!(productId || modificationId),
   });
 
-  // Initialize stock data when existing stock loads
-  useEffect(() => {
-    if (existingStock && pickupPoints.length > 0) {
-      const newStockData: Record<string, number> = {};
-      pickupPoints.forEach((point) => {
-        const existing = existingStock.find(
-          (s) => s.pickup_point_id === point.id
-        );
-        newStockData[point.id] = existing?.quantity ?? 0;
-      });
-      setStockData(newStockData);
-      setHasChanges(false);
-    }
-  }, [existingStock, pickupPoints]);
+  // Ініціалізація даних залишків (adjust state during render)
+  const [prevExistingStock, setPrevExistingStock] = useState(existingStock);
+  const [prevPickupPoints, setPrevPickupPoints] = useState(pickupPoints);
+  if (existingStock && pickupPoints.length > 0 && (existingStock !== prevExistingStock || pickupPoints !== prevPickupPoints)) {
+    setPrevExistingStock(existingStock);
+    setPrevPickupPoints(pickupPoints);
+    const newStockData: Record<string, number> = {};
+    pickupPoints.forEach((point) => {
+      const existing = existingStock.find(
+        (s) => s.pickup_point_id === point.id
+      );
+      newStockData[point.id] = existing?.quantity ?? 0;
+    });
+    setStockData(newStockData);
+    setHasChanges(false);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -95,7 +93,7 @@ export function StockByPointManager({
           if (error) throw error;
         } else {
           // Insert new record
-          const payload: any = {
+          const payload: TablesInsert<"stock_by_pickup_point"> = {
             pickup_point_id: pointId,
             quantity,
           };

@@ -53,8 +53,8 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
         toast({ title: "Успiшний вхiд!" });
         onAuthSuccess?.();
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || "Щось пiшло не так.";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Щось пiшло не так.";
       setAuthError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -94,8 +94,8 @@ export function CheckoutAuthBlock({ onAuthSuccess, defaultTab = "guest" }: Check
         toast({ title: "Реєстрацiя успiшна!" });
         onAuthSuccess?.();
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || "Щось пiшло не так.";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Щось пiшло не так.";
       setAuthError(errorMessage);
     } finally {
       setIsLoading(false);

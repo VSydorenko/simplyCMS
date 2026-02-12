@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { X } from "lucide-react";
@@ -28,20 +28,23 @@ interface ProductForCounting {
   }>;
 }
 
+/** Тип значення фільтра */
+export type FilterValue = boolean | number | string[] | undefined;
+
 interface FilterSidebarProps {
   sectionId?: string;
-  filters: Record<string, any>;
-  onFilterChange: (filters: Record<string, any>) => void;
+  filters: Record<string, FilterValue>;
+  onFilterChange: (filters: Record<string, FilterValue>) => void;
   priceRange?: { min: number; max: number };
   numericPropertyRanges?: Record<string, { min: number; max: number }>;
   products?: ProductForCounting[];
   /** Render UI components - the host app should provide these */
-  renderButton?: (props: any) => React.ReactNode;
-  renderCheckbox?: (props: any) => React.ReactNode;
-  renderLabel?: (props: any) => React.ReactNode;
-  renderSlider?: (props: any) => React.ReactNode;
-  renderInput?: (props: any) => React.ReactNode;
-  renderAccordion?: (props: any) => React.ReactNode;
+  renderButton?: (props: Record<string, unknown>) => React.ReactNode;
+  renderCheckbox?: (props: Record<string, unknown>) => React.ReactNode;
+  renderLabel?: (props: Record<string, unknown>) => React.ReactNode;
+  renderSlider?: (props: Record<string, unknown>) => React.ReactNode;
+  renderInput?: (props: Record<string, unknown>) => React.ReactNode;
+  renderAccordion?: (props: Record<string, unknown>) => React.ReactNode;
 }
 
 export function FilterSidebar({
@@ -57,11 +60,12 @@ export function FilterSidebar({
     priceRange?.max || 100000,
   ]);
 
-  useEffect(() => {
-    if (priceRange) {
-      setLocalPriceRange([priceRange.min, priceRange.max]);
-    }
-  }, [priceRange]);
+  // Синхронізація діапазону цін при зміні (adjust state during render)
+  const [prevPriceRange, setPrevPriceRange] = useState(priceRange);
+  if (priceRange && priceRange !== prevPriceRange) {
+    setPrevPriceRange(priceRange);
+    setLocalPriceRange([priceRange.min, priceRange.max]);
+  }
 
   const { data: properties } = useQuery({
     queryKey: ["section-filter-properties", sectionId],
@@ -123,16 +127,20 @@ export function FilterSidebar({
 
   const [localNumericRanges, setLocalNumericRanges] = useState<Record<string, [number, number]>>({});
 
-  useEffect(() => {
+  // Синхронізація числових діапазонів при зміні (adjust state during render)
+  const [prevNumericRanges, setPrevNumericRanges] = useState(numericPropertyRanges);
+  if (numericPropertyRanges !== prevNumericRanges) {
+    setPrevNumericRanges(numericPropertyRanges);
     const newRanges: Record<string, [number, number]> = {};
     Object.entries(numericPropertyRanges).forEach(([code, range]) => {
       newRanges[code] = [range.min, range.max];
     });
     setLocalNumericRanges(newRanges);
-  }, [numericPropertyRanges]);
+  }
 
   const handleCheckboxChange = (propertySlug: string, optionId: string, checked: boolean) => {
-    const current = filters[propertySlug] || [];
+    const raw = filters[propertySlug];
+    const current = Array.isArray(raw) ? raw : [];
     const updated = checked
       ? [...current, optionId]
       : current.filter((v: string) => v !== optionId);
@@ -141,10 +149,6 @@ export function FilterSidebar({
       ...filters,
       [propertySlug]: updated.length > 0 ? updated : undefined,
     });
-  };
-
-  const handlePriceChange = (values: number[]) => {
-    setLocalPriceRange([values[0], values[1]]);
   };
 
   const handlePriceCommit = () => {
@@ -283,14 +287,17 @@ export function FilterSidebar({
             <div key={property.id} className="space-y-2 border-b pb-4">
               <h4 className="text-sm font-medium">{property.name}</h4>
               {options.length > 0 ? (
-                options.map((option) => {
+                (() => {
+                const filterVal = filters[property.slug];
+                const selectedIds = Array.isArray(filterVal) ? filterVal : [];
+                return options.map((option) => {
                   const count = getOptionCount(option.id);
                   return (
                     <div key={option.id} className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         id={`${property.slug}-${option.id}`}
-                        checked={(filters[property.slug] || []).includes(option.id)}
+                        checked={selectedIds.includes(option.id)}
                         onChange={(e) =>
                           handleCheckboxChange(property.slug, option.id, e.target.checked)
                         }
@@ -313,8 +320,8 @@ export function FilterSidebar({
                       </span>
                     </div>
                   );
-                })
-              ) : (
+                });
+              })()) : (
                 <p className="text-sm text-muted-foreground">Немає опцiй</p>
               )}
             </div>

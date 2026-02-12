@@ -8,7 +8,7 @@ import { Switch } from "@simplycms/ui/switch";
 import { Badge } from "@simplycms/ui/badge";
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Plus, Trash2, GripVertical, Image, Clock, Calendar } from "lucide-react";
+import { Plus, Trash2, GripVertical, ImageIcon, Clock, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -63,7 +63,7 @@ export default function Banners() {
     );
   }
 
-  const hasSchedule = (b: any) => b.date_from || b.date_to || (b.schedule_days && b.schedule_days.length > 0) || b.schedule_time_from;
+  const hasSchedule = (b: { date_from: string | null; date_to: string | null; schedule_days: unknown; schedule_time_from: string | null }) => b.date_from || b.date_to || (Array.isArray(b.schedule_days) && b.schedule_days.length > 0) || b.schedule_time_from;
 
   return (
     <div className="space-y-6">
@@ -77,7 +77,7 @@ export default function Banners() {
       {!banners?.length ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <Image className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-30" aria-hidden="true" />
             <p>Банерів поки немає</p>
           </CardContent>
         </Card>
