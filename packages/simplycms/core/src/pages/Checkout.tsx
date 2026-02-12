@@ -31,11 +31,11 @@ const checkoutSchema = z.object({
   deliveryAddress: z.string().optional(),
   pickupPointId: z.string().optional(),
   paymentMethod: z.enum(["cash", "online"], {
-    required_error: "Оберіть спосіб оплати",
+    message: "Оберіть спосіб оплати",
   }),
   notes: z.string().optional(),
   // Recipient fields
-  hasDifferentRecipient: z.boolean().default(false),
+  hasDifferentRecipient: z.boolean(),
   savedRecipientId: z.string().optional(),
   recipientFirstName: z.string().optional(),
   recipientLastName: z.string().optional(),
@@ -44,10 +44,10 @@ const checkoutSchema = z.object({
   recipientCity: z.string().optional(),
   recipientAddress: z.string().optional(),
   recipientNotes: z.string().optional(),
-  saveRecipient: z.boolean().default(false),
+  saveRecipient: z.boolean(),
   // Address fields
   savedAddressId: z.string().optional(),
-  saveAddress: z.boolean().default(false),
+  saveAddress: z.boolean(),
 }).refine((data) => {
   // Require at least email OR phone
   const hasEmail = data.email && data.email.length > 0;
@@ -325,14 +325,29 @@ export default function Checkout() {
                 <CheckoutAuthBlock onAuthSuccess={handleAuthSuccess} />
               )}
 
-              <CheckoutContactForm form={form} />
-              <CheckoutRecipientForm form={form} />
+              <CheckoutContactForm
+                values={{
+                  firstName: form.watch("firstName"),
+                  lastName: form.watch("lastName"),
+                  email: form.watch("email") || "",
+                  phone: form.watch("phone") || "",
+                }}
+                onChange={(field, value) => form.setValue(field as keyof CheckoutFormData, value)}
+              />
+              <CheckoutRecipientForm
+                values={form.watch()}
+                onChange={(field, value) => form.setValue(field as keyof CheckoutFormData, value)}
+              />
               <CheckoutDeliveryForm
-                form={form}
+                values={form.watch()}
+                onChange={(field, value) => form.setValue(field as keyof CheckoutFormData, value)}
                 subtotal={totalPrice}
                 onShippingCostChange={setShippingCost}
               />
-              <CheckoutPaymentForm form={form} />
+              <CheckoutPaymentForm
+                selectedMethod={form.watch("paymentMethod")}
+                onMethodChange={(method) => form.setValue("paymentMethod", method as "cash" | "online")}
+              />
 
               <PluginSlot name="checkout.shipping.after" context={{ cart: { items, subtotal: totalPrice } }} />
             </div>
@@ -343,7 +358,8 @@ export default function Checkout() {
                 items={items}
                 totalPrice={totalPrice}
                 shippingCost={shippingCost}
-                form={form}
+                notes={form.watch("notes") || ""}
+                onNotesChange={(notes) => form.setValue("notes", notes)}
                 isSubmitting={isSubmitting}
               />
             </div>

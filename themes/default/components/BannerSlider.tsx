@@ -11,10 +11,12 @@ import Link from "next/link";
 interface BannerSliderProps {
   placement?: string;
   sectionId?: string;
+  banners?: Banner[];
 }
 
-export function BannerSlider({ placement = "home", sectionId }: BannerSliderProps) {
-  const { data: banners } = useBanners(placement, sectionId);
+export function BannerSlider({ placement = "home", sectionId, banners: initialBanners }: BannerSliderProps) {
+  const { data: fetchedBanners } = useBanners(placement, sectionId);
+  const banners = fetchedBanners ?? initialBanners;
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
 

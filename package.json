@@ -84,7 +84,10 @@
       "esbuild",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "next": "$next"
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

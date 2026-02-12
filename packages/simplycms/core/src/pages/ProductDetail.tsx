@@ -28,7 +28,14 @@ import { usePriceType } from "../hooks/usePriceType";
 import { resolvePrice } from "../lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "../hooks/useDiscountedPrice";
 
-export default function ProductDetailPage() {
+export interface ProductDetailPageProps {
+  product?: any;
+  sectionSlug?: string;
+}
+
+export default function ProductDetailPage({
+  product: initialProduct,
+}: ProductDetailPageProps = {}) {
   const params = useParams<{
     sectionSlug: string;
     productSlug: string;
@@ -72,6 +79,7 @@ export default function ProductDetailPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialProduct,
   });
 
   // Fetch modification property values for all modifications

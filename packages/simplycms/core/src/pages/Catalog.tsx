@@ -27,7 +27,15 @@ import { useProductRatings } from "../hooks/useProductReviews";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
-export default function CatalogPage() {
+export interface CatalogPageProps {
+  initialSections?: any[];
+  initialProducts?: any[];
+}
+
+export default function CatalogPage({
+  initialSections,
+  initialProducts,
+}: CatalogPageProps = {}) {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -50,6 +58,7 @@ export default function CatalogPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialSections,
   });
 
   // Fetch all products with modifications, prices, property values, and stock
@@ -112,9 +121,8 @@ export default function CatalogPage() {
     const cartTotal = 0; // catalog view doesn't have cart context
     return rawProducts.map((p) => {
       const prices = (p as any).product_prices || [];
-      let resolved;
       const modId = p.has_modifications && p.modifications?.[0] ? p.modifications[0].id : null;
-      resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, modId);
+      const resolved = resolvePrice(prices, priceTypeId, defaultPriceTypeId, modId);
 
       const stockStatus = p.has_modifications
         ? (p.modifications?.[0]?.stock_status ?? "in_stock")

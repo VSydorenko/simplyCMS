@@ -12,7 +12,17 @@ import { Button } from "@simplycms/ui/button";
 import { usePriceType } from "../hooks/usePriceType";
 import { resolvePrice } from "../lib/priceUtils";
 
-export default function PropertyPage() {
+export interface PropertyOptionPageProps {
+  property?: any;
+  option?: any;
+  products?: any[];
+}
+
+export default function PropertyPage({
+  property: initialProperty,
+  option: initialOption,
+  products: initialProducts,
+}: PropertyOptionPageProps = {}) {
   const params = useParams();
   const propertySlug = params?.propertySlug as string | undefined;
   const optionSlug = params?.optionSlug as string | undefined;
@@ -35,6 +45,7 @@ export default function PropertyPage() {
       return data;
     },
     enabled: !!propertyCode,
+    initialData: initialProperty,
   });
 
   // Fetch option by slug (now includes page data)
@@ -51,6 +62,7 @@ export default function PropertyPage() {
       return data;
     },
     enabled: !!property?.id && !!optionSlug,
+    initialData: initialOption,
   });
 
   // Fetch products with this property value
@@ -106,6 +118,7 @@ export default function PropertyPage() {
         const images = product.images as string[] | null;
         return {
           ...product,
+          has_modifications: product.has_modifications ?? false,
           images: Array.isArray(images) ? images : [],
           section: product.sections,
           modifications: defaultMod ? [defaultMod] : [],
@@ -130,7 +143,7 @@ export default function PropertyPage() {
       }
       const stockStatus = hasModifications
         ? (p.modifications?.[0]?.stock_status ?? "in_stock")
-        : ((p as any).stock_status ?? "in_stock");
+        : (p.stock_status ?? "in_stock");
       return { ...p, price: resolved.price, old_price: resolved.oldPrice, stock_status: stockStatus };
     });
   }, [rawProducts, priceTypeId, defaultPriceTypeId]);

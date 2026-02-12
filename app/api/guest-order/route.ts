@@ -4,18 +4,18 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customer_name, customer_phone, customer_email, items, delivery_info, comment } = body;
+    const { first_name, last_name, phone, email, items, notes, payment_method } = body;
 
-    if (!customer_name || !customer_phone || !items?.length) {
+    if (!first_name || !last_name || !phone || !email || !items?.length) {
       return NextResponse.json(
-        { error: 'Name, phone, and at least one item are required' },
+        { error: 'first_name, last_name, phone, email, and at least one item are required' },
         { status: 400 }
       );
     }
 
     const supabase = await createServerSupabaseClient();
 
-    const total_amount = items.reduce(
+    const subtotal = items.reduce(
       (sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity,
       0
     );
@@ -23,13 +23,15 @@ export async function POST(request: Request) {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_name,
-        customer_phone,
-        customer_email: customer_email || null,
-        delivery_info: delivery_info || null,
-        comment: comment || null,
-        total_amount,
-        status: 'pending',
+        first_name,
+        last_name,
+        phone,
+        email,
+        order_number: `GUEST-${Date.now()}`,
+        payment_method: payment_method || 'cash',
+        subtotal,
+        total: subtotal,
+        notes: notes || null,
       })
       .select()
       .single();

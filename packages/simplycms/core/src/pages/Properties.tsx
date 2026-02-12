@@ -6,7 +6,13 @@ import { supabase } from "../supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Loader2, ChevronRight, Tag } from "lucide-react";
 
-export default function PropertiesPage() {
+export interface PropertiesPageProps {
+  properties?: any[];
+}
+
+export default function PropertiesPage({
+  properties: initialProperties,
+}: PropertiesPageProps = {}) {
   // Fetch properties with has_page = true
   const { data: properties, isLoading } = useQuery({
     queryKey: ["public-properties-with-pages"],
@@ -19,6 +25,7 @@ export default function PropertiesPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialProperties,
   });
 
   // Fetch option counts for each property

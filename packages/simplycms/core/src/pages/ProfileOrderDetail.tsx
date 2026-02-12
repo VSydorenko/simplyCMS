@@ -155,11 +155,15 @@ export default function ProfileOrderDetailPage() {
         throw new Error("Статус 'Скасовано' не знайдено");
       }
 
+      if (!user?.id) {
+        throw new Error("Користувач не авторизований");
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({ status_id: cancelledStatus.id })
         .eq("id", order.id)
-        .eq("user_id", user?.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 

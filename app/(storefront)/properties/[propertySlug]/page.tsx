@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { propertySlug } = await params;
   const supabase = await createServerSupabaseClient();
   const { data: property } = await supabase
-    .from('properties')
+    .from('section_properties')
     .select('name')
     .eq('slug', propertySlug)
     .maybeSingle();
@@ -25,12 +25,12 @@ export default async function PropertyPage({ params }: Props) {
   const supabase = await createServerSupabaseClient();
 
   const { data: property } = await supabase
-    .from('properties')
-    .select('*, property_values(*)')
+    .from('section_properties')
+    .select('*, property_options(*)')
     .eq('slug', propertySlug)
     .maybeSingle();
 
   if (!property) notFound();
 
-  return <PropertyDetailPage property={property} options={property.property_values || []} />;
+  return <PropertyDetailPage property={property} options={property.property_options || []} />;
 }

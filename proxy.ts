@@ -1,22 +1,22 @@
-import { createMiddlewareSupabaseClient } from '@simplycms/core/supabase/middleware';
+import { createProxySupabaseClient } from '@simplycms/core/supabase/proxy';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Перевірка змінних середовища
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error('Missing Supabase environment variables in middleware');
+    console.error('Missing Supabase environment variables in proxy');
     return NextResponse.next({ request });
   }
 
   try {
-    const { supabase, response: supabaseResponse } = await createMiddlewareSupabaseClient(request);
+    const { supabase, response: supabaseResponse } = await createProxySupabaseClient(request);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     // Логування помилок автентифікації
     if (userError) {
-      console.error('Auth error in middleware:', userError.message);
+      console.error('Auth error in proxy:', userError.message);
     }
 
     const pathname = request.nextUrl.pathname;
@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
 
     return supabaseResponse;
   } catch (error) {
-    console.error('Middleware error:', error);
+    console.error('Proxy error:', error);
     return NextResponse.next({ request });
   }
 }

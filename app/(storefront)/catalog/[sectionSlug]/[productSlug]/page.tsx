@@ -41,7 +41,20 @@ export default async function ProductPage({ params }: Props) {
 
   const { data: product } = await supabase
     .from('products')
-    .select('*, sections(*), product_modifications(*, modification_property_values(*, property_values(*, properties(*))))')
+    .select(`
+      *,
+      sections(id, slug, name),
+      product_modifications(*),
+      product_prices(price_type_id, price, old_price, modification_id),
+      product_property_values(
+        property_id,
+        value,
+        numeric_value,
+        option_id,
+        property_options:option_id(id, slug),
+        section_properties:property_id(id, name, slug, property_type, has_page)
+      )
+    `)
     .eq('slug', productSlug)
     .maybeSingle();
 

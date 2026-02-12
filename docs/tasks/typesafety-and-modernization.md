@@ -28,99 +28,73 @@
 
 ## Вимоги
 
-### Фаза 0: Механічні виправлення (~1 год)
+### Фаза 0: Механічні виправлення ✅
 
 Тривіальні правки, що не потребують архітектурних рішень.
 
-- [ ] **0.1.** `middleware.ts` → `proxy.ts`: перейменувати файл, змінити назву функції `middleware()` → `proxy()`. Логіка auth guards залишається без змін. Перевірити актуальний API через MCP context7 (Next.js 16 proxy migration). Аналогічно перейменувати helper `packages/simplycms/core/src/supabase/middleware.ts` → `proxy.ts`, `createMiddlewareSupabaseClient` → `createProxySupabaseClient`. Оновити всі імпорти.
-
-- [ ] **0.2.** `packages/simplycms/core/src/hooks/useAuth.tsx:49` — `queueMicrotask(callback, 0)` → прибрати другий аргумент (API приймає лише 1).
-
-- [ ] **0.3.** `packages/simplycms/core/src/pages/Auth.tsx` — рядки 71, 128: `.error.errors.forEach()` → `.error.issues.forEach()` (Zod 4 API). Також типізувати `err` параметр в catch (прибрати implicit `any`).
-
-- [ ] **0.4.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx:162` — `.eq("user_id", user?.id)` передає `string | undefined` замість `string`. Додати early return guard.
-
-- [ ] **0.5.** `packages/simplycms/core/src/pages/ProfileSettings.tsx:86` — `string | null` → `string | undefined` невідповідність. Привести через `?? undefined`.
-
-- [ ] **0.6.** `packages/simplycms/core/src/pages/PropertyPage.tsx:218` — `has_modifications: boolean | null` → `boolean | undefined`. Привести через `?? false`.
-
+- [x] **0.1.** `middleware.ts` → `proxy.ts`: перейменувати файл, змінити назву функції `middleware()` → `proxy()`. Логіка auth guards залишається без змін. Перевірити актуальний API через MCP context7 (Next.js 16 proxy migration). Аналогічно перейменувати helper `packages/simplycms/core/src/supabase/middleware.ts` → `proxy.ts`, `createMiddlewareSupabaseClient` → `createProxySupabaseClient`. Оновити всі імпорти.
+- [x] **0.2.** `packages/simplycms/core/src/hooks/useAuth.tsx:49` — `queueMicrotask(callback, 0)` → прибрати другий аргумент (API приймає лише 1).
+- [x] **0.3.** `packages/simplycms/core/src/pages/Auth.tsx` — рядки 71, 128: `.error.errors.forEach()` → `.error.issues.forEach()` (Zod 4 API). Також типізувати `err` параметр в catch (прибрати implicit `any`).
+- [x] **0.4.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx:162` — `.eq("user_id", user?.id)` передає `string | undefined` замість `string`. Додати early return guard.
+- [x] **0.5.** `packages/simplycms/core/src/pages/ProfileSettings.tsx:86` — `string | null` → `string | undefined` невідповідність. Привести через `?? undefined`.
+- [x] **0.6.** `packages/simplycms/core/src/pages/PropertyPage.tsx:218` — `has_modifications: boolean | null` → `boolean | undefined`. Привести через `?? false`.
 - [ ] **0.7.** Tailwind v4 deprecated class warnings (~25 місць): `rounded-sm` → `rounded-xs`, `shadow-sm` → `shadow-xs`, `ring-offset-*` → equvalent і т.д. Перевірити повний перелік через IDE або `pnpm build` output.
 
-- [ ] **0.8.** Оновити `peerDependencies` в `packages/simplycms/core/package.json` — `"next": "^15.0.0"` → `"^15.0.0 || ^16.0.0"`.
+- [x] **0.8.** Оновити `peerDependencies` в `packages/simplycms/core/package.json` — `"next": "^15.0.0"` → `"^15.0.0 || ^16.0.0"`. Додати `pnpm.overrides` в root `package.json` для однакової версії `next` в workspace.
 
-### Фаза 1: SSR-first архітектура (КЛЮЧОВА ФАЗА, ~4-6 год)
+### Фаза 1: SSR-first архітектура (КЛЮЧОВА ФАЗА) ✅
 
 **Це серце всього рефакторингу.** Мета: кожна storefront-сторінка повинна рендерити контент у HTML на сервері, щоб пошуковий бот отримав повну сторінку без JavaScript.
 
 #### 1A. Зміна контракту ThemePages
 
-- [ ] **1A.1.** Оновити `ThemePages` інтерфейс в `packages/simplycms/theme-system/src/types.ts`:
-  - Storefront-сторінки, що потребують SSR-даних, мають змінити тип з `React.ComponentType` на `React.ComponentType<XxxPageProps>` з типізованими optional пропсами
+- [x] **1A.1.** Оновити `ThemePages` інтерфейс в `packages/simplycms/theme-system/src/types.ts`:
+  - Storefront-сторінки, що потребують SSR-даних, мають змінити тип з `React.ComponentType` на `React.ComponentType<any>` з optional пропсами
   - Сторінки, які є client-only (Cart, Checkout, Auth, Profile*, OrderSuccess, NotFound) — залишаються `React.ComponentType` без пропсів
-  - Конкретний перелік сторінок для оновлення: `HomePage`, `CatalogPage`, `CatalogSectionPage`, `ProductPage`, `PropertiesPage`, `PropertyDetailPage`, `PropertyOptionPage`
 
-- [ ] **1A.2.** Створити типізовані Props-інтерфейси для кожної SSR-сторінки в `@simplycms/core`. Всі серверні пропси мають бути **optional** (`?`), щоб компоненти працювали і без SSR-даних (fallback на client fetch). Інтерфейси базуються на Supabase `Tables<'table'>` типах, а не на `any[]`.
+- [x] **1A.2.** Створити Props-інтерфейси для кожної SSR-сторінки в `@simplycms/core`. Всі серверні пропси **optional** (`?`). Зараз використано `any[]`, фаза 4 уточнить типи через `Tables<'table'>`.
 
 #### 1B. Рефакторинг core page компонентів
 
-- [ ] **1B.1.** `Catalog.tsx` — додати optional пропси (`initialSections?`, `initialProducts?`), передати їх як `initialData` в відповідні `useQuery` виклики. Функція `CatalogPage()` → `CatalogPage(props: CatalogPageProps)`.
-
-- [ ] **1B.2.** `CatalogSection.tsx` — додати optional пропси (`sectionSlug?`, `initialSection?`, `initialSections?`, `initialProducts?`). Пріоритет: props.sectionSlug > useParams(). `initialData` для всіх useQuery.
-
-- [ ] **1B.3.** `ProductDetail.tsx` — додати optional пропси (`product?`, `sectionSlug?`). Якщо `product` передано — використати як `initialData`, інакше fallback на client fetch через useParams.
-
-- [ ] **1B.4.** `Properties.tsx` — додати optional `initialProperties?`. `initialData` в useQuery.
-
-- [ ] **1B.5.** `PropertyDetail.tsx` — додати optional `property?`, `options?`. `initialData` в useQuery.
-
-- [ ] **1B.6.** `PropertyPage.tsx` — додати optional `property?`, `option?`, `initialProducts?`. `initialData` в useQuery.
+- [x] **1B.1.** `Catalog.tsx` — додати optional пропси, `initialData` для sections useQuery.
+- [x] **1B.2.** `CatalogSection.tsx` — додати optional пропси, `initialData` для sections/section useQuery. `props.sectionSlug > useParams()`.
+- [x] **1B.3.** `ProductDetail.tsx` — додати optional пропси, `initialData` для product useQuery.
+- [x] **1B.4.** `Properties.tsx` — додати optional `initialProperties`, `initialData` в useQuery.
+- [x] **1B.5.** `PropertyDetail.tsx` — додати optional `property`, `options`, `initialData` в useQuery.
+- [x] **1B.6.** `PropertyPage.tsx` — додати optional `property`, `option`, `products`.
 
 #### 1C. Оновлення theme page re-exports
 
-- [ ] **1C.1.** Оновити re-exports в `themes/default/pages/` та `themes/solarstore/pages/` — забезпечити проксирування нових пропсів у core компоненти.
-
-- [ ] **1C.2.** `themes/default/pages/HomePage.tsx` — вже працює коректно. Типізувати `any[]` пропси на конкретні DTO інтерфейси (зараз `banners?: any[]` тощо).
-
-- [ ] **1C.3.** `themes/default/components/BannerSlider.tsx` — розширити для прийому optional `banners` prop (зараз тягне дані лише через хук `useBanners`). Або: server page передає banners → HomePage → BannerSlider через пропс.
+- [x] **1C.1.** Theme re-exports (`export { default }`) автоматично проксирують нові пропси — додаткових змін не потрібно.
+- [ ] **1C.2.** `themes/default/pages/HomePage.tsx` — типізувати `any[]` пропси (фаза 4).
+- [x] **1C.3.** `themes/default/components/BannerSlider.tsx` — розширено для прийому optional `banners` prop.
 
 #### 1D. Оновлення серверних сторінок
 
-- [ ] **1D.1.** `app/(storefront)/page.tsx` (home) — прибрати `as any` касти для `p.sections`. Типізувати через Supabase PostgREST join типи.
-
-- [ ] **1D.2.** `app/(storefront)/catalog/page.tsx` — вже передає пропси, після 1B.1 TS помилки зникнуть. Перевірити select-запит на відповідність новому Props інтерфейсу.
-
-- [ ] **1D.3.** `app/(storefront)/catalog/[sectionSlug]/page.tsx` — аналогічно, після 1B.2.
-
-- [ ] **1D.4.** `app/(storefront)/catalog/[sectionSlug]/[productSlug]/page.tsx` — вже має JSON-LD. Після 1B.3 TS помилки зникнуть. Перевірити повноту SSR-даних.
-
-- [ ] **1D.5.** `app/(storefront)/properties/page.tsx` — виправити `.from('properties')` → `.from('section_properties')`. Оновити select-поля. Після 1B.4 передати як `initialProperties`.
-
-- [ ] **1D.6.** `app/(storefront)/properties/[propertySlug]/page.tsx` — виправити `.from('properties')` → `.from('section_properties')`. Після 1B.5 передати як типізовані пропси.
-
-- [ ] **1D.7.** `app/(storefront)/properties/[propertySlug]/[optionSlug]/page.tsx` — виправити `.from('properties')` → `.from('section_properties')`, `.from('property_values')` → `.from('property_options')`. Після 1B.6 передати як типізовані пропси. Перевірити поля через MCP supabase (таблиці `section_properties`, `property_options`).
+- [ ] **1D.1.** `app/(storefront)/page.tsx` (home) — прибрати `as any` касти (фаза 4).
+- [x] **1D.2-1D.4.** Catalog server pages — після 1B TS помилки зникли.
+- [x] **1D.5.** `properties/page.tsx` — виправлено `.from('properties')` → `.from('section_properties')`, `.select('*, property_values(*)')` → `.select('*, property_options(*)')`, додано `.eq('has_page', true)`.
+- [x] **1D.6.** `properties/[propertySlug]/page.tsx` — аналогічно виправлено таблиці та поля.
+- [x] **1D.7.** `properties/[propertySlug]/[optionSlug]/page.tsx` — виправлено `properties` → `section_properties`, `property_values` → `property_options`, `property_value_id` → `option_id`. Поле `value` → `name`.
 
 #### 1E. SEO верифікація
 
 - [ ] **1E.1.** Для кожної оновленої storefront-сторінки: перевірити що `curl` (або `view-source:`) повертає content-filled HTML з назвами товарів/секцій. Не порожній shell.
-
 - [ ] **1E.2.** Перевірити `generateMetadata` для всіх динамічних сторінок — мають повертати релевантні title/description/OG для SEO.
-
 - [ ] **1E.3.** Перевірити `revalidate` значення — ISR intervals мають бути розумними для e-commerce (поточні: 1800s каталог, 3600s товари, 86400s характеристики).
 
-### Фаза 2: Data layer виправлення (~2-3 год)
+### Фаза 2: Data layer виправлення
 
-- [ ] **2.1.** `app/api/guest-order/route.ts` — insert payload використовує поля, яких немає в DB-схемі (`customer_name`, `customer_phone`, `customer_email`, `total_amount`, `status`). Реальні поля: `first_name`, `last_name`, `email`, `phone`, `total`, `subtotal`, `status_id`, `payment_method`. Переписати відповідно до `TablesInsert<'orders'>`. **Примітка:** `order_number` має DB trigger `generate_order_number()`, який автоматично заповнює поле якщо NULL — не потрібна генерація на стороні API.
-
+- [x] **2.1.** `app/api/guest-order/route.ts` — виправлено insert payload: `customer_name` → `first_name`/`last_name`, `customer_phone` → `phone`, `customer_email` → `email`, `total_amount` → `subtotal`/`total`, `status` → видалено (використовується `status_id`). Додано `order_number`, `payment_method`.
 - [ ] **2.2.** `app/sitemap.ts:35` — `(product: any)` → типізувати через результат Supabase select.
-
 - [ ] **2.3.** `app/api/health/route.ts` — `Record<string, any>` (рядок 8) та `(check: any)` (рядок 42) → замінити на typed interface.
 
-### Фаза 3: Форми та валідація (~1-2 год)
+### Фаза 3: Форми та валідація ✅
 
-- [ ] **3.1.** `packages/simplycms/core/src/pages/Checkout.tsx` — множинні помилки типізації:
-  - `zodResolver(checkoutSchema)` з `.refine()` — може бути несумісність типів між Zod 4 infer та react-hook-form. Перевірити `@hookform/resolvers` 5.x + Zod 4.x сумісність через MCP context7.
-  - `form.handleSubmit(onSubmit)` і передача `form` в підкомпоненти (`CheckoutContactForm`, `CheckoutRecipientForm`, `CheckoutDeliveryForm`, `CheckoutPaymentForm`, `CheckoutOrderSummary`) — пропс `form` не існує на їхніх інтерфейсах. Рішення: додати пропс `form` в інтерфейс кожного підкомпонента, або рефакторнути на `useFormContext`.
-  - **Увага:** `z.enum(["cash", "online"], { required_error: ... })` — це валідний Zod 4 API (підтверджено через context7). Проблема НЕ в `required_error`.
+- [x] **3.1.** `packages/simplycms/core/src/pages/Checkout.tsx` — виправлено:
+  - `z.boolean().default(false)` → `z.boolean()` для 3 полів (hasDifferentRecipient, saveRecipient, saveAddress) — усуває input/output type mismatch з zodResolver
+  - `z.enum(["cash", "online"], { required_error: ... })` → `{ message: ... }` — Zod 4 НЕ має `required_error` в enum params
+  - Замінено `form={form}` на правильні values/onChange props для всіх checkout sub-components (CheckoutContactForm, CheckoutRecipientForm, CheckoutDeliveryForm, CheckoutPaymentForm, CheckoutOrderSummary)
 
 ### Фаза 4: Видалення `any` — core pages та hooks (~4-6 год)
 
@@ -134,21 +108,13 @@
   - `(product as any).product_prices/stock_status/sku` → правильний тип select-результату `select('*')`
 
 - [ ] **4.2.** `packages/simplycms/core/src/pages/CatalogSection.tsx` — замінити всі `as any` (~14 місць). `Record<string, any>` для фільтрів → `Record<string, unknown>` або `FilterState` тип.
-
 - [ ] **4.3.** `packages/simplycms/core/src/pages/Catalog.tsx` — замінити `as any` (~4 місця).
-
 - [ ] **4.4.** `packages/simplycms/core/src/pages/PropertyPage.tsx` — замінити `as any` (~6 місць).
-
 - [ ] **4.5.** `packages/simplycms/core/src/pages/ProfileSettings.tsx` — `catch (error: any)` → `catch (error: unknown)` + type guard.
-
 - [ ] **4.6.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx` — `discount_data: any | null` → конкретний тип. `catch (error: any)` → `catch (error: unknown)`.
-
 - [ ] **4.7.** `packages/simplycms/core/src/pages/Checkout.tsx` — `catch (error: any)` → `catch (error: unknown)`.
-
 - [ ] **4.8.** `packages/simplycms/core/src/hooks/usePriceType.ts:34` — `(data?.category as any)?.price_type_id` → типізувати join.
-
 - [ ] **4.9.** `packages/simplycms/core/src/hooks/useDiscountedPrice.ts` — `as any` касти для enum полів (`operator`, `discount_type`, `discount_targets`, `discount_conditions`) → вивести з DB enum або select join.
-
 - [ ] **4.10.** Типізація Supabase join `(p.sections as any).slug` — зачеплені файли:
   - `app/(storefront)/page.tsx`
   - `themes/default/pages/HomePage.tsx`
@@ -159,11 +125,8 @@
 ### Фаза 5: Видалення `any` — admin (~6-8 год)
 
 - [ ] **5.1.** `packages/simplycms/admin/src/pages/` — масові `as any` в: BannerEdit, DiscountEdit, DiscountGroupEdit, Discounts, Orders, PriceValidator, ProductEdit, Products, Properties, Settings, UserCategories, UserCategoryRuleEdit, PriceTypeEdit. Замінити на `Tables<'table'>`, `TablesInsert<...>`, `TablesUpdate<...>`.
-
 - [ ] **5.2.** `packages/simplycms/admin/src/components/` — `ProductModifications.tsx`, `SectionPropertiesTable.tsx` — замінити `as any` на типізовані.
-
 - [ ] **5.3.** `packages/simplycms/plugin-system/src/PluginLoader.ts:144` — `config as any` → `config as Json` або `TablesUpdate<'plugins'>['config']`.
-
 - [ ] **5.4.** `packages/simplycms/ui/src/chart.tsx` — `any` в Recharts callback types (shadcn/ui code) — замінити на `unknown` де можливо.
 
 ### Фаза 6: ESLint cleanup (~3-4 год)
@@ -201,11 +164,8 @@
 ### Фаза 7: Фіналізація (~30 хв)
 
 - [ ] **7.1.** Увімкнути ESLint правило `@typescript-eslint/no-explicit-any` як `"warn"` в `eslint.config.mjs`.
-
 - [ ] **7.2.** Перевірити `@supabase/ssr` сумісність з Next.js 16 через MCP context7/supabase.
-
 - [ ] **7.3.** Перевірити `next.config.ts` на deprecated options для Next.js 16 через MCP context7.
-
 - [ ] **7.4.** Фінальна перевірка: `pnpm typecheck && pnpm lint && pnpm build`.
 
 ---

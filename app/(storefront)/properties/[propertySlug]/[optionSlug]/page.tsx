@@ -12,19 +12,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createServerSupabaseClient();
 
   const { data: property } = await supabase
-    .from('properties')
+    .from('section_properties')
     .select('name')
     .eq('slug', propertySlug)
     .maybeSingle();
 
   const { data: option } = await supabase
-    .from('property_values')
-    .select('value')
+    .from('property_options')
+    .select('name')
     .eq('slug', optionSlug)
     .maybeSingle();
 
   if (!property || !option) return { title: 'Option Not Found' };
-  return { title: `${option.value} — ${property.name}` };
+  return { title: `${option.name} — ${property.name}` };
 }
 
 export default async function OptionPage({ params }: Props) {
@@ -32,7 +32,7 @@ export default async function OptionPage({ params }: Props) {
   const supabase = await createServerSupabaseClient();
 
   const { data: property } = await supabase
-    .from('properties')
+    .from('section_properties')
     .select('*')
     .eq('slug', propertySlug)
     .maybeSingle();
@@ -40,7 +40,7 @@ export default async function OptionPage({ params }: Props) {
   if (!property) notFound();
 
   const { data: option } = await supabase
-    .from('property_values')
+    .from('property_options')
     .select('*')
     .eq('property_id', property.id)
     .eq('slug', optionSlug)
@@ -50,8 +50,8 @@ export default async function OptionPage({ params }: Props) {
 
   const { data: products } = await supabase
     .from('products')
-    .select('*, product_modifications!inner(*, modification_property_values!inner(property_value_id))')
-    .eq('product_modifications.modification_property_values.property_value_id', option.id)
+    .select('*, product_modifications!inner(*, modification_property_values!inner(option_id))')
+    .eq('product_modifications.modification_property_values.option_id', option.id)
     .eq('is_active', true);
 
   return (

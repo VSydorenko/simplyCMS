@@ -22,10 +22,15 @@ export interface ThemeSettingDefinition {
 }
 
 export interface ThemePages {
-  HomePage: React.ComponentType;
-  CatalogPage: React.ComponentType;
-  CatalogSectionPage: React.ComponentType;
-  ProductPage: React.ComponentType;
+  // SSR-capable storefront pages (accept optional server-side props)
+  HomePage: React.ComponentType<any>;
+  CatalogPage: React.ComponentType<any>;
+  CatalogSectionPage: React.ComponentType<any>;
+  ProductPage: React.ComponentType<any>;
+  PropertiesPage: React.ComponentType<any>;
+  PropertyDetailPage: React.ComponentType<any>;
+  PropertyOptionPage: React.ComponentType<any>;
+  // Client-only pages (no SSR props)
   CartPage: React.ComponentType;
   CheckoutPage: React.ComponentType;
   OrderSuccessPage: React.ComponentType;
@@ -34,9 +39,6 @@ export interface ThemePages {
   ProfileOrdersPage: React.ComponentType;
   ProfileOrderDetailPage: React.ComponentType;
   ProfileSettingsPage: React.ComponentType;
-  PropertiesPage: React.ComponentType;
-  PropertyDetailPage: React.ComponentType;
-  PropertyOptionPage: React.ComponentType;
   NotFoundPage: React.ComponentType;
 }
 

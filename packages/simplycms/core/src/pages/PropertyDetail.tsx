@@ -9,7 +9,15 @@ import { Card, CardContent } from "@simplycms/ui/card";
 import { Button } from "@simplycms/ui/button";
 import { Loader2, ChevronRight } from "lucide-react";
 
-export default function PropertyDetailPage() {
+export interface PropertyDetailPageProps {
+  property?: any;
+  options?: any[];
+}
+
+export default function PropertyDetailPage({
+  property: initialProperty,
+  options: initialOptions,
+}: PropertyDetailPageProps = {}) {
   const params = useParams();
   const propertySlug = params?.propertySlug as string | undefined;
 
@@ -27,6 +35,7 @@ export default function PropertyDetailPage() {
       return data;
     },
     enabled: !!propertySlug,
+    initialData: initialProperty,
   });
 
   // Fetch options for this property
@@ -42,6 +51,7 @@ export default function PropertyDetailPage() {
       return data;
     },
     enabled: !!property?.id,
+    initialData: initialOptions,
   });
 
   if (propertyLoading) {

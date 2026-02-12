@@ -28,9 +28,21 @@ import { useProductRatings } from "../hooks/useProductReviews";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
-export default function CatalogSectionPage() {
+export interface CatalogSectionPageProps {
+  sectionSlug?: string;
+  initialSection?: any;
+  initialSections?: any[];
+  initialProducts?: any[];
+}
+
+export default function CatalogSectionPage({
+  sectionSlug: propSectionSlug,
+  initialSection,
+  initialSections,
+  initialProducts,
+}: CatalogSectionPageProps = {}) {
   const params = useParams<{ sectionSlug: string }>();
-  const sectionSlug = params.sectionSlug;
+  const sectionSlug = propSectionSlug || params.sectionSlug;
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -52,6 +64,7 @@ export default function CatalogSectionPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialSections,
   });
 
   // Fetch current section
@@ -67,6 +80,7 @@ export default function CatalogSectionPage() {
       if (error) throw error;
       return data;
     },
+    initialData: initialSection,
   });
 
   // Fetch products with modifications, property values, and stock data
