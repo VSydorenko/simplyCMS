@@ -22,6 +22,13 @@ pnpm install
 pnpm dev
 ```
 
+## Code Quality
+
+```bash
+pnpm typecheck
+pnpm lint
+```
+
 ## Project Structure
 
 ```

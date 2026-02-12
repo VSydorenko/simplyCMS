@@ -6,7 +6,9 @@
 pnpm install          # Install dependencies
 pnpm dev              # Start dev server (Turbopack)
 pnpm build            # Production build
+pnpm typecheck        # TypeScript type check
 pnpm lint             # ESLint (next lint)
+pnpm lint:fix         # ESLint (auto-fix)
 pnpm test             # Run tests (vitest run)
 pnpm test:watch       # Tests in watch mode
 ```
@@ -207,7 +209,7 @@ Database types are owned by the site and must be provided via the `@simplycms/db
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/workflow.yml`) runs on push/PR to `main`:
-- **TypeScript job:** `pnpm install` → `pnpm build` → `pnpm lint`
+- **TypeScript job:** `pnpm install` → `pnpm build` → `pnpm typecheck` → `pnpm lint`
 - **Test job:** `pnpm install` → `pnpm test`
 
 ## Rules

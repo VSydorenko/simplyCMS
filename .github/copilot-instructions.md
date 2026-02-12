@@ -51,6 +51,9 @@
 - **Never edit files in `temp/`** — only read them for understanding existing behavior
 - See `BRD_SIMPLYCMS_NEXTJS.md` for detailed migration plan and file mapping
 
+### Code Quality Commands
+- Використовуй `pnpm typecheck`, `pnpm lint` для перевірок.
+
 ## 🤖 AI AGENTS
 
 <agents>

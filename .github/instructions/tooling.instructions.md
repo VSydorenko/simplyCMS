@@ -17,7 +17,9 @@ description: 'Команди, форматування, тестування т�
 pnpm dev                    # Next.js dev server (Turbopack)
 pnpm build                  # Production build
 pnpm start                  # Production server
+pnpm typecheck              # TypeScript type check
 pnpm lint                   # ESLint
+pnpm lint:fix               # ESLint (auto-fix)
 
 # Тестування
 pnpm test                   # Vitest run

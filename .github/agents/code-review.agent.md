@@ -27,7 +27,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 **ВАЖЛИВО:** Аналізуй код виключно через read_file, grep_search, semantic_search.
 
 **ЗАБОРОНЕНО:**
-- ❌ НЕ запускай команди: `typecheck`, `lint`, `build`, `test`, `pnpm`, `npm`, `git`
+- ❌ НЕ запускай команди: `typecheck`, `lint`, `lint:fix`, `build`, `test`, `pnpm`, `npm`, `git`
 - ❌ НЕ використовуй git commands: `git diff`, `git log`, `git status`
 - ❌ НЕ компілюй та не запускай скрипти
 

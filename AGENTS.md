@@ -86,6 +86,7 @@ pnpm build
 pnpm test
 
 # Code Quality
+pnpm typecheck
 pnpm lint
 
 # Git Subtree (core sync)
