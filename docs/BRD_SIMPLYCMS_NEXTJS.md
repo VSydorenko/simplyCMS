@@ -158,7 +158,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 │  └─────────────────────────────────────────────────────────┘  │
 │                                                               │
 │  simplycms.config.ts  ← Конфігурація CMS                     │
-│  middleware.ts        ← Auth + routing middleware              │
+│  proxy.ts             ← Auth + routing proxy                   │
 │  next.config.ts       ← Next.js конфігурація                  │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -169,7 +169,7 @@ SimplyCMS — open-source e-commerce CMS-платформа на базі Next.j
 Browser Request
     │
     ▼
-middleware.ts (auth check, redirects)
+proxy.ts (auth check, redirects)
     │
     ├── Public page → Server Component → Supabase (server client) → HTML response
     │                                                                    │
@@ -326,7 +326,7 @@ simplyCMS/
 │
 ├── simplycms.config.ts             # Конфігурація CMS
 ├── next.config.ts                  # Next.js конфігурація
-├── middleware.ts                   # Auth middleware
+├── proxy.ts                        # Auth proxy
 ├── tailwind.config.ts              # Tailwind конфігурація
 ├── tsconfig.json                   # TypeScript конфігурація
 ├── turbo.json                      # Turborepo конфігурація (якщо потрібен)
@@ -447,7 +447,7 @@ packages/simplycms/
 │   │   ├── supabase/
 │   │   │   ├── server.ts           # createServerClient (cookie-based)
 │   │   │   ├── client.ts           # createBrowserClient
-│   │   │   ├── middleware.ts       # updateSession helper для middleware
+│   │   │   ├── proxy.ts            # updateSession helper для proxy
 │   │   │   └── types.ts           # Database types (generated)
 │   │   │
 │   │   ├── hooks/
@@ -980,7 +980,7 @@ export async function POST(request: Request) {
 │                                                      │
 │  Browser                Server                       │
 │  ┌──────┐              ┌──────────────────────┐      │
-│  │Cookie│◄────────────►│ middleware.ts         │      │
+│  │Cookie│◄────────────►│ proxy.ts              │      │
 │  │(auth)│              │ - updateSession()    │      │
 │  └──────┘              │ - auth guard         │      │
 │                        │ - admin guard        │      │
@@ -999,16 +999,16 @@ export async function POST(request: Request) {
 └──────────────────────────────────────────────────────┘
 ```
 
-### 10.2 Middleware
+### 10.2 Proxy
 
 ```typescript
-// middleware.ts
-import { createMiddlewareClient } from '@simplycms/core/supabase/middleware';
+// proxy.ts
+import { createProxySupabaseClient } from '@simplycms/core/supabase/proxy';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const { supabase, response } = createMiddlewareClient(request);
+export async function proxy(request: NextRequest) {
+  const { supabase, response } = await createProxySupabaseClient(request);
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
@@ -1051,8 +1051,10 @@ export const config = {
 |--------------|------------|
 | `supabase.auth.onAuthStateChange()` | Cookie-based через `@supabase/ssr` |
 | JWT в localStorage | HTTP-only cookies |
-| Client-side admin check (setTimeout) | Server-side middleware check |
+| Client-side admin check (setTimeout) | Server-side proxy check |
 | `useAuth()` hook з client state | `useAuth()` hook + server helper |
+
+> Примітка: в актуальній реалізації auth guards виконуються через `proxy.ts` (Next.js 16 конвеншен).
 
 ---
 
@@ -1115,7 +1117,7 @@ supabase/migrations/                   ← Актуальні міграції �
 #### Фаза 1: Ядро (packages/simplycms/)
 - [ ] Створити структуру пакетів (core, admin, ui, plugins, themes, db)
 - [ ] **@simplycms/ui:** Перенести shadcn/ui компоненти з `temp/src/components/ui/`
-- [ ] **@simplycms/core:** Перенести Supabase клієнт, створити server/client/middleware варіанти
+- [ ] **@simplycms/core:** Перенести Supabase клієнт, створити server/client/proxy варіанти
 - [ ] **@simplycms/core:** Перенести хуки (useAuth → cookie-based, useCart, usePriceType, etc.)
 - [ ] **@simplycms/core:** Перенести бізнес-логіку (discountEngine, priceUtils, shipping)
 - [ ] **@simplycms/core:** Перенести TypeScript типи
@@ -1127,7 +1129,7 @@ supabase/migrations/                   ← Актуальні міграції �
 
 #### Фаза 2: Публічні SSR-сторінки
 - [ ] Створити `app/layout.tsx` з провайдерами
-- [ ] Створити `middleware.ts`
+- [ ] Створити `proxy.ts`
 - [ ] Створити `app/(storefront)/layout.tsx` (MainLayout з теми)
 - [ ] **Головна сторінка:** `app/(storefront)/page.tsx` — SSR з банерами, featured товарами
 - [ ] **Каталог:** `app/(storefront)/catalog/page.tsx` — SSR + клієнтські фільтри
@@ -1401,7 +1403,7 @@ temp/supabase/functions/*           → supabase/functions/* (рівень пр�
 - [ ] Next.js проект ініціалізовано і запускається
 - [ ] Workspace з пакетами працює (імпорти між пакетами)
 - [ ] Supabase SSR працює (cookie-based auth)
-- [ ] Middleware захищає /admin і /profile
+- [ ] Proxy захищає /admin і /profile
 - [ ] Головна сторінка рендериться на сервері (SSR)
 - [ ] Каталог рендериться на сервері (SSR + ISR)
 - [ ] Картка товару рендериться на сервері з metadata

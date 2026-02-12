@@ -62,7 +62,7 @@ simplyCMS/
 ├── docs/                             # Documentation and analysis files
 │
 ├── simplycms.config.ts               # CMS config (Supabase, SEO, locale, currency)
-├── middleware.ts                      # Auth middleware (admin role guard, profile guard)
+├── proxy.ts                           # Auth proxy (admin role guard, profile guard)
 ├── next.config.ts                    # Next.js config (transpilePackages, remote images)
 ├── tailwind.config.ts                # Tailwind v4 (CSS variables, custom colors, animations)
 └── pnpm-workspace.yaml               # Workspace: packages/simplycms/*, themes/*, plugins/*
@@ -95,14 +95,14 @@ simplyCMS/
 ### Data Flow
 
 ```
-Storefront: Browser → middleware.ts (auth) → Server Component → Supabase → HTML → hydration → Client Components
-Admin:      Browser → middleware.ts (admin guard) → Client Component → Supabase (browser client)
+Storefront: Browser → proxy.ts (auth) → Server Component → Supabase → HTML → hydration → Client Components
+Admin:      Browser → proxy.ts (admin guard) → Client Component → Supabase (browser client)
 ```
 
 ### Authentication
 
 - Cookie-based sessions via `@supabase/ssr` (not localStorage tokens)
-- `middleware.ts` guards `/admin` (requires `admin` role in `user_roles` table) and `/profile` (requires auth)
+- `proxy.ts` guards `/admin` (requires `admin` role in `user_roles` table) and `/profile` (requires auth)
 - Redirects unauthenticated users to `/auth`
 
 ### Theme System
@@ -196,7 +196,7 @@ supabase/types.ts (site-level, auto-generated)
     ↑ mapped via tsconfig: @simplycms/db-types
 packages/simplycms/core/src/supabase/types.ts (re-export stub)
     ↑ relative import: ./types
-packages/simplycms/core/src/supabase/client.ts, server.ts, middleware.ts
+packages/simplycms/core/src/supabase/client.ts, server.ts, proxy.ts
     ↑ path import: @simplycms/core/supabase/*
 All consumer code (admin, core hooks, themes, app/ pages)
 ```
@@ -230,7 +230,7 @@ GitHub Actions workflow (`.github/workflows/workflow.yml`) runs on push/PR to `m
 - Hardcode Supabase URLs (use env variables)
 - Access Supabase directly without `@simplycms/core` wrappers
 - Edit files in `temp/` (read-only reference from prior SPA architecture)
-- Place auth logic outside `middleware.ts` and `auth/` routes
+- Place auth logic outside `proxy.ts` and `auth/` routes
 
 ## Additional Documentation
 

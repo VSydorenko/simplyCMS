@@ -46,7 +46,7 @@ SimplyCMS — open-source e-commerce CMS з SSR-first підходом для п
   - **context7:** Next.js, React, TanStack Query, Zod docs
   - **shadcn:** UI компоненти перед додаванням
   - **supabase:** DB міграції, TypeScript types
-- Middleware (`middleware.ts`) для auth guards: `/admin` (admin role), `/profile` (auth).
+- Proxy (`proxy.ts`) для auth guards: `/admin` (admin role), `/profile` (auth).
 - Система тем: публічні сторінки рендеряться через `ThemeModule` (layouts, pages).
 - Система плагінів: розширення через `HookRegistry` (25+ hook points).
 - Git Subtree для синхронізації ядра: `pnpm cms:push` / `pnpm cms:pull`.
@@ -61,7 +61,7 @@ SimplyCMS — open-source e-commerce CMS з SSR-first підходом для п
 - **НЕ додавай shadcn/ui компоненти без перевірки через MCP** (search → examples → audit).
 - **НЕ припускай library APIs — перевіряй через MCP context7**.
 - Не ставай `'use client'` в Server Components без потреби.
-- Не виноси auth-логіку за межі `middleware.ts` та `auth/` route.
+- Не виноси auth-логіку за межі `proxy.ts` та `auth/` route.
 - Не створюй файли > 150 рядків без розбиття.
 
 ## 📚 Коли потрібні деталі
@@ -69,7 +69,7 @@ SimplyCMS — open-source e-commerce CMS з SSR-first підходом для п
 - Система тем: BRD секція 7 (ThemeModule, ThemeManifest, ThemePages)
 - Система плагінів: BRD секція 8 (PluginModule, HookRegistry, hook points)
 - SSR-стратегія: BRD секція 9 (ISR, revalidation, Server/Client Components)
-- Автентифікація: BRD секція 10 (Supabase SSR, middleware)
+- Автентифікація: BRD секція 10 (Supabase SSR, proxy)
 - База даних: BRD секція 11 (міграції ядра vs проекту)
 - Файлове перенесення: BRD Додаток A (map temp/ → packages/)
 

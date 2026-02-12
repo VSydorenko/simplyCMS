@@ -37,8 +37,8 @@ proxy.ts (на кожному запиті до /admin, /profile, /auth)
 Client Components → AuthProvider → onAuthStateChange → user state
 ```
 
-> **Важливо:** Проєкт використовує `proxy.ts` (новий Next.js 16 конвеншен замість `middleware.ts`).
-> Функція називається `proxy()`, не `middleware()`. Не створюйте `middleware.ts`.
+> **Важливо:** Проєкт використовує `proxy.ts` (Next.js 16 конвеншен).
+> Функція називається `proxy()`.
 
 ## Вимоги
 
@@ -103,8 +103,8 @@ Client Components → AuthProvider → onAuthStateChange → user state
 PlaceholderPage підключається так само.
 - Де шукати приклад: `app/(cms)/admin/page.tsx` (Dashboard), `app/(cms)/admin/products/page.tsx`
 
-### Cookie-based auth через proxy.ts (не middleware.ts)
-Проєкт використовує `proxy.ts` (Next.js 16 rename з `middleware.ts`). Proxy:
+### Cookie-based auth через proxy.ts
+Проєкт використовує `proxy.ts` (Next.js 16 конвеншен). Proxy:
 1. Створює Supabase client через `createProxySupabaseClient` (cookie-based).
 2. Викликає `supabase.auth.getUser()` для валідації JWT (не `getSession()`!).
 3. Перевіряє ролі для `/admin`, auth для `/profile`, redirect для `/auth`.
@@ -131,8 +131,8 @@ OAuth callback вже правильно реалізований в `app/auth/c
 ### ❌ Ставити `'use client'` в page.tsx для auth
 `app/auth/page.tsx` має бути Server Component (без `'use client'`), щоб layout міг надати metadata. Auth-компонент з ядра вже має `'use client'` — не дублюйте.
 
-### ❌ Створювати middleware.ts
-Проєкт використовує `proxy.ts` (Next.js 16 конвеншен). Не створюйте `middleware.ts` — він deprecated.
+### ❌ Додавати auth guards поза proxy.ts
+Auth guards централізовані в `proxy.ts`. Не додавайте альтернативних механізмів для guards.
 
 ### ❌ Використовувати getSession() для серверної валідації
 В proxy та Server Components використовуйте `getUser()` (надсилає запит до Supabase Auth) або `getClaims()` (валідує JWT локально). `getSession()` **не** валідує JWT на сервері.

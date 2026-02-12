@@ -10,7 +10,7 @@ description: "Правила роботи з даними та Supabase в Simpl
 ### Supabase клієнти
 - **Server Components / Server Actions:** використовуй `createServerSupabase()` з `@simplycms/core/supabase/server` (cookie-based).
 - **Client Components:** використовуй `supabase` з `@simplycms/core/supabase/client` (browser client).
-- **Middleware:** використовуй `createServerClient` з `@supabase/ssr` напряму.
+- **Proxy:** використовуй `createProxySupabaseClient()` з `@simplycms/core/supabase/proxy` (cookie-based session refresh + guards).
 - **API Routes:** використовуй `createServerSupabase()` для authenticated запитів.
 - Виконуй роботу з базою даних через MCP supabase, включаючи аналіз структури таблиць, RLS policies та виконання міграцій.
 

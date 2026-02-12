@@ -98,13 +98,13 @@ Health endpoint має повертати типізований об’єкт �
 - Міграція з temp/: лише як референс (не змінювати).
 
 ## MCP Servers (за потреби)
-- **context7** — Next.js 16 proxy/middleware convention та best practices для metadata routes (sitemap/robots)
+- **context7** — Next.js 16 proxy convention та best practices для metadata routes (sitemap/robots)
 - **supabase** — перевірка рекомендацій щодо передачі токенів та edge function CORS
 
 ## Пов'язана документація
 - `docs/BRD_SIMPLYCMS_NEXTJS.md` секція 7 — Theme system
 - `docs/BRD_SIMPLYCMS_NEXTJS.md` секція 9 — SSR-стратегія
-- `docs/BRD_SIMPLYCMS_NEXTJS.md` секція 10 — Auth/middleware(proxy)
+- `docs/BRD_SIMPLYCMS_NEXTJS.md` секція 10 — Auth/proxy
 - `.github/instructions/architecture-core.instructions.md` — theme/plugin правила, temp/ read-only
 - `.github/instructions/coding-style.instructions.md` — strict TS, no `any`
 - `.github/instructions/tooling.instructions.md` — команди перевірки

@@ -32,7 +32,7 @@
 
 Тривіальні правки, що не потребують архітектурних рішень.
 
-- [x] **0.1.** `middleware.ts` → `proxy.ts`: перейменувати файл, змінити назву функції `middleware()` → `proxy()`. Логіка auth guards залишається без змін. Перевірити актуальний API через MCP context7 (Next.js 16 proxy migration). Аналогічно перейменувати helper `packages/simplycms/core/src/supabase/middleware.ts` → `proxy.ts`, `createMiddlewareSupabaseClient` → `createProxySupabaseClient`. Оновити всі імпорти.
+- [x] **0.1.** Auth proxy: `proxy.ts` + `proxy()` + `createProxySupabaseClient()` — guards для `/admin`, `/profile`, `/auth`.
 - [x] **0.2.** `packages/simplycms/core/src/hooks/useAuth.tsx:49` — `queueMicrotask(callback, 0)` → прибрати другий аргумент (API приймає лише 1).
 - [x] **0.3.** `packages/simplycms/core/src/pages/Auth.tsx` — рядки 71, 128: `.error.errors.forEach()` → `.error.issues.forEach()` (Zod 4 API). Також типізувати `err` параметр в catch (прибрати implicit `any`).
 - [x] **0.4.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx:162` — `.eq("user_id", user?.id)` передає `string | undefined` замість `string`. Додати early return guard.
@@ -235,7 +235,7 @@ Storefront-сторінки в `ThemePages` мають generic props для SSR-
 - Де шукати: React documentation, "You Might Not Need an Effect"
 
 ### Proxy file convention (Next.js 16)
-Тривіальне перейменування: `middleware.ts` → `proxy.ts`, `middleware()` → `proxy()`. Export matcher config залишається.
+Тривіальне перейменування: `proxy.ts` + `proxy()`. Export matcher config залишається.
 - Де шукати: MCP context7 → Next.js 16 migration guide
 
 ---
@@ -303,7 +303,7 @@ Storefront-сторінки в `ThemePages` мають generic props для SSR-
 
 - `BRD_SIMPLYCMS_NEXTJS.md` секція 7 — система тем (ThemeModule, ThemePages контракт)
 - `BRD_SIMPLYCMS_NEXTJS.md` секція 9 — SSR стратегія, ISR revalidation, Server vs Client Components
-- `BRD_SIMPLYCMS_NEXTJS.md` секція 10 — автентифікація, Supabase SSR, middleware
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 10 — автентифікація, Supabase SSR, proxy
 - `BRD_SIMPLYCMS_NEXTJS.md` секція 11 — база даних, міграції
 - `.github/instructions/data-access.instructions.md` — Supabase клієнти, типи, Server/Browser
 - `.github/instructions/optimization.instructions.md` — SSR/ISR, React Query caching, initialData
@@ -336,7 +336,7 @@ Storefront-сторінки в `ThemePages` мають generic props для SSR-
 
 - [ ] `pnpm typecheck` — 0 помилок
 - [ ] `pnpm lint` — 0 errors, 0 warnings (або мінімум з обґрунтованими eslint-disable)
-- [ ] `pnpm build` — успішний без warnings (deprecated middleware, Tailwind classes)
+- [ ] `pnpm build` — успішний без warnings (deprecated warnings, Tailwind classes)
 - [ ] **SSR-критерій: `curl <storefront-url>` повертає HTML з контентом** (назви товарів, секцій, ціни — не порожній shell)
 - [ ] Жодного `any` в `app/`, `packages/`, `themes/` (крім `temp/`)
 - [ ] Жодного `as unknown as` без обґрунтованого коментаря

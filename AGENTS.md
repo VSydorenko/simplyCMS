@@ -57,7 +57,7 @@ simplyCMS/
 ├── temp/                           # Reference SPA project (read-only, migration source)
 │
 ├── simplycms.config.ts             # CMS configuration (theme, plugins, supabase, SEO)
-├── middleware.ts                    # Auth middleware (admin guard, profile guard)
+├── proxy.ts                         # Auth proxy (admin guard, profile guard)
 └── next.config.ts                  # Next.js config (transpilePackages, images)
 ```
 
@@ -114,7 +114,7 @@ pnpm db:migrate          # Apply migrations (link + db push --linked)
 ### Data Flow
 
 ```
-Browser → middleware.ts (auth) → Server Component (SSR) → Supabase → HTML
+Browser → proxy.ts (auth) → Server Component (SSR) → Supabase → HTML
                                        ↓ hydration
                                  Client Components (cart, filters, forms)
 
@@ -133,7 +133,7 @@ Admin → Client Component → Supabase (browser client) → SPA behavior
 
 ### Authentication
 - Supabase SSR with cookie-based sessions (`@supabase/ssr`)
-- Middleware guards `/admin` (requires admin role) and `/profile` (requires auth)
+- Proxy guards `/admin` (requires admin role) and `/profile` (requires auth)
 - No multi-tenancy — single store per project
 
 ## Migration Context
@@ -163,7 +163,7 @@ The project is migrating from a React SPA (Vite + React Router) in `./temp/` to 
 - Direct Supabase client usage without `@simplycms/core` wrappers
 - Edit files in `temp/` (read-only reference)
 - Code > 150 lines without splitting
-- Auth logic outside middleware.ts and auth/ route
+- Auth logic outside proxy.ts and auth/ route
 
 ## Detailed Instructions
 
