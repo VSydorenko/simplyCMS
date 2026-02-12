@@ -44,20 +44,20 @@ Client Components → AuthProvider → onAuthStateChange → user state
 
 ### Частина 1: Виправлення сторінки авторизації
 
-- [ ] Замінити stub в `app/auth/page.tsx` на підключення Auth з `@simplycms/core/pages/Auth`
-- [ ] Зберегти паритет із `temp/src/pages/Auth.tsx` — все має виглядати ідентично
-- [ ] `app/auth/page.tsx` — Server Component (для metadata); Auth-компонент — Client Component (вже має `'use client'`)
-- [ ] Створити `app/auth/layout.tsx` — Server Component з `export const metadata` (title, description)
-- [ ] Переконатися, що працюють: login (email/password), register (ім'я, прізвище, email, пароль, підтвердження), Google OAuth, show/hide password, Zod валідація, toast повідомлення
-- [ ] Мова UI — українська (як в оригіналі)
-- [ ] OAuth redirectTo має вказувати на `/auth/callback` (PKCE flow, cookie-based)
+- [x] Замінити stub в `app/auth/page.tsx` на підключення Auth з `@simplycms/core/pages/Auth`
+- [x] Зберегти паритет із `temp/src/pages/Auth.tsx` — все має виглядати ідентично
+- [x] `app/auth/page.tsx` — Server Component (для metadata); Auth-компонент — Client Component (вже має `'use client'`)
+- [x] Створити `app/auth/layout.tsx` — Server Component з `export const metadata` (title, description)
+- [x] Переконатися, що працюють: login (email/password), register (ім'я, прізвище, email, пароль, підтвердження), Google OAuth, show/hide password, Zod валідація, toast повідомлення
+- [x] Мова UI — українська (як в оригіналі)
+- [x] OAuth redirectTo має вказувати на `/auth/callback` (PKCE flow, cookie-based)
 
 ### Частина 2: Пропущені маршрути адмін-панелі
 
-- [ ] Створити `app/(cms)/admin/services/page.tsx` — підключити PlaceholderPage
-- [ ] Створити `app/(cms)/admin/service-requests/page.tsx` — підключити PlaceholderPage
-- [ ] Створити `app/(cms)/admin/languages/page.tsx` — підключити PlaceholderPage
-- [ ] PlaceholderPage вже існує в `@simplycms/admin/pages/PlaceholderPage` — використати його
+- [x] Створити `app/(cms)/admin/services/page.tsx` — підключити PlaceholderPage
+- [x] Створити `app/(cms)/admin/service-requests/page.tsx` — підключити PlaceholderPage
+- [x] Створити `app/(cms)/admin/languages/page.tsx` — підключити PlaceholderPage
+- [x] PlaceholderPage вже існує в `@simplycms/admin/pages/PlaceholderPage` — використати його
 
 ## Clarify (вирішені питання)
 
@@ -167,11 +167,11 @@ Auth guards централізовані в `proxy.ts`. Не додавайте 
 - OAuth redirectTo може вказувати на `window.location.origin` замість `/auth/callback` — перевірити та виправити якщо потрібно
 
 **Checklist:**
-- [ ] `app/auth/layout.tsx` створено (Server Component, metadata: title "Авторизація | SolarStore")
-- [ ] `app/auth/page.tsx` замінено (Server Component, імпорт Auth з `@simplycms/core/pages/Auth`)
-- [ ] Перевірити що `app/layout.tsx` або `app/providers.tsx` обгортає Auth у CMSProvider (AuthProvider + QueryClient)
-- [ ] Перевірити OAuth redirectTo → `/auth/callback`
-- [ ] `pnpm typecheck` проходить
+- [x] `app/auth/layout.tsx` створено (Server Component, metadata: title "Авторизація | SolarStore")
+- [x] `app/auth/page.tsx` замінено (Server Component, імпорт Auth з `@simplycms/core/pages/Auth`)
+- [x] Перевірити що `app/layout.tsx` або `app/providers.tsx` обгортає Auth у CMSProvider (AuthProvider + QueryClient)
+- [x] Перевірити OAuth redirectTo → `/auth/callback`
+- [x] `pnpm typecheck` проходить
 
 **DoD фази:** `/auth` відкривається, рендерить повноцінну форму (Tabs: Вхід/Реєстрація), Login/Register/OAuth працює, cookies встановлюються.
 
@@ -187,10 +187,10 @@ Auth guards централізовані в `proxy.ts`. Не додавайте 
 **Ризики:** мінімальні — патерн ідентичний існуючим Admin pages.
 
 **Checklist:**
-- [ ] 3 файли створено з `dynamic(() => import(...), { ssr: false })`
-- [ ] Імпорт PlaceholderPage з `@simplycms/admin`
-- [ ] `pnpm typecheck` проходить
-- [ ] `pnpm lint` проходить
+- [x] 3 файли створено з `dynamic(() => import(...), { ssr: false })`
+- [x] Імпорт PlaceholderPage з `@simplycms/admin`
+- [x] `pnpm typecheck` проходить
+- [x] `pnpm lint` проходить
 
 **DoD фази:** `/admin/services`, `/admin/service-requests`, `/admin/languages` → PlaceholderPage (не 404).
 
@@ -204,9 +204,9 @@ Auth guards централізовані в `proxy.ts`. Не додавайте 
 - Перевірити cookie-based auth end-to-end
 
 **Checklist:**
-- [ ] `pnpm typecheck` ✅
-- [ ] `pnpm lint` ✅
-- [ ] `pnpm build` ✅
+- [x] `pnpm typecheck` ✅
+- [x] `pnpm lint` ✅
+- [x] `pnpm build` ✅
 
 **DoD фази:** Всі перевірки пройдені, задача вважається завершеною.
 
@@ -266,24 +266,24 @@ Auth guards централізовані в `proxy.ts`. Не додавайте 
 ## Definition of Done
 
 ### Auth UI
-- [ ] `/auth` рендерить повноцінну форму авторизації/реєстрації ідентичну `temp/src/pages/Auth.tsx`
-- [ ] `app/auth/page.tsx` — Server Component (без `'use client'`), рендерить Auth з ядра
-- [ ] `app/auth/layout.tsx` — Server Component з metadata (title: "Авторизація | SolarStore")
-- [ ] Форма входу працює (email + password + Zod валідація + toast) → cookie встановлюється
-- [ ] Форма реєстрації працює (ім'я + прізвище + email + пароль + підтвердження)
-- [ ] Google OAuth кнопка присутня і працює (redirectTo → `/auth/callback`)
-- [ ] Show/hide password працює
-- [ ] Українська мова у всіх текстах
-- [ ] Логотип SolarStore + брендінг відображається
-- [ ] Кнопка "Повернутися на головну" працює
-- [ ] proxy.ts правильно перенаправляє авторизованих з `/auth` → `/`
+- [x] `/auth` рендерить повноцінну форму авторизації/реєстрації ідентичну `temp/src/pages/Auth.tsx`
+- [x] `app/auth/page.tsx` — Server Component (без `'use client'`), рендерить Auth з ядра
+- [x] `app/auth/layout.tsx` — Server Component з metadata (title: "Авторизація | SolarStore")
+- [x] Форма входу працює (email + password + Zod валідація + toast) → cookie встановлюється
+- [x] Форма реєстрації працює (ім'я + прізвище + email + пароль + підтвердження)
+- [x] Google OAuth кнопка присутня і працює (redirectTo → `/auth/callback`)
+- [x] Show/hide password працює
+- [x] Українська мова у всіх текстах
+- [x] Логотип SolarStore + брендінг відображається
+- [x] Кнопка "Повернутися на головну" працює
+- [x] proxy.ts правильно перенаправляє авторизованих з `/auth` → `/`
 
 ### Адмін-маршрути
-- [ ] `/admin/services` → PlaceholderPage (не 404)
-- [ ] `/admin/service-requests` → PlaceholderPage (не 404)
-- [ ] `/admin/languages` → PlaceholderPage (не 404)
+- [x] `/admin/services` → PlaceholderPage (не 404)
+- [x] `/admin/service-requests` → PlaceholderPage (не 404)
+- [x] `/admin/languages` → PlaceholderPage (не 404)
 
 ### Якість
-- [ ] `pnpm typecheck` проходить без помилок
-- [ ] `pnpm lint` проходить без помилок
-- [ ] `pnpm build` проходить без помилок
+- [x] `pnpm typecheck` проходить без помилок
+- [x] `pnpm lint` проходить без помилок
+- [x] `pnpm build` проходить без помилок

@@ -139,7 +139,7 @@ export default function Auth() {
         email: registerEmail,
         password: registerPassword,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: window.location.origin + '/auth/callback',
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -177,7 +177,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: window.location.origin + '/auth/callback',
         },
       });
 
