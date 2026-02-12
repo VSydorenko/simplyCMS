@@ -17,7 +17,7 @@ interface PropertyValue {
     slug: string;
     property_type: string;
     has_page?: boolean;
-  };
+  } | null;
 }
 
 interface ProductCharacteristicsProps {

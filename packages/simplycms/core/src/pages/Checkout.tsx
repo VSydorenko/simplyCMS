@@ -268,11 +268,11 @@ export default function Checkout() {
       } else {
         router.push(`/order-success/${order.id}?token=${order.access_token}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Order creation error:", error);
       toast({
         title: "Помилка оформлення",
-        description: error.message || "Спробуйте ще раз",
+        description: error instanceof Error ? error.message : "Спробуйте ще раз",
         variant: "destructive",
       });
     } finally {

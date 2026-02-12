@@ -25,11 +25,22 @@ import { StockDisplay } from "../components/catalog/StockDisplay";
 import { PluginSlot } from "@simplycms/plugins/PluginSlot";
 import { ProductReviews } from "../components/reviews/ProductReviews";
 import { usePriceType } from "../hooks/usePriceType";
-import { resolvePrice } from "../lib/priceUtils";
+import { resolvePrice, type PriceEntry } from "../lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "../hooks/useDiscountedPrice";
+import type { Tables } from "../supabase/types";
+
+/** Елемент характеристики товару з інформацією про властивість та опцію */
+interface PropertyValueItem {
+  property_id: string;
+  value: string | null;
+  numeric_value: number | null;
+  option_id: string | null;
+  option: { id: string; slug: string } | null;
+  property: { id: string; name: string; slug: string; property_type: string; has_page: boolean } | null;
+}
 
 export interface ProductDetailPageProps {
-  product?: any;
+  product?: Tables<'products'> & Record<string, unknown>;
   sectionSlug?: string;
 }
 
@@ -85,7 +96,7 @@ export default function ProductDetailPage({
   // Fetch modification property values for all modifications
   const modificationIds = useMemo(() => {
     if (!product?.product_modifications) return [];
-    return product.product_modifications.map((m: any) => m.id);
+    return (product.product_modifications as Array<{ id: string }>).map((m) => m.id);
   }, [product]);
 
   const { data: modificationPropertyValues } = useQuery({
@@ -109,7 +120,7 @@ export default function ProductDetailPage({
       if (error) throw error;
 
       // Group by modification_id
-      const grouped: Record<string, any[]> = {};
+      const grouped: Record<string, PropertyValueItem[]> = {};
       data?.forEach(v => {
         if (!grouped[v.modification_id]) {
           grouped[v.modification_id] = [];
@@ -119,8 +130,8 @@ export default function ProductDetailPage({
           value: v.value,
           numeric_value: v.numeric_value,
           option_id: v.option_id,
-          option: v.property_options,
-          property: v.section_properties,
+          option: v.property_options as PropertyValueItem['option'],
+          property: v.section_properties as PropertyValueItem['property'],
         });
       });
 
@@ -166,7 +177,17 @@ export default function ProductDetailPage({
   // Get sorted modifications
   const modifications = useMemo(() => {
     if (!product?.product_modifications) return [];
-    return [...product.product_modifications].sort((a, b) => {
+    const mods = product.product_modifications as Array<{
+      id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      sort_order: number;
+      stock_status: 'in_stock' | 'out_of_stock' | 'on_order' | null;
+      sku: string | null;
+      images: unknown;
+    }>;
+    return [...mods].sort((a, b) => {
       if (a.is_default && !b.is_default) return -1;
       if (!a.is_default && b.is_default) return 1;
       return a.sort_order - b.sort_order;
@@ -174,7 +195,7 @@ export default function ProductDetailPage({
   }, [product]);
 
   // Check if product has modifications
-  const hasModifications = (product as any)?.has_modifications ?? true;
+  const hasModifications = product?.has_modifications ?? true;
 
   // Selected modification - sync with URL (only for products with modifications)
   const [selectedModId, setSelectedModId] = useState<string>("");
@@ -236,7 +257,15 @@ export default function ProductDetailPage({
   // Property values with property info - combine product and selected modification properties
   const propertyValues = useMemo(() => {
     // Product-level properties
-    const productProps = (product?.product_property_values || []).map((pv: any) => ({
+    const rawPropValues = product?.product_property_values as Array<{
+      property_id: string;
+      value: string | null;
+      numeric_value: number | null;
+      option_id: string | null;
+      property_options: { id: string; slug: string } | null;
+      section_properties: { id: string; name: string; slug: string; property_type: string; has_page: boolean } | null;
+    }> || [];
+    const productProps: PropertyValueItem[] = rawPropValues.map((pv) => ({
       property_id: pv.property_id,
       value: pv.value,
       numeric_value: pv.numeric_value,
@@ -246,14 +275,14 @@ export default function ProductDetailPage({
     }));
 
     // Modification-level properties for selected modification
-    const modProps = selectedModId && modificationPropertyValues?.[selectedModId]
+    const modProps: PropertyValueItem[] = selectedModId && modificationPropertyValues?.[selectedModId]
       ? modificationPropertyValues[selectedModId]
       : [];
 
     // Combine: modification properties override product properties with same property_id
-    const propMap = new Map<string, any>();
-    productProps.forEach((pv: any) => propMap.set(pv.property_id, pv));
-    modProps.forEach((pv: any) => propMap.set(pv.property_id, pv));
+    const propMap = new Map<string, PropertyValueItem>();
+    productProps.forEach((pv) => propMap.set(pv.property_id, pv));
+    modProps.forEach((pv) => propMap.set(pv.property_id, pv));
 
     return Array.from(propMap.values());
   }, [product, selectedModId, modificationPropertyValues]);
@@ -268,7 +297,7 @@ export default function ProductDetailPage({
 
   // Build prices map for modifications (with discounts applied)
   const modPrices = useMemo(() => {
-    const productPrices = (product as any)?.product_prices || [];
+    const productPrices = (product?.product_prices ?? []) as PriceEntry[];
     const map: Record<string, { price: number; oldPrice: number | null }> = {};
     modifications.forEach((mod) => {
       const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, mod.id);
@@ -284,7 +313,7 @@ export default function ProductDetailPage({
             cartTotal: 0,
             productId: product?.id || '',
             modificationId: mod.id,
-            sectionId: product?.sections?.id || null,
+            sectionId: (product?.sections as { id: string } | null)?.id || null,
           });
           if (discountResult.totalDiscount > 0) {
             modOldPrice = modPrice;
@@ -315,7 +344,7 @@ export default function ProductDetailPage({
     );
   }
 
-  const section = product.sections;
+  const section = product.sections as { id: string; slug: string; name: string } | null;
 
   // Get price, stock, and SKU based on product type
   let stockStatus: string | null;
@@ -323,7 +352,7 @@ export default function ProductDetailPage({
   let oldPrice: number | null | undefined;
   let sku: string | null | undefined;
 
-  const productPrices = (product as any).product_prices || [];
+  const productPrices = (product.product_prices ?? []) as PriceEntry[];
 
   if (hasModifications) {
     stockStatus = selectedMod?.stock_status ?? "in_stock";
@@ -332,11 +361,11 @@ export default function ProductDetailPage({
     oldPrice = resolved.oldPrice;
     sku = selectedMod?.sku;
   } else {
-    stockStatus = (product as any).stock_status ?? "in_stock";
+    stockStatus = product.stock_status ?? "in_stock";
     const resolved = resolvePrice(productPrices, priceTypeId, defaultPriceTypeId, null);
     price = resolved.price ?? undefined;
     oldPrice = resolved.oldPrice;
-    sku = (product as any).sku;
+    sku = product.sku;
   }
 
   // Apply discounts

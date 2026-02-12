@@ -8,12 +8,25 @@ import { ProductCarousel } from "../components/ProductCarousel";
 import { NewsletterSection } from "../components/NewsletterSection";
 import { BlogPreview } from "../components/BlogPreview";
 import { useThemeSettings } from "@simplycms/core/hooks/useThemeSettings";
+import type { Banner } from "@simplycms/core/hooks/useBanners";
+import type { Enums } from "@simplycms/core/supabase/types";
+
+/** Продукт для головної сторінки (мінімальний набір полів) */
+interface HomeProduct {
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+  short_description: string | null;
+  stock_status: Enums<'stock_status'> | null;
+  section: { slug: string } | null;
+}
 
 interface HomePageProps {
-  banners?: any[];
-  featuredProducts?: any[];
-  newProducts?: any[];
-  sections?: any[];
+  banners?: Banner[];
+  featuredProducts?: HomeProduct[];
+  newProducts?: HomeProduct[];
+  sections?: Array<{ id: string; name: string; slug: string }>;
 }
 
 export default function HomePage({
@@ -43,7 +56,7 @@ export default function HomePage({
         images: (p.images as string[]) || [],
         short_description: p.short_description,
         stock_status: p.stock_status,
-        section: p.sections ? { slug: (p.sections as any).slug } : null,
+        section: p.sections ? { slug: (p.sections as { slug: string }).slug } : null,
       }));
     },
     initialData: initialFeatured,
@@ -67,7 +80,7 @@ export default function HomePage({
         images: (p.images as string[]) || [],
         short_description: p.short_description,
         stock_status: p.stock_status,
-        section: p.sections ? { slug: (p.sections as any).slug } : null,
+        section: p.sections ? { slug: (p.sections as { slug: string }).slug } : null,
       }));
     },
     initialData: initialNew,

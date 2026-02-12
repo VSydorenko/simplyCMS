@@ -52,9 +52,18 @@ export function calculateProductAvailability(
 /**
  * Fetches modification property values
  */
+/** Елемент характеристики модифікації */
+export interface ModPropertyValue {
+  modification_id: string;
+  property_id: string;
+  value: string | null;
+  numeric_value: number | null;
+  option_id: string | null;
+}
+
 export async function fetchModificationPropertyValues(
   modificationIds: string[]
-): Promise<Record<string, any[]>> {
+): Promise<Record<string, ModPropertyValue[]>> {
   if (modificationIds.length === 0) return {};
 
   const { data } = await supabase
@@ -62,7 +71,7 @@ export async function fetchModificationPropertyValues(
     .select("modification_id, property_id, value, numeric_value, option_id")
     .in("modification_id", modificationIds);
 
-  const result: Record<string, any[]> = {};
+  const result: Record<string, ModPropertyValue[]> = {};
   data?.forEach((v) => {
     if (!result[v.modification_id]) {
       result[v.modification_id] = [];

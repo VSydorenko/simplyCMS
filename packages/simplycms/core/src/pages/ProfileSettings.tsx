@@ -85,7 +85,7 @@ export default function ProfileSettingsPage() {
           setAvatarUrl(data.avatar_url);
           setProfileData({ first_name: data.first_name, last_name: data.last_name });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error loading profile:", error);
       } finally {
         setIsLoading(false);

@@ -66,12 +66,12 @@
 #### 1C. Оновлення theme page re-exports
 
 - [x] **1C.1.** Theme re-exports (`export { default }`) автоматично проксирують нові пропси — додаткових змін не потрібно.
-- [ ] **1C.2.** `themes/default/pages/HomePage.tsx` — типізувати `any[]` пропси (фаза 4).
+- [x] **1C.2.** `themes/default/pages/HomePage.tsx` — типізувати `any[]` пропси (фаза 4).
 - [x] **1C.3.** `themes/default/components/BannerSlider.tsx` — розширено для прийому optional `banners` prop.
 
 #### 1D. Оновлення серверних сторінок
 
-- [ ] **1D.1.** `app/(storefront)/page.tsx` (home) — прибрати `as any` касти (фаза 4).
+- [x] **1D.1.** `app/(storefront)/page.tsx` (home) — прибрати `as any` касти (фаза 4).
 - [x] **1D.2-1D.4.** Catalog server pages — після 1B TS помилки зникли.
 - [x] **1D.5.** `properties/page.tsx` — виправлено `.from('properties')` → `.from('section_properties')`, `.select('*, property_values(*)')` → `.select('*, property_options(*)')`, додано `.eq('has_page', true)`.
 - [x] **1D.6.** `properties/[propertySlug]/page.tsx` — аналогічно виправлено таблиці та поля.
@@ -100,27 +100,29 @@
 
 Всі `any` повинні бути замінені на конкретні типи з `Tables<'table'>`, `TablesInsert<...>`, `TablesUpdate<...>`, або виведені з Supabase join-результатів.
 
-- [ ] **4.1.** `packages/simplycms/core/src/pages/ProductDetail.tsx` — прибрати всі `as any` касти:
+- [x] **4.1.** `packages/simplycms/core/src/pages/ProductDetail.tsx` — прибрати всі `as any` касти:
   - `(m: any)` → типізувати modifications через select result
   - `Record<string, any[]>` → конкретний тип grouped values
   - `(product as any)?.has_modifications` → додати поле в select або DB-тип
   - `(pv: any)` → типізувати property values
   - `(product as any).product_prices/stock_status/sku` → правильний тип select-результату `select('*')`
 
-- [ ] **4.2.** `packages/simplycms/core/src/pages/CatalogSection.tsx` — замінити всі `as any` (~14 місць). `Record<string, any>` для фільтрів → `Record<string, unknown>` або `FilterState` тип.
-- [ ] **4.3.** `packages/simplycms/core/src/pages/Catalog.tsx` — замінити `as any` (~4 місця).
-- [ ] **4.4.** `packages/simplycms/core/src/pages/PropertyPage.tsx` — замінити `as any` (~6 місць).
-- [ ] **4.5.** `packages/simplycms/core/src/pages/ProfileSettings.tsx` — `catch (error: any)` → `catch (error: unknown)` + type guard.
-- [ ] **4.6.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx` — `discount_data: any | null` → конкретний тип. `catch (error: any)` → `catch (error: unknown)`.
-- [ ] **4.7.** `packages/simplycms/core/src/pages/Checkout.tsx` — `catch (error: any)` → `catch (error: unknown)`.
-- [ ] **4.8.** `packages/simplycms/core/src/hooks/usePriceType.ts:34` — `(data?.category as any)?.price_type_id` → типізувати join.
-- [ ] **4.9.** `packages/simplycms/core/src/hooks/useDiscountedPrice.ts` — `as any` касти для enum полів (`operator`, `discount_type`, `discount_targets`, `discount_conditions`) → вивести з DB enum або select join.
-- [ ] **4.10.** Типізація Supabase join `(p.sections as any).slug` — зачеплені файли:
+- [x] **4.2.** `packages/simplycms/core/src/pages/CatalogSection.tsx` — замінити всі `as any` (~14 місць). `Record<string, any>` для фільтрів → `Record<string, unknown>` або `FilterState` тип.
+- [x] **4.3.** `packages/simplycms/core/src/pages/Catalog.tsx` — замінити `as any` (~4 місця).
+- [x] **4.4.** `packages/simplycms/core/src/pages/PropertyPage.tsx` — замінити `as any` (~6 місць).
+- [x] **4.5.** `packages/simplycms/core/src/pages/ProfileSettings.tsx` — `catch (error: any)` → `catch (error: unknown)` + type guard.
+- [x] **4.6.** `packages/simplycms/core/src/pages/ProfileOrderDetail.tsx` — `discount_data: any | null` → конкретний тип. `catch (error: any)` → `catch (error: unknown)`.
+- [x] **4.7.** `packages/simplycms/core/src/pages/Checkout.tsx` — `catch (error: any)` → `catch (error: unknown)`.
+- [x] **4.8.** `packages/simplycms/core/src/hooks/usePriceType.ts:34` — `(data?.category as any)?.price_type_id` → типізувати join.
+- [x] **4.9.** `packages/simplycms/core/src/hooks/useDiscountedPrice.ts` — `as any` касти для enum полів (`operator`, `discount_type`, `discount_targets`, `discount_conditions`) → вивести з DB enum або select join.
+- [x] **4.10.** Типізація Supabase join `(p.sections as any).slug` — зачеплені файли:
   - `app/(storefront)/page.tsx`
   - `themes/default/pages/HomePage.tsx`
   - `themes/solarstore/pages/HomePage.tsx`
   
   Supabase PostgREST при `.select("..., sections!FK(slug)")` повертає типізований вложений об'єкт — потрібно правильно типізувати через DB types, а не кастити.
+
+> **Технічний борг (Фаза 4):** В `app/(storefront)/page.tsx` залишається `as unknown as Banner[]` через несумісність `Tables<'banners'>.buttons: Json` та `Banner.buttons: BannerButton[]`. Хук `useBanners` має аналогічний каст. Потрібен рефакторинг: створити утиліту `parseBannerRow(row: Tables<'banners'>): Banner` з рантайм-перетворенням `Json → BannerButton[]`, та використовувати її і в `useBanners`, і в серверних сторінках. Див. окрему задачу.
 
 ### Фаза 5: Видалення `any` — admin (~6-8 год)
 

@@ -22,17 +22,29 @@ import { ActiveFilters } from "../components/catalog/ActiveFilters";
 import { Loader2, ChevronRight, Filter, LayoutGrid, List, FolderOpen } from "lucide-react";
 import { fetchModificationStockData, fetchModificationPropertyValues, enrichProductsWithAvailability } from "../hooks/useProductsWithStock";
 import { usePriceType } from "../hooks/usePriceType";
-import { resolvePrice } from "../lib/priceUtils";
+import { resolvePrice, type PriceEntry } from "../lib/priceUtils";
 import { useDiscountGroups, useDiscountContext, applyDiscount } from "../hooks/useDiscountedPrice";
 import { useProductRatings } from "../hooks/useProductReviews";
+import type { Tables } from "../supabase/types";
 
 type SortOption = "popular" | "price_asc" | "price_desc" | "newest";
 
+/** Тип значення фільтра в каталозі */
+type FilterValue = boolean | number | string[] | undefined;
+
+/** Елемент характеристики товару в каталозі */
+interface CatalogPropertyValue {
+  property_id: string;
+  value: string | null;
+  numeric_value: number | null;
+  option_id: string | null;
+}
+
 export interface CatalogSectionPageProps {
   sectionSlug?: string;
-  initialSection?: any;
-  initialSections?: any[];
-  initialProducts?: any[];
+  initialSection?: Tables<'sections'> & Record<string, unknown>;
+  initialSections?: Array<Tables<'sections'> & Record<string, unknown>>;
+  initialProducts?: Array<Tables<'products'> & Record<string, unknown>>;
 }
 
 export default function CatalogSectionPage({
@@ -43,7 +55,7 @@ export default function CatalogSectionPage({
 }: CatalogSectionPageProps = {}) {
   const params = useParams<{ sectionSlug: string }>();
   const sectionSlug = propSectionSlug || params.sectionSlug;
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -103,7 +115,7 @@ export default function CatalogSectionPage({
       if (error) throw error;
 
       const modificationIds = data.flatMap(p =>
-        (p.product_modifications || []).map((m: any) => m.id)
+        (p.product_modifications || []).map((m) => m.id)
       );
 
       const [modPropertyValues, modStockData] = await Promise.all([
@@ -114,14 +126,14 @@ export default function CatalogSectionPage({
       const mapped = data.map((product) => {
         const mods = product.product_modifications || [];
         const defaultMod =
-          mods.find((m: any) => m.is_default) ||
-          mods.sort((a: any, b: any) => a.sort_order - b.sort_order)[0];
+          mods.find((m) => m.is_default) ||
+          [...mods].sort((a, b) => a.sort_order - b.sort_order)[0];
         const images = product.images as string[] | null;
-        const hasModifications = (product as any).has_modifications ?? true;
+        const hasModifications = product.has_modifications ?? true;
 
-        const allPropertyValues = [
+        const allPropertyValues: CatalogPropertyValue[] = [
           ...(product.product_property_values || []),
-          ...mods.flatMap((m: any) => modPropertyValues[m.id] || [])
+          ...mods.flatMap((m) => modPropertyValues[m.id] || [])
         ];
 
         return {
@@ -144,7 +156,7 @@ export default function CatalogSectionPage({
   const products = useMemo(() => {
     if (!rawProducts) return undefined;
     return rawProducts.map((p) => {
-      const prices = (p as any).product_prices || [];
+      const prices = (p.product_prices ?? []) as PriceEntry[];
       let resolved;
       const defaultMod = p.has_modifications && p.modifications?.[0] ? p.modifications[0] : null;
       if (defaultMod) {
@@ -163,7 +175,7 @@ export default function CatalogSectionPage({
           cartTotal: 0,
           productId: p.id,
           modificationId: defaultMod?.id || null,
-          sectionId: (p as any).section_id || null,
+          sectionId: p.section_id || null,
         });
         if (result.totalDiscount > 0) {
           oldPrice = finalPrice;
@@ -173,13 +185,13 @@ export default function CatalogSectionPage({
 
       const stockStatus = p.has_modifications
         ? (defaultMod?.stock_status ?? "in_stock")
-        : ((p as any).stock_status ?? "in_stock");
+        : (p.stock_status ?? "in_stock");
       return { ...p, price: finalPrice, old_price: oldPrice, stock_status: stockStatus };
     });
   }, [rawProducts, priceTypeId, defaultPriceTypeId, discountGroups, discountCtx]);
 
   // Product ratings
-  const ratingProductIds = useMemo(() => products?.map((p: any) => p.id) || [], [products]);
+  const ratingProductIds = useMemo(() => products?.map((p) => p.id) || [], [products]);
   const { data: ratingsData } = useProductRatings(ratingProductIds);
 
   // Calculate price range
@@ -227,7 +239,7 @@ export default function CatalogSectionPage({
     numericProperties.forEach(prop => {
       const values: number[] = [];
       products.forEach(product => {
-        product.propertyValues.forEach((pv: any) => {
+        product.propertyValues.forEach((pv) => {
           if (pv.property_id === prop.id && pv.numeric_value !== null) {
             values.push(pv.numeric_value);
           }
@@ -265,7 +277,7 @@ export default function CatalogSectionPage({
 
       result = result.filter((product) => {
         const propValue = product.propertyValues.find(
-          (pv: any) => {
+          (pv) => {
             // Find by option_id in the selected values
             if (pv.option_id && Array.isArray(value)) {
               // Handle comma-separated option_ids for multiselect
@@ -290,15 +302,16 @@ export default function CatalogSectionPage({
         result = result.filter((product) => {
           // Find ALL matching property values (from any modification)
           const matchingValues = product.propertyValues.filter(
-            (pv: any) => pv.property_id === prop.id && pv.numeric_value !== null
+            (pv) => pv.property_id === prop.id && pv.numeric_value !== null
           );
           if (matchingValues.length === 0) return false; // Filter out products without this property value
 
           // Check if ANY of the values fall within the range (for products with multiple modifications)
-          return matchingValues.some((pv: any) => {
+          return matchingValues.some((pv) => {
             const val = pv.numeric_value;
-            if (minVal !== undefined && val < minVal) return false;
-            if (maxVal !== undefined && val > maxVal) return false;
+            if (val === null) return false;
+            if (minVal !== undefined && val < (minVal as number)) return false;
+            if (maxVal !== undefined && val > (maxVal as number)) return false;
             return true;
           });
         });
@@ -310,8 +323,8 @@ export default function CatalogSectionPage({
       result = result.filter((product) => {
         const price = product.price;
         if (price === undefined || price === null) return true;
-        if (filters.priceMin !== undefined && price < filters.priceMin) return false;
-        if (filters.priceMax !== undefined && price > filters.priceMax) return false;
+        if (filters.priceMin !== undefined && price < (filters.priceMin as number)) return false;
+        if (filters.priceMax !== undefined && price > (filters.priceMax as number)) return false;
         return true;
       });
     }
@@ -405,7 +418,7 @@ export default function CatalogSectionPage({
           if (option) {
             result.push({
               key,
-              label: (option.section_properties as any)?.name || key,
+              label: (option.section_properties as { name: string; slug: string } | null)?.name || key,
               value: option.name,
               type: "option",
               optionId,

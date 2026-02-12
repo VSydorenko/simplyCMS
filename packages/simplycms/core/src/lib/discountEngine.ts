@@ -1,5 +1,7 @@
 // Discount Engine - Pure computation logic for discount tree evaluation
 
+import type { Json } from '../supabase/types';
+
 export type DiscountType = 'percent' | 'fixed_amount' | 'fixed_price';
 export type GroupOperator = 'and' | 'or' | 'not' | 'min' | 'max';
 export type TargetType = 'product' | 'modification' | 'section' | 'all';
@@ -14,7 +16,7 @@ export interface DiscountCondition {
   id: string;
   condition_type: string;
   operator: string;
-  value: any;
+  value: Json;
 }
 
 export interface Discount {
@@ -105,7 +107,7 @@ function evaluateCondition(cond: DiscountCondition, ctx: DiscountContext): { met
   switch (condition_type) {
     case 'user_category': {
       if (!ctx.userCategoryId) return { met: false, reason: 'Користувач без категорії' };
-      const ids: string[] = Array.isArray(value) ? value : [value];
+      const ids: string[] = (Array.isArray(value) ? value : [value]) as string[];
       const met = operator === 'in' ? ids.includes(ctx.userCategoryId) : !ids.includes(ctx.userCategoryId);
       return { met, reason: met ? '' : `Категорія користувача не входить у список` };
     }
