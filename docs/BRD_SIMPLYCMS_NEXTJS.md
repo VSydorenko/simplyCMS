@@ -1256,7 +1256,7 @@ supabase/migrations/                   ← Актуальні міграції �
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "pnpm exec eslint .",
     "test": "vitest run",
     "cms:pull": "git subtree pull --prefix=packages/simplycms simplycms-core main --squash",
     "cms:push": "git subtree push --prefix=packages/simplycms simplycms-core main",

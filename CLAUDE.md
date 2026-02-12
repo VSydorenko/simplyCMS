@@ -7,7 +7,7 @@ pnpm install          # Install dependencies
 pnpm dev              # Start dev server (Turbopack)
 pnpm build            # Production build
 pnpm typecheck        # TypeScript type check
-pnpm lint             # ESLint (next lint)
+pnpm lint             # ESLint
 pnpm lint:fix         # ESLint (auto-fix)
 pnpm test             # Run tests (vitest run)
 pnpm test:watch       # Tests in watch mode
