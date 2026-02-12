@@ -118,7 +118,7 @@ export default function DiscountGroupEdit() {
       toast({ title: isNew ? "Групу створено" : "Групу оновлено" });
       router.push("/admin/discounts");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Помилка", description: err.message, variant: "destructive" });
     },
   });
@@ -179,7 +179,7 @@ export default function DiscountGroupEdit() {
                     <FormControl><SelectTrigger><SelectValue placeholder="Кореневий рівень" /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="__root__">Кореневий рівень</SelectItem>
-                      {parentGroups.map((g: any) => (
+                      {parentGroups.map((g) => (
                         <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                       ))}
                     </SelectContent>

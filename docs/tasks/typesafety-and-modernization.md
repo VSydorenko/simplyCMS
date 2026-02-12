@@ -86,8 +86,8 @@
 ### Фаза 2: Data layer виправлення
 
 - [x] **2.1.** `app/api/guest-order/route.ts` — виправлено insert payload: `customer_name` → `first_name`/`last_name`, `customer_phone` → `phone`, `customer_email` → `email`, `total_amount` → `subtotal`/`total`, `status` → видалено (використовується `status_id`). Додано `order_number`, `payment_method`.
-- [ ] **2.2.** `app/sitemap.ts:35` — `(product: any)` → типізувати через результат Supabase select.
-- [ ] **2.3.** `app/api/health/route.ts` — `Record<string, any>` (рядок 8) та `(check: any)` (рядок 42) → замінити на typed interface.
+- [x] **2.2.** `app/sitemap.ts:35` — `(product: any)` → типізувати через результат Supabase select.
+- [x] **2.3.** `app/api/health/route.ts` — `Record<string, any>` (рядок 8) та `(check: any)` (рядок 42) → замінити на typed interface.
 
 ### Фаза 3: Форми та валідація ✅
 
@@ -133,8 +133,9 @@
 
 > **Технічний борг (Фаза 5):**
 > - `PriceTypeEdit.tsx`, `UserCategoryRuleEdit.tsx` — `zodResolver(schema) as any` залишено з `eslint-disable` коментарем: `z.coerce.number()` у Zod 4 повертає `unknown` у input-схемі, що створює несумісність із `Resolver<TFieldValues>` @hookform/resolvers.
-> - `chart.tsx` — `any` залишено для типів payload Recharts з `eslint-disable` коментарями, оскільки Recharts API сам використовує `any` внутрішньо. Функція `getPayloadConfigFromPayload` типізована як `Record<string, any>`.
+> - `chart.tsx` — Recharts `any` замінено на `RechartsPayloadItem` інтерфейс та `unknown` типи. Функція `getPayloadConfigFromPayload` типізована через `RechartsPayloadItem`.
 > - Додатково типізовано: `ReviewDetail.tsx`, `OrderDetail.tsx`, `UserCategoryRules.tsx`, `SectionPropertiesManager.tsx`, `AddProductToOrder.tsx`, `StockByPointManager.tsx` — файли, що не були явно в списку, але містили `any`.
+> - **Фаза 7 cleanup:** Видалено решту ~15 `any` типів у: `Reviews.tsx`, `ProductPropertyValues.tsx`, `AllProductProperties.tsx`, `AddProductToOrder.tsx`, `FilterSidebar.tsx`, `CheckoutRecipientForm.tsx`, `CheckoutDeliveryForm.tsx`, `useStock.ts`, `useCart.tsx`, `config.ts`, `theme-system/types.ts`, `Properties.tsx`, `PropertyDetail.tsx`, `sitemap.ts`, `health/route.ts`. Створено `bannerUtils.ts` для runtime-safe конвертації `Json → BannerButton[]`.
 
 ### Фаза 6: ESLint cleanup ✅
 
@@ -168,14 +169,14 @@
 
 - [x] **6.10.** `@typescript-eslint/no-unused-expressions` — `Discounts.tsx:131`. Замінено на if/else.
 
-> **Додатково виправлено:** Видалено непотрібні `eslint-disable` директиви для `@typescript-eslint/no-explicit-any` в `PriceTypeEdit.tsx`, `UserCategoryRuleEdit.tsx`, `chart.tsx` (правило не активне в поточному ESLint конфігу — буде увімкнене у Фазі 7).
+> **Додатково виправлено:** `eslint-disable` директиви для `@typescript-eslint/no-explicit-any` залишені лише в `PriceTypeEdit.tsx`, `UserCategoryRuleEdit.tsx` (zodResolver issue). Правило активне як `"warn"` з Фази 7.
 
-### Фаза 7: Фіналізація (~30 хв)
+### Фаза 7: Фіналізація ✅
 
-- [ ] **7.1.** Увімкнути ESLint правило `@typescript-eslint/no-explicit-any` як `"warn"` в `eslint.config.mjs`.
-- [ ] **7.2.** Перевірити `@supabase/ssr` сумісність з Next.js 16 через MCP context7/supabase.
-- [ ] **7.3.** Перевірити `next.config.ts` на deprecated options для Next.js 16 через MCP context7.
-- [ ] **7.4.** Фінальна перевірка: `pnpm typecheck && pnpm lint && pnpm build`.
+- [x] **7.1.** Увімкнути ESLint правило `@typescript-eslint/no-explicit-any` як `"warn"` в `eslint.config.mjs`.
+- [x] **7.2.** Перевірити `@supabase/ssr` сумісність з Next.js 16 через MCP context7/supabase.
+- [x] **7.3.** Перевірити `next.config.ts` на deprecated options для Next.js 16 через MCP context7.
+- [x] **7.4.** Фінальна перевірка: `pnpm typecheck && pnpm lint && pnpm build`.
 
 ---
 

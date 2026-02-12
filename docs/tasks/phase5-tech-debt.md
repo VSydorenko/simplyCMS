@@ -1,4 +1,4 @@
-# Task: Технічний борг Фази 5 — залишковий `any`
+# Task: Технічний борг Фази 5 — залишковий `any` (частково вирішено)
 
 ## Контекст
 
@@ -71,10 +71,10 @@ payload?: Array<Record<string, any>>;
 
 ## Критерії завершення
 
-- [ ] `zodResolver` працює без `as any` з `z.coerce.number()` схемами
-- [ ] `chart.tsx` не містить `any` — всі Recharts payload типізовані
-- [ ] `pnpm typecheck` проходить без помилок
-- [ ] Видалено всі `eslint-disable` коментарі для `@typescript-eslint/no-explicit-any`
+- [ ] `zodResolver` працює без `as any` з `z.coerce.number()` схемами (чекає upstream fix в @hookform/resolvers)
+- [x] `chart.tsx` не містить `any` — всі Recharts payload типізовані через `RechartsPayloadItem` інтерфейс
+- [x] `pnpm typecheck` проходить без помилок
+- [x] Видалено `eslint-disable` коментарі для chart.tsx (залишилось лише 2 в zodResolver файлах)
 
 ## Пріоритет
 

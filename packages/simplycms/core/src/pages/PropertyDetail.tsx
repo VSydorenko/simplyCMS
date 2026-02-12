@@ -8,10 +8,11 @@ import { supabase } from "../supabase/client";
 import { Card, CardContent } from "@simplycms/ui/card";
 import { Button } from "@simplycms/ui/button";
 import { Loader2, ChevronRight } from "lucide-react";
+import type { Tables } from "../supabase/types";
 
 export interface PropertyDetailPageProps {
-  property?: any;
-  options?: any[];
+  property?: Tables<'section_properties'>;
+  options?: Tables<'property_options'>[];
 }
 
 export default function PropertyDetailPage({

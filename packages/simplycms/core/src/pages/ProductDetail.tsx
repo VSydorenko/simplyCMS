@@ -512,11 +512,11 @@ export default function ProductDetailPage({
                   price: price,
                   basePrice: basePrice || null,
                   discountData: currentDiscountResult && currentDiscountResult.totalDiscount > 0
-                    ? {
+                    ? JSON.parse(JSON.stringify({
                         appliedDiscounts: currentDiscountResult.appliedDiscounts,
                         totalDiscount: currentDiscountResult.totalDiscount,
                         basePrice: basePrice,
-                      }
+                      }))
                     : null,
                   image: allImages[0],
                   sku: sku || undefined,

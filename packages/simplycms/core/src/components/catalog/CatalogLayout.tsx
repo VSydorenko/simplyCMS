@@ -16,9 +16,9 @@ interface CatalogLayoutProps {
   /** Render the cart drawer */
   renderCartDrawer?: () => React.ReactNode;
   /** Render a Button component */
-  renderButton?: (props: any) => React.ReactNode;
+  renderButton?: (props: Record<string, unknown>) => React.ReactNode;
   /** Render a DropdownMenu */
-  renderDropdownMenu?: (props: any) => React.ReactNode;
+  renderDropdownMenu?: (props: Record<string, unknown>) => React.ReactNode;
   /** Children to render in the main content area (replaces Outlet) */
   children?: React.ReactNode;
 }

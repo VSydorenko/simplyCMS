@@ -12,6 +12,29 @@ import { Loader2, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 
+interface ReviewProfile {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
+
+interface ReviewWithMeta {
+  id: string;
+  product_id: string;
+  user_id: string;
+  rating: number;
+  title: string | null;
+  content: string | null;
+  images: unknown;
+  status: string;
+  admin_comment: string | null;
+  created_at: string;
+  updated_at: string;
+  productName: string;
+  profile: ReviewProfile | null;
+}
+
 const statusLabels: Record<string, string> = {
   pending: "На модерації",
   approved: "Затверджено",
@@ -43,18 +66,18 @@ export default function AdminReviews() {
       if (error) throw error;
 
       // Fetch product names and profiles
-      const productIds = [...new Set((data || []).map((r: any) => r.product_id))];
-      const userIds = [...new Set((data || []).map((r: any) => r.user_id))];
+      const productIds = [...new Set((data || []).map((r) => r.product_id))];
+      const userIds = [...new Set((data || []).map((r) => r.user_id))];
 
       const productsMap: Record<string, string> = {};
-      const profilesMap: Record<string, any> = {};
+      const profilesMap: Record<string, ReviewProfile> = {};
 
       if (productIds.length > 0) {
         const { data: products } = await supabase
           .from("products")
           .select("id, name")
           .in("id", productIds);
-        products?.forEach((p: any) => { productsMap[p.id] = p.name; });
+        products?.forEach((p) => { productsMap[p.id] = p.name; });
       }
 
       if (userIds.length > 0) {
@@ -62,18 +85,18 @@ export default function AdminReviews() {
           .from("profiles")
           .select("user_id, first_name, last_name, email")
           .in("user_id", userIds);
-        profiles?.forEach((p: any) => { profilesMap[p.user_id] = p; });
+        profiles?.forEach((p) => { profilesMap[p.user_id] = p; });
       }
 
-      return (data || []).map((r: any) => ({
+      return (data || []).map((r) => ({
         ...r,
         productName: productsMap[r.product_id] || "—",
         profile: profilesMap[r.user_id] || null,
-      }));
+      })) as ReviewWithMeta[];
     },
   });
 
-  const pendingCount = reviews.filter((r: any) => r.status === "pending").length;
+  const pendingCount = reviews.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -123,7 +146,7 @@ export default function AdminReviews() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reviews.map((r: any) => {
+                {reviews.map((r) => {
                   const authorName = r.profile
                     ? [r.profile.first_name, r.profile.last_name].filter(Boolean).join(" ") || r.profile.email || "—"
                     : "—";

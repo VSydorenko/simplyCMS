@@ -63,7 +63,7 @@ export default function Banners() {
     );
   }
 
-  const hasSchedule = (b: any) => b.date_from || b.date_to || (b.schedule_days && b.schedule_days.length > 0) || b.schedule_time_from;
+  const hasSchedule = (b: { date_from: string | null; date_to: string | null; schedule_days: unknown; schedule_time_from: string | null }) => b.date_from || b.date_to || (Array.isArray(b.schedule_days) && b.schedule_days.length > 0) || b.schedule_time_from;
 
   return (
     <div className="space-y-6">

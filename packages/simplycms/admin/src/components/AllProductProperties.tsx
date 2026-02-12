@@ -128,7 +128,7 @@ export function AllProductProperties({ productId, sectionId }: Props) {
       numeric_value: number | null;
       option_id: string | null;
     }> = {};
-    existingValues.forEach((v: any) => {
+    existingValues.forEach((v) => {
       valuesMap[v.property_id] = { 
         value: v.value, 
         numeric_value: v.numeric_value,
@@ -150,7 +150,7 @@ export function AllProductProperties({ productId, sectionId }: Props) {
       numericValue: number | null;
       optionId?: string | null;
     }) => {
-      const existingValue = existingValues?.find((v: any) => v.property_id === propertyId);
+      const existingValue = existingValues?.find((v) => v.property_id === propertyId);
       
       if (existingValue) {
         const { error } = await supabase

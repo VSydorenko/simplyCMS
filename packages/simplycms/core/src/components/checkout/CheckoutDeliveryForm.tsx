@@ -13,8 +13,8 @@ import { AddressSelectorPopup } from "./AddressSelectorPopup";
 import { AddressSaveDialog } from "./AddressSaveDialog";
 
 interface CheckoutDeliveryFormProps {
-  values: Record<string, any>;
-  onChange: (field: string, value: any) => void;
+  values: Record<string, string | boolean>;
+  onChange: (field: string, value: string | boolean) => void;
   subtotal: number;
   onShippingCostChange: (cost: number) => void;
 }
@@ -39,8 +39,8 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const selectedMethodId = values.shippingMethodId;
-  const selectedAddressId = values.savedAddressId;
+  const selectedMethodId = values.shippingMethodId as string | undefined;
+  const selectedAddressId = values.savedAddressId as string | undefined;
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -111,8 +111,8 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
   const isPickup = selectedMethod?.code === "pickup";
   const showAddressFields = selectedMethod && !isPickup;
 
-  const currentCity = values.deliveryCity;
-  const currentAddress = values.deliveryAddress;
+  const currentCity = String(values.deliveryCity || '');
+  const currentAddress = String(values.deliveryAddress || '');
 
   // hasChanges — виведений стан, не потребує окремого useState
   const hasChanges = useMemo(() => {
@@ -291,7 +291,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
             <div className="pt-4 border-t">
               <label className="text-sm font-medium mb-1 block">Оберiть пункт самовивозу *</label>
               <select
-                value={values.pickupPointId || ""}
+                value={String(values.pickupPointId || "")}
                 onChange={(e) => onChange("pickupPointId", e.target.value)}
                 className="w-full px-3 py-2 border rounded-md text-sm"
               >
@@ -387,7 +387,7 @@ export function CheckoutDeliveryForm({ values, onChange, subtotal, onShippingCos
           open={popupOpen}
           onOpenChange={setPopupOpen}
           addresses={savedAddresses}
-          selectedId={selectedAddressId}
+          selectedId={selectedAddressId ?? null}
           onSelect={handleSelectAddress}
           onAddNew={handleAddNew}
         />

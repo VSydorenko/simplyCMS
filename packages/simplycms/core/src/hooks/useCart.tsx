@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 
+import type { Json } from "../supabase/types";
+
 export interface CartItem {
   productId: string;
   modificationId: string | null;
@@ -9,7 +11,7 @@ export interface CartItem {
   modificationName?: string;
   price: number;
   basePrice?: number | null;
-  discountData?: any | null;
+  discountData?: Json | null;
   quantity: number;
   image?: string;
   sku?: string;

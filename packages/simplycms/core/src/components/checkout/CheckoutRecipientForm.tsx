@@ -11,8 +11,8 @@ import { RecipientSelectorPopup } from "./RecipientSelectorPopup";
 import { RecipientSaveDialog } from "./RecipientSaveDialog";
 
 interface CheckoutRecipientFormProps {
-  values: Record<string, any>;
-  onChange: (field: string, value: any) => void;
+  values: Record<string, string | boolean>;
+  onChange: (field: string, value: string | boolean) => void;
 }
 
 interface SavedRecipient {
@@ -34,7 +34,7 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const hasDifferentRecipient = values.hasDifferentRecipient;
-  const selectedRecipientId = values.savedRecipientId;
+  const selectedRecipientId = values.savedRecipientId as string | undefined;
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -64,13 +64,13 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
   const showMoreButton = savedRecipients && savedRecipients.length > MAX_VISIBLE_CARDS;
 
   const currentValues = useMemo(() => ({
-    firstName: values.recipientFirstName,
-    lastName: values.recipientLastName,
-    phone: values.recipientPhone,
-    email: values.recipientEmail,
-    city: values.recipientCity,
-    address: values.recipientAddress,
-    notes: values.recipientNotes,
+    firstName: String(values.recipientFirstName || ''),
+    lastName: String(values.recipientLastName || ''),
+    phone: String(values.recipientPhone || ''),
+    email: String(values.recipientEmail || ''),
+    city: String(values.recipientCity || ''),
+    address: String(values.recipientAddress || ''),
+    notes: String(values.recipientNotes || ''),
   }), [
     values.recipientFirstName, values.recipientLastName,
     values.recipientPhone, values.recipientEmail,
@@ -220,7 +220,7 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={hasDifferentRecipient || false}
+              checked={!!hasDifferentRecipient}
               onChange={(e) => onChange("hasDifferentRecipient", e.target.checked)}
               className="rounded mt-0.5"
             />
@@ -317,7 +317,7 @@ export function CheckoutRecipientForm({ values, onChange }: CheckoutRecipientFor
           open={popupOpen}
           onOpenChange={setPopupOpen}
           recipients={savedRecipients}
-          selectedId={selectedRecipientId}
+          selectedId={selectedRecipientId ?? null}
           onSelect={handleSelectRecipient}
           onAddNew={handleAddNew}
         />

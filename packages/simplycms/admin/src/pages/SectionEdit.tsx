@@ -102,7 +102,7 @@ export default function SectionEdit() {
     },
   });
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

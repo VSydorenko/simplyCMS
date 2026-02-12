@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
 import HomePage from '@themes/default/pages/HomePage';
-import type { Banner } from '@simplycms/core/hooks/useBanners';
+import { parseBannerRow } from '@simplycms/core/lib/bannerUtils';
 
 export const revalidate = 3600;
 
@@ -33,7 +33,7 @@ export default async function Home() {
 
   return (
     <HomePage
-      banners={(banners.data || []) as unknown as Banner[]}
+      banners={(banners.data || []).map(parseBannerRow)}
       featuredProducts={(featured.data || []).map((p) => ({
         id: p.id,
         name: p.name,

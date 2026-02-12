@@ -164,7 +164,7 @@ export default function PropertyEdit() {
     });
   };
 
-  const handleChange = (field: keyof typeof formData, value: any) => {
+  const handleChange = (field: keyof typeof formData, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

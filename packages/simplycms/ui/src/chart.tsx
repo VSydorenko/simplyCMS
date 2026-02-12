@@ -5,6 +5,17 @@ import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@simplycms/core/lib/utils";
 
+/** Типізація Recharts payload елемента */
+interface RechartsPayloadItem {
+  name?: string;
+  value?: string | number;
+  dataKey?: string | number;
+  color?: string;
+  fill?: string;
+  payload?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -95,11 +106,11 @@ const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
       active?: boolean;
-      payload?: Array<Record<string, any>>;
+      payload?: RechartsPayloadItem[];
       label?: React.ReactNode;
-      labelFormatter?: (value: any, payload: Array<Record<string, any>>) => React.ReactNode;
+      labelFormatter?: (value: unknown, payload: RechartsPayloadItem[]) => React.ReactNode;
       labelClassName?: string;
-      formatter?: (value: any, name: any, item: any, index: any, payload: any) => React.ReactNode;
+      formatter?: (value: unknown, name: unknown, item: RechartsPayloadItem, index: number, payload: unknown) => React.ReactNode;
       color?: string;
       hideLabel?: boolean;
       hideIndicator?: boolean;
@@ -171,7 +182,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload.fill || item.color;
+            const indicatorColor = color || item.payload?.fill || item.color;
 
             return (
               <div
@@ -238,7 +249,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-      payload?: Array<Record<string, any>>;
+      payload?: RechartsPayloadItem[];
       verticalAlign?: "top" | "bottom" | "middle";
       hideIcon?: boolean;
       nameKey?: string;
@@ -284,7 +295,7 @@ const ChartLegendContent = React.forwardRef<
 ChartLegendContent.displayName = "ChartLegend";
 
 // Helper to extract item config from a payload.
-function getPayloadConfigFromPayload(config: ChartConfig, payload: Record<string, any>, key: string) {
+function getPayloadConfigFromPayload(config: ChartConfig, payload: RechartsPayloadItem, key: string) {
   if (typeof payload !== "object" || payload === null) {
     return undefined;
   }

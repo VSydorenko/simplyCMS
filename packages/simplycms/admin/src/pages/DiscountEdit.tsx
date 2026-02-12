@@ -209,7 +209,7 @@ export default function DiscountEdit() {
       toast({ title: isNew ? "Скидку створено" : "Скидку оновлено" });
       router.push("/admin/discounts");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Помилка", description: err.message, variant: "destructive" });
     },
   });
@@ -262,7 +262,7 @@ export default function DiscountEdit() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {groups.map((g: any) => (
+                          {groups.map((g) => (
                             <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -277,7 +277,7 @@ export default function DiscountEdit() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Оберіть" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {priceTypes.map((pt: any) => (
+                          {priceTypes.map((pt) => (
                             <SelectItem key={pt.id} value={pt.id}>{pt.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -390,7 +390,7 @@ export default function DiscountEdit() {
                         >
                           <SelectTrigger className="flex-1"><SelectValue placeholder="Оберіть товар" /></SelectTrigger>
                           <SelectContent>
-                            {products.map((p: any) => (
+                            {products.map((p) => (
                               <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -408,7 +408,7 @@ export default function DiscountEdit() {
                         >
                           <SelectTrigger className="flex-1"><SelectValue placeholder="Оберіть розділ" /></SelectTrigger>
                           <SelectContent>
-                            {sections.map((s: any) => (
+                            {sections.map((s) => (
                               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -470,7 +470,7 @@ export default function DiscountEdit() {
 
                       {c.condition_type === "user_category" && (
                         <div className="flex-1 flex flex-wrap gap-1">
-                          {userCategories.map((uc: any) => {
+                          {userCategories.map((uc) => {
                             const selected = Array.isArray(c.value) && c.value.includes(uc.id);
                             return (
                               <Badge

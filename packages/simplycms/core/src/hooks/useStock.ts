@@ -45,10 +45,10 @@ export function useStock(
       }
 
       const byPoint: StockByPoint[] = Array.isArray(row.by_point)
-        ? row.by_point.map((p: any) => ({
-            point_id: p.point_id,
-            point_name: p.point_name,
-            quantity: p.quantity,
+        ? (row.by_point as Array<Record<string, unknown>>).map((p) => ({
+            point_id: String(p.point_id),
+            point_name: String(p.point_name),
+            quantity: Number(p.quantity),
           }))
         : [];
 

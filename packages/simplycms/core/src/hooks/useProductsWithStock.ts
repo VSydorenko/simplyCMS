@@ -15,7 +15,7 @@ interface RawProduct {
   has_modifications: boolean | null;
   product_modifications: ProductModification[] | null;
   stock_by_pickup_point?: Array<{ quantity: number }> | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface StockData {

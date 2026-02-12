@@ -42,19 +42,19 @@ export function useProductReviews(productId: string | undefined) {
       if (error) throw error;
 
       // Fetch profiles for all user_ids
-      const userIds = [...new Set((data || []).map((r: any) => r.user_id))];
-      const profilesMap: Record<string, any> = {};
+      const userIds = [...new Set((data || []).map((r) => r.user_id))];
+      const profilesMap: Record<string, { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, avatar_url")
           .in("user_id", userIds);
-        profiles?.forEach((p: any) => {
+        profiles?.forEach((p) => {
           profilesMap[p.user_id] = p;
         });
       }
 
-      return (data || []).map((r: any) => ({
+      return (data || []).map((r) => ({
         ...r,
         images: Array.isArray(r.images) ? r.images : [],
         profile: profilesMap[r.user_id] || null,
@@ -103,7 +103,7 @@ export function useProductReviews(productId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["product-reviews", productId] });
       toast({ title: "Відгук надіслано", description: "Він з'явиться після модерації" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ variant: "destructive", title: "Помилка", description: err.message });
     },
   });
@@ -131,7 +131,7 @@ export function useProductReviews(productId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["product-reviews", productId] });
       toast({ title: "Відгук видалено" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ variant: "destructive", title: "Помилка", description: err.message });
     },
   });
@@ -160,10 +160,10 @@ export function useProductRatings(productIds: string[]) {
       });
       if (error) throw error;
       const map: Record<string, { avgRating: number; reviewCount: number }> = {};
-      (data || []).forEach((r: any) => {
-        map[r.product_id] = {
+      (data || []).forEach((r: Record<string, unknown>) => {
+        map[String(r.product_id)] = {
           avgRating: Number(r.avg_rating),
-          reviewCount: r.review_count,
+          reviewCount: Number(r.review_count),
         };
       });
       return map;

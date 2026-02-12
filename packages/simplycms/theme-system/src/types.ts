@@ -23,13 +23,13 @@ export interface ThemeSettingDefinition {
 
 export interface ThemePages {
   // SSR-capable storefront pages (accept optional server-side props)
-  HomePage: React.ComponentType<any>;
-  CatalogPage: React.ComponentType<any>;
-  CatalogSectionPage: React.ComponentType<any>;
-  ProductPage: React.ComponentType<any>;
-  PropertiesPage: React.ComponentType<any>;
-  PropertyDetailPage: React.ComponentType<any>;
-  PropertyOptionPage: React.ComponentType<any>;
+  HomePage: React.ComponentType<Record<string, unknown>>;
+  CatalogPage: React.ComponentType<Record<string, unknown>>;
+  CatalogSectionPage: React.ComponentType<Record<string, unknown>>;
+  ProductPage: React.ComponentType<Record<string, unknown>>;
+  PropertiesPage: React.ComponentType<Record<string, unknown>>;
+  PropertyDetailPage: React.ComponentType<Record<string, unknown>>;
+  PropertyOptionPage: React.ComponentType<Record<string, unknown>>;
   // Client-only pages (no SSR props)
   CartPage: React.ComponentType;
   CheckoutPage: React.ComponentType;

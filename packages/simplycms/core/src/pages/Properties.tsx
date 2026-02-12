@@ -5,9 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Loader2, ChevronRight, Tag } from "lucide-react";
+import type { Tables } from "../supabase/types";
 
 export interface PropertiesPageProps {
-  properties?: any[];
+  properties?: Tables<'section_properties'>[];
 }
 
 export default function PropertiesPage({

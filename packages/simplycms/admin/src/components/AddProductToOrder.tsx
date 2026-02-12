@@ -63,7 +63,7 @@ export function AddProductToOrder({ onAddProduct, isAdding }: AddProductToOrderP
 
       const defaultPrices = prices?.filter((p) => p.price_types?.is_default) || [];
       return (mods || []).map((mod) => {
-        const priceEntry = defaultPrices.find((p: any) => p.modification_id === mod.id);
+        const priceEntry = defaultPrices.find((p) => p.modification_id === mod.id);
         return { ...mod, price: priceEntry?.price ?? 0 };
       });
     },

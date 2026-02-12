@@ -188,7 +188,7 @@ export default function BannerEdit() {
 
   const updateButton = (index: number, field: keyof BannerButton, value: string) => {
     const updated = [...form.buttons];
-    (updated[index] as any)[field] = value;
+    updated[index] = { ...updated[index], [field]: value };
     update("buttons", updated);
   };
 

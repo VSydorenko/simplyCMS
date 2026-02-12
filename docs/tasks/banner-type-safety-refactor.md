@@ -1,4 +1,4 @@
-# Task: Рефакторинг типізації Banner (Json → BannerButton[])
+# Task: Рефакторинг типізації Banner (Json → BannerButton[]) ✅
 
 ## Контекст
 
@@ -75,3 +75,10 @@ banners={(banners.data || []).map(parseBannerRow)}
 ## Оцінка
 
 ~30 хв. Тривіальний рефакторинг без зміни поведінки.
+
+## Статус: DONE ✅
+
+Реалізовано в рамках Фази 7 typesafety-and-modernization:
+- `bannerUtils.ts` створено з `parseBannerRow`, `parseBannerButtons`, `isBannerButton`
+- `useBanners.ts` оновлено: використовує `parseBannerRow`
+- `page.tsx` оновлено: використовує `parseBannerRow`, видалено `as unknown as`
