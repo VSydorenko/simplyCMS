@@ -1,6 +1,7 @@
 import { hookRegistry } from "./HookRegistry";
 import type { Plugin, PluginModule } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@simplycms/core/supabase/types";
 
 // Map of available plugins (will be populated by dynamic imports)
 const pluginModules: Map<string, PluginModule> = new Map();
@@ -141,7 +142,7 @@ export async function updatePluginConfig(
   const { error } = await supabase
     .from("plugins")
      
-    .update({ config: config as any, updated_at: new Date().toISOString() })
+    .update({ config: config as unknown as Json, updated_at: new Date().toISOString() })
     .eq("name", pluginName);
 
   if (error) {

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ImageUpload } from "../components/ImageUpload";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import type { Json } from "@simplycms/core/supabase/types";
 
 interface BannerButton {
   text: string;
@@ -143,7 +144,7 @@ export default function BannerEdit() {
         mobile_image_url: form.mobile_image_url || null,
         placement: form.placement,
         section_id: form.section_id || null,
-        buttons: form.buttons as any,
+        buttons: form.buttons as unknown as Json,
         date_from: form.date_from || null,
         date_to: form.date_to || null,
         schedule_days: form.schedule_days.length > 0 ? form.schedule_days : null,

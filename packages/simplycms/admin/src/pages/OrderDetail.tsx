@@ -40,12 +40,23 @@ import { useToast } from "@simplycms/core/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { AddProductToOrder } from "../components/AddProductToOrder";
 
+/** Застосована знижка в позиції замовлення */
+interface OrderItemDiscount {
+  name: string;
+  calculatedAmount: number;
+}
+
+/** Дані знижки позиції замовлення */
+interface DiscountData {
+  appliedDiscounts?: OrderItemDiscount[];
+}
+
 interface OrderItem {
   id: string;
   name: string;
   price: number;
   base_price: number | null;
-  discount_data: any | null;
+  discount_data: DiscountData | null;
   quantity: number;
   total: number;
   product_id: string | null;
@@ -374,9 +385,9 @@ export default function OrderDetail() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="font-medium">{item.name}</div>
-                        {item.discount_data?.appliedDiscounts?.length > 0 && (
+                        {(item.discount_data?.appliedDiscounts?.length ?? 0) > 0 && (
                           <div className="mt-1">
-                            {item.discount_data.appliedDiscounts.map((d: any, i: number) => (
+                            {item.discount_data?.appliedDiscounts?.map((d, i: number) => (
                               <span key={i} className="inline-block text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded px-1.5 py-0.5 mr-1 mb-0.5">
                                 {d.name}: -{d.calculatedAmount.toLocaleString()} ₴
                               </span>

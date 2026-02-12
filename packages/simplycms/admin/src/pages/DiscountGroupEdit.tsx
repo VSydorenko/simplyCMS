@@ -58,7 +58,7 @@ export default function DiscountGroupEdit() {
         .select("id, name")
         .order("name");
       if (error) throw error;
-      return data.filter((g: any) => g.id !== groupId);
+      return data.filter((g) => g.id !== groupId);
     },
   });
 
@@ -82,7 +82,7 @@ export default function DiscountGroupEdit() {
       form.reset({
         name: existing.name,
         description: existing.description || "",
-        operator: existing.operator as any,
+        operator: existing.operator as FormData['operator'],
         parent_group_id: existing.parent_group_id || "",
         is_active: existing.is_active,
         priority: existing.priority,

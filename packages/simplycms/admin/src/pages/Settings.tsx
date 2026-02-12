@@ -8,6 +8,7 @@ import { Label } from "@simplycms/ui/label";
 import { Separator } from "@simplycms/ui/separator";
 import { toast } from "sonner";
 import { Loader2, Settings as SettingsIcon, Package } from "lucide-react";
+import type { Json } from "@simplycms/core/supabase/types";
 
 interface StockManagementSettings {
   decrease_on_order: boolean;
@@ -40,7 +41,7 @@ export default function Settings() {
     mutationFn: async (newValue: StockManagementSettings) => {
       const { error } = await supabase
         .from("system_settings")
-        .update({ value: newValue as any })
+        .update({ value: newValue as unknown as Json })
         .eq("key", "stock_management");
       if (error) throw error;
     },

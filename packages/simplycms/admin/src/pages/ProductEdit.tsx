@@ -26,6 +26,7 @@ import { ProductPropertyValues } from "../components/ProductPropertyValues";
 import { ProductModifications } from "../components/ProductModifications";
 import { SimpleProductFields } from "../components/SimpleProductFields";
 import { AllProductProperties } from "../components/AllProductProperties";
+import type { TablesInsert, TablesUpdate } from "@simplycms/core/supabase/types";
 import { PluginSlot } from "@simplycms/plugins/PluginSlot";
 
 export default function ProductEdit() {
@@ -90,17 +91,17 @@ export default function ProductEdit() {
         section_id: product.section_id || "",
         is_active: product.is_active ?? true,
         is_featured: product.is_featured ?? false,
-        has_modifications: (product as any).has_modifications ?? true,
-        sku: (product as any).sku || "",
-        stock_status: (product as any).stock_status || "in_stock",
+        has_modifications: product.has_modifications ?? true,
+        sku: product.sku || "",
+        stock_status: product.stock_status || "in_stock",
       });
-      const productImages = (product as any).images;
-      setImages(Array.isArray(productImages) ? productImages : []);
+      const productImages = product.images;
+      setImages(Array.isArray(productImages) ? productImages.map(String) : []);
     }
   }, [product]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: TablesInsert<"products">) => {
       const { data: newProduct, error } = await supabase
         .from("products")
         .insert([data])
@@ -120,7 +121,7 @@ export default function ProductEdit() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: TablesUpdate<"products">) => {
       const { error } = await supabase
         .from("products")
         .update(data)
@@ -139,7 +140,7 @@ export default function ProductEdit() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data: any = {
+    const data: TablesInsert<"products"> = {
       name: formData.name,
       slug: formData.slug,
       short_description: formData.short_description,
@@ -169,7 +170,7 @@ export default function ProductEdit() {
     }
   };
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

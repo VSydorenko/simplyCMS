@@ -94,6 +94,8 @@ export default function UserCategoryRuleEdit() {
   const isNew = pathname.endsWith("/new") || !ruleId;
 
   const form = useForm<RuleFormData>({
+    // zodResolver + z.coerce.number() спричиняє TFieldValues mismatch
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(ruleSchema) as any,
     defaultValues: {
       name: "",

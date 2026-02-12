@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Switch } from "@simplycms/ui/switch";
 import { supabase } from "@simplycms/core/supabase/client";
 import { toast } from "@simplycms/core/hooks/use-toast";
+import type { Tables } from "@simplycms/core/supabase/types";
+import type { DiscountType } from "@simplycms/core/lib/discountEngine";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -37,6 +39,11 @@ const discountTypeLabels: Record<string, string> = {
   fixed_price: "= грн",
 };
 
+/** Знижка з приєднаним видом ціни */
+type DiscountWithPriceType = Tables<"discounts"> & {
+  price_types: { name: string } | null;
+};
+
 interface DiscountGroup {
   id: string;
   name: string;
@@ -47,7 +54,7 @@ interface DiscountGroup {
   priority: number;
   starts_at: string | null;
   ends_at: string | null;
-  discounts?: any[];
+  discounts?: DiscountWithPriceType[];
   children?: DiscountGroup[];
 }
 
@@ -73,7 +80,7 @@ export default function Discounts() {
 
       // Build tree
       const map = new Map<string, DiscountGroup>();
-      for (const g of allGroups as any[]) {
+      for (const g of allGroups) {
         map.set(g.id, {
           ...g,
           discounts: [],

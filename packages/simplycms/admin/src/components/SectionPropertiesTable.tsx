@@ -28,6 +28,16 @@ import { Label } from "@simplycms/ui/label";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 
+/** Тип для join-результату property з section_property_assignments */
+interface PropertyJoin {
+  id: string;
+  name: string;
+  slug: string;
+  property_type: string;
+  is_filterable: boolean;
+  is_required: boolean;
+}
+
 interface SectionPropertiesTableProps {
   sectionId: string;
 }
@@ -88,7 +98,7 @@ export function SectionPropertiesTable({ sectionId }: SectionPropertiesTableProp
   });
 
   // Get properties that are not yet assigned
-  const assignedIds = assignments?.map(a => (a.property as any)?.id) || [];
+  const assignedIds = assignments?.map(a => (a.property as PropertyJoin | null)?.id) || [];
   const availableProperties = allProperties?.filter(p => !assignedIds.includes(p.id)) || [];
 
   const addMutation = useMutation({
@@ -164,7 +174,7 @@ export function SectionPropertiesTable({ sectionId }: SectionPropertiesTableProp
           </TableHeader>
           <TableBody>
             {assignments.map((assignment) => {
-              const property = assignment.property as any;
+              const property = assignment.property as PropertyJoin | null;
               if (!property) return null;
               return (
                 <TableRow key={assignment.id}>

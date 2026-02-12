@@ -16,8 +16,14 @@ import {
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, Loader2, Image } from "lucide-react";
 import type { Tables } from "@simplycms/core/supabase/types";
+import type { Json } from "@simplycms/core/supabase/types";
 
 type Product = Tables<"products">;
+
+/** Товар з приєднаною секцією */
+type ProductWithSection = Product & {
+  sections: { name: string } | null;
+};
 
 export default function Products() {
   const router = useRouter();
@@ -32,7 +38,7 @@ export default function Products() {
         .select("*, sections(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as ProductWithSection[];
     },
   });
 
@@ -99,8 +105,8 @@ export default function Products() {
             </TableHeader>
             <TableBody>
               {products?.map((product) => {
-                const images = (product as any).images;
-                const firstImage = Array.isArray(images) && images.length > 0 ? images[0] : null;
+                const images = product.images as Json[] | null;
+                const firstImage = Array.isArray(images) && images.length > 0 ? String(images[0]) : null;
                 return (
                   <TableRow
                     key={product.id}
@@ -124,7 +130,7 @@ export default function Products() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {(product as any).sections?.name || "—"}
+                      {product.sections?.name || "—"}
                     </TableCell>
                     <TableCell>
                       <span

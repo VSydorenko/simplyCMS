@@ -61,7 +61,7 @@ export function AddProductToOrder({ onAddProduct, isAdding }: AddProductToOrderP
       if (modsError) throw modsError;
       if (pricesError) throw pricesError;
 
-      const defaultPrices = prices?.filter((p: any) => (p.price_types as any)?.is_default) || [];
+      const defaultPrices = prices?.filter((p) => p.price_types?.is_default) || [];
       return (mods || []).map((mod) => {
         const priceEntry = defaultPrices.find((p: any) => p.modification_id === mod.id);
         return { ...mod, price: priceEntry?.price ?? 0 };
@@ -81,7 +81,7 @@ export function AddProductToOrder({ onAddProduct, isAdding }: AddProductToOrderP
         .eq("product_id", selectedProduct.id)
         .is("modification_id", null);
       if (error) throw error;
-      const defaultEntry = data?.find((p: any) => (p.price_types as any)?.is_default);
+      const defaultEntry = data?.find((p) => p.price_types?.is_default);
       return defaultEntry?.price ?? 0;
     },
     enabled: !!selectedProduct?.id && !selectedProduct?.has_modifications,

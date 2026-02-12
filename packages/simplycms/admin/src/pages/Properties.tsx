@@ -32,7 +32,7 @@ import { Label } from "@simplycms/ui/label";
 import { Switch } from "@simplycms/ui/switch";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-import type { Tables } from "@simplycms/core/supabase/types";
+import type { Tables, TablesInsert, Enums } from "@simplycms/core/supabase/types";
 
 type SectionProperty = Tables<"section_properties">;
 
@@ -49,7 +49,7 @@ const propertyTypes = [
 export default function Properties() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [propertyType, setPropertyType] = useState<string>("text");
+  const [propertyType, setPropertyType] = useState<Enums<"property_type">>("text");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -67,8 +67,8 @@ export default function Properties() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Partial<SectionProperty>) => {
-      const { error } = await supabase.from("section_properties").insert([data as any]);
+    mutationFn: async (data: TablesInsert<"section_properties">) => {
+      const { error } = await supabase.from("section_properties").insert([data]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -102,7 +102,7 @@ export default function Properties() {
     const data = {
       name: formData.get("name") as string,
       slug: formData.get("slug") as string,
-      property_type: propertyType as any,
+      property_type: propertyType,
       is_required: formData.get("is_required") === "on",
       is_filterable: formData.get("is_filterable") === "on",
       has_page: formData.get("has_page") === "on",
@@ -173,7 +173,7 @@ export default function Properties() {
 
               <div className="space-y-2">
                 <Label>Тип властивості</Label>
-                <Select value={propertyType} onValueChange={setPropertyType}>
+                <Select value={propertyType} onValueChange={(v) => setPropertyType(v as Enums<"property_type">)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

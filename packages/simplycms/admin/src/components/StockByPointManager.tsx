@@ -16,6 +16,7 @@ import {
 } from "@simplycms/ui/table";
 import { toast } from "sonner";
 import { Loader2, Save, Building } from "lucide-react";
+import type { TablesInsert } from "@simplycms/core/supabase/types";
 import { usePickupPointsCount, usePickupPoints } from "@simplycms/core/hooks/useStock";
 
 interface StockByPointManagerProps {
@@ -95,7 +96,7 @@ export function StockByPointManager({
           if (error) throw error;
         } else {
           // Insert new record
-          const payload: any = {
+          const payload: TablesInsert<"stock_by_pickup_point"> = {
             pickup_point_id: pointId,
             quantity,
           };

@@ -126,10 +126,15 @@
 
 ### Фаза 5: Видалення `any` — admin (~6-8 год)
 
-- [ ] **5.1.** `packages/simplycms/admin/src/pages/` — масові `as any` в: BannerEdit, DiscountEdit, DiscountGroupEdit, Discounts, Orders, PriceValidator, ProductEdit, Products, Properties, Settings, UserCategories, UserCategoryRuleEdit, PriceTypeEdit. Замінити на `Tables<'table'>`, `TablesInsert<...>`, `TablesUpdate<...>`.
-- [ ] **5.2.** `packages/simplycms/admin/src/components/` — `ProductModifications.tsx`, `SectionPropertiesTable.tsx` — замінити `as any` на типізовані.
-- [ ] **5.3.** `packages/simplycms/plugin-system/src/PluginLoader.ts:144` — `config as any` → `config as Json` або `TablesUpdate<'plugins'>['config']`.
-- [ ] **5.4.** `packages/simplycms/ui/src/chart.tsx` — `any` в Recharts callback types (shadcn/ui code) — замінити на `unknown` де можливо.
+- [x] **5.1.** `packages/simplycms/admin/src/pages/` — масові `as any` в: BannerEdit, DiscountEdit, DiscountGroupEdit, Discounts, Orders, PriceValidator, ProductEdit, Products, Properties, Settings, UserCategories, UserCategoryRuleEdit, PriceTypeEdit. Замінити на `Tables<'table'>`, `TablesInsert<...>`, `TablesUpdate<...>`.
+- [x] **5.2.** `packages/simplycms/admin/src/components/` — `ProductModifications.tsx`, `SectionPropertiesTable.tsx` — замінити `as any` на типізовані.
+- [x] **5.3.** `packages/simplycms/plugin-system/src/PluginLoader.ts:144` — `config as any` → `config as Json` або `TablesUpdate<'plugins'>['config']`.
+- [x] **5.4.** `packages/simplycms/ui/src/chart.tsx` — `any` в Recharts callback types (shadcn/ui code) — замінити на `unknown` де можливо.
+
+> **Технічний борг (Фаза 5):**
+> - `PriceTypeEdit.tsx`, `UserCategoryRuleEdit.tsx` — `zodResolver(schema) as any` залишено з `eslint-disable` коментарем: `z.coerce.number()` у Zod 4 повертає `unknown` у input-схемі, що створює несумісність із `Resolver<TFieldValues>` @hookform/resolvers.
+> - `chart.tsx` — `any` залишено для типів payload Recharts з `eslint-disable` коментарями, оскільки Recharts API сам використовує `any` внутрішньо. Функція `getPayloadConfigFromPayload` типізована як `Record<string, any>`.
+> - Додатково типізовано: `ReviewDetail.tsx`, `OrderDetail.tsx`, `UserCategoryRules.tsx`, `SectionPropertiesManager.tsx`, `AddProductToOrder.tsx`, `StockByPointManager.tsx` — файли, що не були явно в списку, але містили `any`.
 
 ### Фаза 6: ESLint cleanup (~3-4 год)
 

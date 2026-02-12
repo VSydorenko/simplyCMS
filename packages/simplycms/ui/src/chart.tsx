@@ -95,10 +95,13 @@ const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
       active?: boolean;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts API boundary
       payload?: Array<Record<string, any>>;
       label?: React.ReactNode;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts API boundary
       labelFormatter?: (value: any, payload: Array<Record<string, any>>) => React.ReactNode;
       labelClassName?: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts API boundary
       formatter?: (value: any, name: any, item: any, index: any, payload: any) => React.ReactNode;
       color?: string;
       hideLabel?: boolean;
@@ -238,6 +241,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts API boundary
       payload?: Array<Record<string, any>>;
       verticalAlign?: "top" | "bottom" | "middle";
       hideIcon?: boolean;
@@ -284,7 +288,8 @@ const ChartLegendContent = React.forwardRef<
 ChartLegendContent.displayName = "ChartLegend";
 
 // Helper to extract item config from a payload.
-function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts API boundary
+function getPayloadConfigFromPayload(config: ChartConfig, payload: Record<string, any>, key: string) {
   if (typeof payload !== "object" || payload === null) {
     return undefined;
   }

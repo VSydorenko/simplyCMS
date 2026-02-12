@@ -38,6 +38,8 @@ export default function PriceTypeEdit() {
   const isNew = pathname.endsWith("/new") || !priceTypeId;
 
   const form = useForm<FormData>({
+    // zodResolver + z.coerce.number() спричиняє TFieldValues mismatch
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     defaultValues: { name: "", code: "", sort_order: 0, is_default: false },
   });

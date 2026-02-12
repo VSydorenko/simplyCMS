@@ -16,19 +16,24 @@ import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
 
+/** Замовлення з приєднаним статусом */
+type OrderWithStatus = Awaited<ReturnType<typeof fetchOrders>>[number];
+
+async function fetchOrders() {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, order_statuses(name, color)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
 export default function Orders() {
   const router = useRouter();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_statuses(name, color)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchOrders,
   });
 
   if (isLoading) {
@@ -79,10 +84,10 @@ export default function Orders() {
                   <TableCell>
                     <Badge
                       style={{
-                        backgroundColor: (order as any).order_statuses?.color || "#6B7280",
+                        backgroundColor: order.order_statuses?.color || "#6B7280",
                       }}
                     >
-                      {(order as any).order_statuses?.name || "Новий"}
+                      {order.order_statuses?.name || "Новий"}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@simplycms/ui/tabs";
 import { Badge } from "@simplycms/ui/badge";
 import { supabase } from "@simplycms/core/supabase/client";
 import { toast } from "@simplycms/core/hooks/use-toast";
+import type { Json } from "@simplycms/core/supabase/types";
 
 const schema = z.object({
   name: z.string().min(1, "Назва обов'язкова"),
@@ -44,7 +45,7 @@ interface ConditionRow {
   id?: string;
   condition_type: string;
   operator: string;
-  value: any;
+  value: Json;
 }
 
 const conditionTypeLabels: Record<string, string> = {
@@ -149,7 +150,7 @@ export default function DiscountEdit() {
         description: existing.description || "",
         group_id: existing.group_id,
         price_type_id: existing.price_type_id,
-        discount_type: existing.discount_type as any,
+        discount_type: existing.discount_type as FormData['discount_type'],
         discount_value: Number(existing.discount_value),
         priority: existing.priority,
         is_active: existing.is_active,
@@ -486,7 +487,7 @@ export default function DiscountEdit() {
                                   const updated = [...conditions];
                                   const vals = Array.isArray(c.value) ? [...c.value] : [];
                                   if (selected) {
-                                    updated[idx] = { ...c, value: vals.filter((v: string) => v !== uc.id) };
+                                    updated[idx] = { ...c, value: vals.filter((v) => v !== uc.id) };
                                   } else {
                                     updated[idx] = { ...c, value: [...vals, uc.id] };
                                   }
@@ -522,7 +523,7 @@ export default function DiscountEdit() {
                           <Input
                             type="number"
                             className="w-32"
-                            value={c.value}
+                            value={c.value as string | number}
                             onChange={(e) => {
                               const updated = [...conditions];
                               updated[idx] = { ...c, value: Number(e.target.value) };

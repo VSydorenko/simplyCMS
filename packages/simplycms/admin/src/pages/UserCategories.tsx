@@ -31,7 +31,7 @@ export default function UserCategories() {
       return cats.map((cat) => ({
         ...cat,
         user_count: counts.get(cat.id) || 0,
-        price_type_name: (cat.price_types as any)?.name || null,
+        price_type_name: (cat.price_types as { name: string } | null)?.name || null,
       }));
     },
   });
