@@ -23,6 +23,9 @@
       }
     ],
     "paths": {
+      "@simplycms/db-types": [
+        "./supabase/types.ts"
+      ],
       "@simplycms/core": [
         "./packages/simplycms/core/src"
       ],
@@ -53,9 +56,6 @@
       "@simplycms/themes/*": [
         "./packages/simplycms/theme-system/src/*"
       ],
-      "@simplycms/supabase/*": [
-        "./packages/simplycms/supabase/*"
-      ],
       "@/*": [
         "./app/*"
       ],
@@ -78,6 +78,6 @@
   "exclude": [
     "node_modules",
     "temp",
-    "packages/simplycms/supabase/functions"
+    "supabase/functions"
   ]
 }

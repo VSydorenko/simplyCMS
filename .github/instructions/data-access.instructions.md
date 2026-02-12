@@ -50,8 +50,9 @@ description: "Правила роботи з даними та Supabase в Simpl
 - Zod schemas для валідації форм (react-hook-form + @hookform/resolvers/zod).
 
 ### Міграції
-- Міграції ядра: `packages/simplycms/supabase/migrations/` (нумерація 001-099).
-- Міграції проекту: окрема нумерація 100+.
+- Всі міграції живуть на рівні проекту: `supabase/migrations/`.
+- Seed-міграції ядра (reference): `packages/simplycms/schema/seed-migrations/`.
+- Сайт може додавати власні міграції поруч з seed-файлами.
 - Створюй міграції через MCP supabase `apply_migration`.
 
 ## Supabase Data Patterns

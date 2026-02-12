@@ -40,13 +40,15 @@ simplyCMS/
 │   ├── auth/                       # Login/Register + OAuth callback
 │   └── api/                        # API Routes (revalidation, guest orders, health)
 │
+├── supabase/                       # Site-level database (config, migrations, types, functions)
+│
 ├── packages/simplycms/             # GIT SUBTREE → Core repo
 │   ├── core/       @simplycms/core     # Hooks, lib, types, providers, components
 │   ├── admin/      @simplycms/admin    # Admin layouts, pages, components
 │   ├── ui/         @simplycms/ui       # shadcn/ui design system (50+ components)
 │   ├── plugin-system/ @simplycms/plugins  # HookRegistry, PluginLoader, PluginSlot
 │   ├── theme-system/  @simplycms/themes   # ThemeRegistry, ThemeContext, ThemeResolver
-│   └── supabase/      # Migrations, Edge Functions, config
+│   └── schema/        # Seed migrations (reference for new projects)
 │
 ├── themes/                         # Local themes
 │   └── default/                    # Default theme (layouts, pages, components, styles)
@@ -92,8 +94,8 @@ pnpm cms:push      # Push core changes
 pnpm cms:diff      # View core changes
 
 # Database
-pnpm db:generate-types   # Regenerate TypeScript types from Supabase
-pnpm db:migrate          # Apply migrations
+pnpm db:generate-types   # Regenerate TypeScript types to supabase/types.ts
+pnpm db:migrate          # Apply migrations from supabase/migrations/
 ```
 
 ## Architecture

@@ -15,7 +15,7 @@
     "cms:push:branch": "git subtree push --prefix=packages/simplycms simplycms-core",
     "cms:diff": "git diff HEAD -- packages/simplycms/",
     "db:migrate": "supabase migration up",
-    "db:generate-types": "supabase gen types typescript --local > packages/simplycms/core/src/supabase/types.ts"
+    "db:generate-types": "supabase gen types typescript --local > supabase/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

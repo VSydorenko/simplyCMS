@@ -40,13 +40,19 @@ simplyCMS/
 │   ├── layout.tsx                    # Root layout (Inter font, ThemeProvider, Toaster)
 │   └── providers.tsx                 # Client providers (CMSProvider, ThemeProvider)
 │
+├── supabase/                         # Site-level database (owned by project, not core)
+│   ├── config.toml                   # Supabase project config (site-specific)
+│   ├── migrations/                   # SQL migrations (30+ files, core seed + site-specific)
+│   ├── functions/                    # Edge Functions (get-guest-order)
+│   └── types.ts                      # Auto-generated TypeScript types (pnpm db:generate-types)
+│
 ├── packages/simplycms/               # Core CMS (Git Subtree from simplyCMS-core)
 │   ├── core/src/       @simplycms/core      # Hooks, types, Supabase clients, components
 │   ├── admin/src/      @simplycms/admin     # Admin layouts, pages, components (57 files)
 │   ├── ui/src/          @simplycms/ui       # shadcn/ui design system (50+ components)
 │   ├── plugin-system/  @simplycms/plugins   # HookRegistry, PluginLoader, PluginSlot
 │   ├── theme-system/   @simplycms/themes    # ThemeRegistry, ThemeContext, ThemeResolver
-│   └── supabase/                            # SQL migrations, Edge Functions
+│   └── schema/                              # Seed migrations (reference for new projects)
 │
 ├── themes/default/                   # Default storefront theme (layouts, pages, components)
 ├── plugins/                          # Local plugins directory
@@ -64,6 +70,7 @@ simplyCMS/
 
 | Import | Path |
 |--------|------|
+| `@simplycms/db-types` | `supabase/types.ts` |
 | `@simplycms/core` | `packages/simplycms/core/src` |
 | `@simplycms/admin` | `packages/simplycms/admin/src` |
 | `@simplycms/ui` | `packages/simplycms/ui/src` |
@@ -118,6 +125,8 @@ Admin:      Browser → middleware.ts (admin guard) → Client Component → Sup
 - Browser client: `getSupabaseBrowserClient()` for client components
 - UUID primary keys, `created_at`/`updated_at` timestamps on all tables
 - Key tables: products, modifications, orders, discounts, shipping_zones, shipping_methods, prices, price_types, modifications_stock, sections, product_reviews, user_roles, banners
+- **Database ownership:** Migrations, config, types, and edge functions live at the **site level** (`supabase/`), not in the core package. Core provides Supabase client factories typed via `@simplycms/db-types` path alias
+- **Type bridge:** `@simplycms/db-types` → `supabase/types.ts` (site-generated); core's `supabase/types.ts` re-exports from this alias
 
 ## Key Conventions
 
@@ -168,11 +177,23 @@ pnpm cms:diff                  # View local core changes
 ## Database Commands
 
 ```bash
-pnpm db:migrate                # Apply Supabase migrations
-pnpm db:generate-types         # Regenerate TypeScript types from schema
+pnpm db:migrate                # Apply Supabase migrations (from supabase/migrations/)
+pnpm db:generate-types         # Regenerate TypeScript types to supabase/types.ts
 ```
 
-After schema changes, always run `pnpm db:generate-types` to keep `packages/simplycms/core/src/supabase/types.ts` in sync.
+After schema changes, always run `pnpm db:generate-types` to keep `supabase/types.ts` in sync. The generated types are bridged to the core package via the `@simplycms/db-types` path alias in `tsconfig.json`.
+
+### Database Architecture
+
+```
+supabase/types.ts (site-level, auto-generated)
+    ↑ mapped via tsconfig: @simplycms/db-types
+packages/simplycms/core/src/supabase/types.ts (re-export stub)
+    ↑ relative import: ./types
+packages/simplycms/core/src/supabase/client.ts, server.ts, middleware.ts
+    ↑ path import: @simplycms/core/supabase/*
+All consumer code (admin, core hooks, themes, app/ pages)
+```
 
 ## CI/CD
 
