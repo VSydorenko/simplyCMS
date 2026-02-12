@@ -29,9 +29,9 @@ pnpm cms:push               # Відправити зміни ядра
 pnpm cms:push:branch <br>   # Push в окрему гілку
 pnpm cms:diff               # Побачити зміни в ядрі
 
-# База даних
+# База даних (використовує SUPABASE_PROJECT_ID + SUPABASE_ACCESS_TOKEN з .env.local)
 pnpm db:generate-types      # Згенерувати TypeScript типи з Supabase
-pnpm db:migrate             # Застосувати міграції
+pnpm db:migrate             # Застосувати міграції (supabase link + db push)
 ```
 
 ## Конфігурація
@@ -39,6 +39,7 @@ pnpm db:migrate             # Застосувати міграції
 ### TypeScript
 - Strict mode увімкнено.
 - Path aliases:
+  - `@simplycms/db-types` → `supabase/types.ts`
   - `@simplycms/core` → `packages/simplycms/core/src`
   - `@simplycms/admin` → `packages/simplycms/admin/src`
   - `@simplycms/ui` → `packages/simplycms/ui/src`
@@ -88,8 +89,11 @@ pnpm db:migrate             # Застосувати міграції
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+SUPABASE_PROJECT_ID=your-project-ref
+SUPABASE_ACCESS_TOKEN=sbp_xxxx
 ```
 
 - Завжди використовуй `.env.local` для локальних значень.
 - `NEXT_PUBLIC_` prefix для клієнтських змінних.
+- `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` — для CLI (міграції, генерація типів через Management API).
 - Не комітьте `.env.local` — він в `.gitignore`.

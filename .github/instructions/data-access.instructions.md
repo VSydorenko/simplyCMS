@@ -46,7 +46,8 @@ description: "Правила роботи з даними та Supabase в Simpl
 
 ### Типи та валідація
 - Генеруй типи після змін схеми: `pnpm db:generate-types`.
-- Не редагуй `types.ts` вручну — лише через генератор.
+- Не редагуй `supabase/types.ts` вручну — лише через генератор.
+- DB команди працюють через `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` з `.env.local` (Management API).
 - Zod schemas для валідації форм (react-hook-form + @hookform/resolvers/zod).
 
 ### Міграції
@@ -118,7 +119,7 @@ await fetch('/api/revalidate', {
 ## ❌ NEVER
 - Не створюй локальні файли міграцій — завжди через MCP supabase.
 - Не використовуй прямий `supabase-js` без обгорток з `@simplycms/core`.
-- Не редагуй `types.ts` вручну — виключно через `pnpm db:generate-types`.
+- Не редагуй `supabase/types.ts` вручну — виключно через `pnpm db:generate-types`.
 - Не забувай ISR revalidation після змін даних в адмінці.
 - Не використовуй `queryClient.setQueryData()` для складних кейсів — invalidate замість цього.
 - Не роби DB calls з Server Components без try-catch обробки помилок.

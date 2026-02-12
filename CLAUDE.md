@@ -160,6 +160,8 @@ Admin:      Browser → middleware.ts (admin guard) → Client Component → Sup
 Required (copy `.env.example` to `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
+- `SUPABASE_PROJECT_ID` — Supabase project ref for CLI operations
+- `SUPABASE_ACCESS_TOKEN` — Personal access token for Management API (types, migrations)
 - `NEXT_PUBLIC_SITE_URL` — Public site URL (production)
 - `REVALIDATION_SECRET` — ISR revalidation token (optional)
 
@@ -175,6 +177,8 @@ pnpm cms:diff                  # View local core changes
 ```
 
 ## Database Commands
+
+All DB commands use `SUPABASE_PROJECT_ID` + `SUPABASE_ACCESS_TOKEN` from `.env.local` via Management API.
 
 ```bash
 pnpm db:migrate                # Apply Supabase migrations (from supabase/migrations/)
@@ -194,6 +198,10 @@ packages/simplycms/core/src/supabase/client.ts, server.ts, middleware.ts
     ↑ path import: @simplycms/core/supabase/*
 All consumer code (admin, core hooks, themes, app/ pages)
 ```
+
+### Core Repo Autonomous Compilation
+
+`packages/simplycms/core/src/supabase/reference-types.ts` is a copy of generated types that allows the core repo (simplyCMS-core) to compile independently. When the site's `@simplycms/db-types` alias is unavailable (i.e., in the core repo), the core repo's own tsconfig maps the alias to this file instead.
 
 ## CI/CD
 

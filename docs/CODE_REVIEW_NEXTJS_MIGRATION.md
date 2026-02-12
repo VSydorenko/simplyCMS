@@ -403,7 +403,7 @@ queryKey: ["beauty-sections-nav"]
 
 ### 4.9 Міграції БД — повне перенесення
 
-30 міграцій ідентично скопійовані з `temp/supabase/migrations/` в `packages/simplycms/supabase/migrations/`.
+30 міграцій ідентично скопійовані з `temp/supabase/migrations/` в `supabase/migrations/` (рівень проекту). Seed-копії для ядра — в `packages/simplycms/schema/seed-migrations/`.
 
 ---
 
@@ -460,8 +460,8 @@ queryKey: ["beauty-sections-nav"]
 | @simplycms/core — CMSProvider | ✅ | QueryClient + Auth + Cart |
 | @simplycms/plugins — HookRegistry, PluginLoader, PluginSlot | ✅ | Повна реалізація |
 | @simplycms/themes — ThemeRegistry, ThemeContext | ✅ | Повна реалізація |
-| @simplycms/supabase — Міграції | ✅ | 30 міграцій |
-| @simplycms/supabase — Edge Functions | ✅ | get-guest-order |
+| supabase/ — Міграції (рівень проекту) | ✅ | 30 міграцій |
+| supabase/ — Edge Functions | ✅ | get-guest-order |
 
 ### Фаза 2: Публічні SSR-сторінки
 

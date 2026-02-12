@@ -24,7 +24,7 @@ SimplyCMS — open-source e-commerce CMS з SSR-first підходом для п
 | `ui/` | `@simplycms/ui` | Дизайн-система (50+ shadcn/ui компонентів) |
 | `plugin-system/` | `@simplycms/plugins` | HookRegistry, PluginLoader, PluginSlot |
 | `theme-system/` | `@simplycms/themes` | ThemeRegistry, ThemeContext, ThemeResolver |
-| `supabase/` | — | Міграції БД, Edge Functions, конфігурація |
+| `schema/` | — | Seed-міграції (reference SQL для bootstrap нових проектів) |
 
 ### Rendering-стратегії
 

@@ -70,7 +70,7 @@ simplyCMS/
 | `packages/simplycms/ui` | `@simplycms/ui` | Design system (50+ shadcn/ui components) |
 | `packages/simplycms/plugin-system` | `@simplycms/plugins` | Hook registry, plugin loader, PluginSlot component |
 | `packages/simplycms/theme-system` | `@simplycms/themes` | Theme registry, context, resolver |
-| `packages/simplycms/supabase` | — | DB migrations, Edge Functions, Supabase config |
+| `packages/simplycms/schema` | — | Seed migrations (reference for new projects) |
 
 ## Setup Commands
 
@@ -93,9 +93,9 @@ pnpm cms:pull      # Pull core updates
 pnpm cms:push      # Push core changes
 pnpm cms:diff      # View core changes
 
-# Database
+# Database (uses SUPABASE_PROJECT_ID + SUPABASE_ACCESS_TOKEN from .env.local)
 pnpm db:generate-types   # Regenerate TypeScript types to supabase/types.ts
-pnpm db:migrate          # Apply migrations from supabase/migrations/
+pnpm db:migrate          # Apply migrations (link + db push --linked)
 ```
 
 ## Architecture
