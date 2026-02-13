@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
@@ -201,8 +201,7 @@ export default function UserCategoryRuleEdit() {
   const { ruleId } = useParams<{ ruleId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const pathname = usePathname();
-  const isNew = pathname.endsWith("/new") || !ruleId;
+  const isNew = !ruleId || ruleId === "new";
 
   const form = useForm<RuleFormData>({
     // zodResolver + z.coerce.number() спричиняє TFieldValues mismatch

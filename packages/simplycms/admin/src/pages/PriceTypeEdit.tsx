@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -34,8 +34,7 @@ export default function PriceTypeEdit() {
   const { priceTypeId } = useParams<{ priceTypeId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const pathname = usePathname();
-  const isNew = pathname.endsWith("/new") || !priceTypeId;
+  const isNew = !priceTypeId || priceTypeId === "new";
 
   const form = useForm<FormData>({
     // zodResolver + z.coerce.number() спричиняє TFieldValues mismatch

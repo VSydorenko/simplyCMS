@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useAuth } from "@simplycms/core/hooks/useAuth";
 import { useEffect } from "react";
-import { SidebarProvider, SidebarTrigger } from "@simplycms/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@simplycms/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Button } from "@simplycms/ui/button";
 import { LogOut, Home, Loader2 } from "lucide-react";
@@ -44,36 +44,34 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AdminSidebar />
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="h-14 border-b flex items-center justify-between px-4 bg-background">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                Адмін-панель
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
-                <Home className="h-4 w-4 mr-2" />
-                На сайт
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Вийти
-              </Button>
-            </div>
-          </header>
-          
-          {/* Main content */}
-          <main className="flex-1 p-6 bg-muted/30">
-            {children}
-          </main>
+      <AdminSidebar />
+      <SidebarInset>
+        {/* Header */}
+        <header className="h-14 border-b flex items-center justify-between px-4 bg-background">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              Адмін-панель
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+              <Home className="h-4 w-4 mr-2" />
+              На сайт
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Вийти
+            </Button>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <div className="flex-1 p-6 bg-muted/30">
+          {children}
         </div>
-      </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

@@ -196,7 +196,7 @@ export default function Plugins() {
                   )}
 
                   <div className="flex gap-2">
-                    <NavLink href={`/admin/plugins/${plugin.id}`} className="flex-1">
+                    <NavLink href={`/admin/plugins/${plugin.id}/settings`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <Settings className="h-4 w-4 mr-2" />
                         Налаштування
