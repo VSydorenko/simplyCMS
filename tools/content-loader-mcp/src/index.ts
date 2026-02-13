@@ -53,6 +53,15 @@ import {
   seedFromJson,
 } from "./tools/seed.js";
 
+import {
+  scrapeUrlSchema,
+  scrapeProductListSchema,
+  scrapeProductPageSchema,
+  scrapeUrl,
+  scrapeProductList,
+  scrapeProductPage,
+} from "./tools/scraper.js";
+
 const server = new McpServer({
   name: "simplycms-content-loader",
   version: "1.0.0",
@@ -205,6 +214,31 @@ server.tool(
   "Seed a complete section with properties and products from a JSON structure. Useful for bulk content loading from any source.",
   seedFromJsonSchema.shape,
   async (input) => seedFromJson(seedFromJsonSchema.parse(input))
+);
+
+// ==========================================
+// Scraper Tools
+// ==========================================
+
+server.tool(
+  "scrape_url",
+  "Завантажити та проаналізувати будь-яку веб-сторінку. Повертає структуровані дані: заголовок, зображення, посилання, ціни, таблиці характеристик. Режими: text, html, links, images, structured.",
+  scrapeUrlSchema.shape,
+  async (input) => scrapeUrl(scrapeUrlSchema.parse(input))
+);
+
+server.tool(
+  "scrape_product_list",
+  "Спарсити список товарів зі сторінки каталогу. Вкажіть CSS-селектори для контейнера товару, назви, ціни, зображення, посилання.",
+  scrapeProductListSchema.shape,
+  async (input) => scrapeProductList(scrapeProductListSchema.parse(input))
+);
+
+server.tool(
+  "scrape_product_page",
+  "Спарсити детальну сторінку товару. Автоматично визначає назву, ціну, опис, зображення, характеристики. Можна задати CSS-селектори вручну для точності.",
+  scrapeProductPageSchema.shape,
+  async (input) => scrapeProductPage(scrapeProductPageSchema.parse(input))
 );
 
 // ==========================================
