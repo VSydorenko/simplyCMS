@@ -362,7 +362,7 @@ export default function UserEdit() {
                     <DialogHeader>
                       <DialogTitle>Історія змін категорії</DialogTitle>
                     </DialogHeader>
-                    <div className="max-h-[400px] overflow-auto">
+                    <div className="max-h-100 overflow-auto">
                       {categoryHistory?.length === 0 ? (
                         <p className="text-center text-muted-foreground py-4">
                           Історія порожня

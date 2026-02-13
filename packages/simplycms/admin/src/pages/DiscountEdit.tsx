@@ -341,7 +341,7 @@ export default function DiscountEdit() {
                       <FormControl>
                         <Switch checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
-                      <FormLabel className="!mt-0">Активна</FormLabel>
+                      <FormLabel className="mt-0!">Активна</FormLabel>
                     </FormItem>
                   )} />
                 </CardContent>

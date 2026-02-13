@@ -538,7 +538,7 @@ export default function UserCategoryRuleEdit() {
                 name="conditions.type"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

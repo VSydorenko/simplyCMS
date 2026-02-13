@@ -131,7 +131,7 @@ export default function PickupPoints() {
                     </TableCell>
                     <TableCell>{point.city}</TableCell>
                     <TableCell>
-                      <div className="max-w-[200px] truncate" title={point.address}>
+                      <div className="max-w-50 truncate" title={point.address}>
                         {point.address}
                       </div>
                     </TableCell>

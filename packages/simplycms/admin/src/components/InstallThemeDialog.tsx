@@ -132,7 +132,7 @@ export function InstallThemeDialog({ trigger }: InstallThemeDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Встановлення теми</DialogTitle>
