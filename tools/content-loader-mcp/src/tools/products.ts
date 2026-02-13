@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { supabase } from "../client.js";
+import {
+  uploadModificationImagesFromUrls,
+  uploadProductImagesFromUrls,
+} from "../storage.js";
 
 // --- Schemas ---
 
@@ -136,6 +140,23 @@ export const createProductFullSchema = z.object({
 
 export const deleteProductSchema = z.object({
   id: z.string().uuid().describe("Product ID to delete"),
+});
+
+export const updateProductSchema = z.object({
+  id: z.string().uuid().describe("Product ID to update"),
+  name: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  section_id: z.string().uuid().optional(),
+  short_description: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  images: z.array(z.string()).nullable().optional(),
+  is_active: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
+  has_modifications: z.boolean().optional(),
+  sku: z.string().nullable().optional(),
+  stock_status: z.enum(["in_stock", "out_of_stock", "on_order"]).optional(),
+  meta_title: z.string().nullable().optional(),
+  meta_description: z.string().nullable().optional(),
 });
 
 export const createModificationSchema = z.object({
@@ -334,6 +355,8 @@ export async function getProduct(
 export async function createProduct(
   input: z.infer<typeof createProductSchema>
 ) {
+  const inputImages = input.images ?? [];
+
   const { data: product, error } = await supabase
     .from("products")
     .insert({
@@ -342,7 +365,7 @@ export async function createProduct(
       section_id: input.section_id,
       short_description: input.short_description ?? null,
       description: input.description ?? null,
-      images: input.images ?? [],
+      images: [],
       is_active: input.is_active,
       is_featured: input.is_featured,
       has_modifications: input.has_modifications,
@@ -355,6 +378,28 @@ export async function createProduct(
     .single();
 
   if (error) throw new Error(`Failed to create product: ${error.message}`);
+
+  const warnings: string[] = [];
+
+  if (inputImages.length > 0) {
+    const uploaded = await uploadProductImagesFromUrls({
+      productId: product.id,
+      urls: inputImages,
+    });
+
+    warnings.push(...uploaded.warnings);
+
+    const { error: imgError } = await supabase
+      .from("products")
+      .update({ images: uploaded.images })
+      .eq("id", product.id);
+
+    if (imgError) {
+      warnings.push(`Images update failed: ${imgError.message}`);
+    } else {
+      product.images = uploaded.images;
+    }
+  }
 
   // Set default price if provided
   if (input.price) {
@@ -371,7 +416,11 @@ export async function createProduct(
     content: [
       {
         type: "text" as const,
-        text: `Product created:\n${JSON.stringify(product, null, 2)}`,
+        text:
+          `Product created:\n${JSON.stringify(product, null, 2)}` +
+          (warnings.length > 0
+            ? `\n\nWarnings:\n- ${warnings.join("\n- ")}`
+            : ""),
       },
     ],
   };
@@ -381,6 +430,7 @@ export async function createProductFull(
   input: z.infer<typeof createProductFullSchema>
 ) {
   const results: string[] = [];
+  const inputImages = input.images ?? [];
 
   // 1. Create product
   const { data: product, error: prodError } = await supabase
@@ -391,7 +441,7 @@ export async function createProductFull(
       section_id: input.section_id,
       short_description: input.short_description ?? null,
       description: input.description ?? null,
-      images: input.images ?? [],
+      images: [],
       is_active: input.is_active,
       is_featured: input.is_featured,
       has_modifications: input.has_modifications,
@@ -405,6 +455,28 @@ export async function createProductFull(
 
   if (prodError) throw new Error(`Failed to create product: ${prodError.message}`);
   results.push(`Product created: ${product.id} (${product.name})`);
+
+  if (inputImages.length > 0) {
+    const uploaded = await uploadProductImagesFromUrls({
+      productId: product.id,
+      urls: inputImages,
+    });
+
+    const { error: imgError } = await supabase
+      .from("products")
+      .update({ images: uploaded.images })
+      .eq("id", product.id);
+
+    if (imgError) {
+      results.push(`Warning: product images update failed: ${imgError.message}`);
+    } else {
+      results.push(`Images uploaded: ${uploaded.images.length}`);
+    }
+
+    for (const w of uploaded.warnings) {
+      results.push(`Warning: ${w}`);
+    }
+  }
 
   // 2. Set prices (product-level, for simple products)
   if (input.prices && input.prices.length > 0 && !input.has_modifications) {
@@ -426,6 +498,7 @@ export async function createProductFull(
   if (input.modifications && input.modifications.length > 0) {
     for (let i = 0; i < input.modifications.length; i++) {
       const mod = input.modifications[i];
+      const modInputImages = mod.images ?? [];
       const { data: modification, error: modError } = await supabase
         .from("product_modifications")
         .insert({
@@ -435,7 +508,7 @@ export async function createProductFull(
           sku: mod.sku ?? null,
           stock_status: mod.stock_status,
           is_default: mod.is_default,
-          images: mod.images ?? [],
+          images: [],
           sort_order: i,
         })
         .select()
@@ -446,6 +519,31 @@ export async function createProductFull(
         continue;
       }
       results.push(`Modification created: ${modification.id} (${mod.name})`);
+
+      if (modInputImages.length > 0) {
+        const uploaded = await uploadModificationImagesFromUrls({
+          productId: product.id,
+          modificationId: modification.id,
+          urls: modInputImages,
+        });
+
+        const { error: imgError } = await supabase
+          .from("product_modifications")
+          .update({ images: uploaded.images })
+          .eq("id", modification.id);
+
+        if (imgError) {
+          results.push(
+            `Warning: mod images update failed (${mod.name}): ${imgError.message}`
+          );
+        } else {
+          results.push(`Mod images uploaded (${mod.name}): ${uploaded.images.length}`);
+        }
+
+        for (const w of uploaded.warnings) {
+          results.push(`Warning: ${w}`);
+        }
+      }
 
       // Set modification prices
       if (mod.prices && mod.prices.length > 0) {
@@ -555,6 +653,49 @@ export async function deleteProduct(
   };
 }
 
+export async function updateProduct(
+  input: z.infer<typeof updateProductSchema>
+) {
+  const { id, ...updates } = input;
+
+  // Remove undefined values
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  );
+
+  // Upload images if provided
+  if (cleanUpdates.images && Array.isArray(cleanUpdates.images)) {
+    const uploadResult = await uploadProductImagesFromUrls({
+      productId: id,
+      urls: cleanUpdates.images as string[],
+    });
+    cleanUpdates.images = uploadResult.images;
+    
+    // Log warnings if any
+    if (uploadResult.warnings.length > 0) {
+      console.warn('Image upload warnings:', uploadResult.warnings);
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .update(cleanUpdates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to update product: ${error.message}`);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `Product updated:\n${JSON.stringify(data, null, 2)}`,
+      },
+    ],
+  };
+}
+
 export async function createModification(
   input: z.infer<typeof createModificationSchema>
 ) {
@@ -579,7 +720,7 @@ export async function createModification(
       sku: input.sku ?? null,
       stock_status: input.stock_status,
       is_default: input.is_default,
-      images: input.images ?? [],
+      images: [],
       sort_order: sortOrder,
     })
     .select()
@@ -587,11 +728,39 @@ export async function createModification(
 
   if (error) throw new Error(`Failed to create modification: ${error.message}`);
 
+  const warnings: string[] = [];
+  const inputImages = input.images ?? [];
+
+  if (inputImages.length > 0) {
+    const uploaded = await uploadModificationImagesFromUrls({
+      productId: input.product_id,
+      modificationId: data.id,
+      urls: inputImages,
+    });
+
+    warnings.push(...uploaded.warnings);
+
+    const { error: imgError } = await supabase
+      .from("product_modifications")
+      .update({ images: uploaded.images })
+      .eq("id", data.id);
+
+    if (imgError) {
+      warnings.push(`Images update failed: ${imgError.message}`);
+    } else {
+      data.images = uploaded.images;
+    }
+  }
+
   return {
     content: [
       {
         type: "text" as const,
-        text: `Modification created:\n${JSON.stringify(data, null, 2)}`,
+        text:
+          `Modification created:\n${JSON.stringify(data, null, 2)}` +
+          (warnings.length > 0
+            ? `\n\nWarnings:\n- ${warnings.join("\n- ")}`
+            : ""),
       },
     ],
   };

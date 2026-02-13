@@ -117,6 +117,25 @@ function resolveUrl(base: string, relative: string): string {
   }
 }
 
+/**
+ * Очищує URL зображення від Google PageSpeed оптимізації
+ * Приклад: xluxxpower-6000.jpg.pagespeed.ic.VOClC5kMUH.webp → luxxpower-6000.jpg
+ */
+function cleanPageSpeedUrl(url: string): string {
+  // Видаляємо .pagespeed.ic.HASH.webp або .pagespeed.ic.HASH.jpg
+  let cleaned = url.replace(/\.pagespeed\.ic\.[^.]+\.(webp|png|jpg|jpeg|gif)/i, '.$1');
+  
+  // Видаляємо 'x' префікс з назви файлу (PageSpeed додає його)
+  cleaned = cleaned.replace(/\/x([^/]+)$/, '/$1');
+  
+  // Конвертуємо webp назад в оригінальний формат (jpg за замовчуванням)
+  if (cleaned.endsWith('.webp') && !url.includes('.webp')) {
+    cleaned = cleaned.replace(/\.webp$/, '.jpg');
+  }
+  
+  return cleaned;
+}
+
 // --- Handlers ---
 
 export async function scrapeUrl(input: z.infer<typeof scrapeUrlSchema>) {
@@ -174,7 +193,7 @@ export async function scrapeUrl(input: z.infer<typeof scrapeUrlSchema>) {
             $(el).attr("src") || $(el).attr("data-src") || $(el).attr("data-lazy-src");
           if (src) {
             images.push({
-              src: resolveUrl(baseUrl, src),
+              src: cleanPageSpeedUrl(resolveUrl(baseUrl, src)),
               alt: $(el).attr("alt") || "",
             });
           }
@@ -203,7 +222,7 @@ export async function scrapeUrl(input: z.infer<typeof scrapeUrlSchema>) {
           const src =
             $(el).attr("src") || $(el).attr("data-src");
           if (src && !src.includes("logo") && !src.includes("icon")) {
-            images.push(resolveUrl(baseUrl, src));
+            images.push(cleanPageSpeedUrl(resolveUrl(baseUrl, src)));
           }
         });
 
@@ -298,7 +317,7 @@ export async function scrapeProductList(
       const $img = $item.find(input.image_selector);
       const src =
         $img.attr("src") || $img.attr("data-src") || $img.attr("data-lazy-src");
-      if (src) product.image = resolveUrl(baseUrl, src);
+      if (src) product.image = cleanPageSpeedUrl(resolveUrl(baseUrl, src));
     }
 
     if (input.link_selector) {
@@ -410,8 +429,9 @@ export async function scrapeProductPage(
         $(el).attr("src") ||
         $(el).attr("data-src") ||
         $(el).attr("data-large-image") ||
+        $(el).attr("data-large_image") ||  // підтримка data-large_image з підкресленням
         $(el).attr("href");
-      if (src) images.push(resolveUrl(baseUrl, src));
+      if (src) images.push(cleanPageSpeedUrl(resolveUrl(baseUrl, src)));
     });
   } else {
     $(
@@ -419,10 +439,22 @@ export async function scrapeProductPage(
     ).each((_, el) => {
       const src =
         $(el).attr("data-large-image") ||
+        $(el).attr("data-large_image") ||  // підтримка data-large_image з підкресленням
         $(el).attr("data-src") ||
         $(el).attr("src");
-      if (src) images.push(resolveUrl(baseUrl, src));
+      if (src) images.push(cleanPageSpeedUrl(resolveUrl(baseUrl, src)));
     });
+    
+    // Якщо не знайшли зображення через img, шукаємо через батьківські <a href>
+    if (images.length === 0) {
+      $('[class*="product-image"] a[href], [class*="gallery"] a[href], [class*="woocommerce-product-gallery"] a[href]').each((_, el) => {
+        const href = $(el).attr("href");
+        // Перевіряємо що це зображення, а не лінк на сторінку
+        if (href && /\.(jpg|jpeg|png|gif|webp)$/i.test(href)) {
+          images.push(cleanPageSpeedUrl(resolveUrl(baseUrl, href)));
+        }
+      });
+    }
   }
 
   // SKU

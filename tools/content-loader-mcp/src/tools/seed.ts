@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { supabase } from "../client.js";
+import { uploadProductImagesFromUrls } from "../storage.js";
 
 // --- Schema ---
 
@@ -763,6 +764,7 @@ export async function seedFromJson(
   // 5. Create products
   let created = 0;
   for (const prod of inputData.products) {
+    const inputImages = prod.images ?? [];
     const { data: product, error: prodError } = await supabase
       .from("products")
       .insert({
@@ -771,7 +773,7 @@ export async function seedFromJson(
         section_id: section.id,
         short_description: prod.short_description ?? null,
         description: prod.description ?? null,
-        images: prod.images ?? [],
+        images: [],
         is_active: true,
         has_modifications: false,
         sku: prod.sku ?? null,
@@ -787,6 +789,30 @@ export async function seedFromJson(
       continue;
     }
     created++;
+
+    if (inputImages.length > 0) {
+      const uploaded = await uploadProductImagesFromUrls({
+        productId: product.id,
+        urls: inputImages,
+      });
+
+      const { error: imgError } = await supabase
+        .from("products")
+        .update({ images: uploaded.images })
+        .eq("id", product.id);
+
+      if (imgError) {
+        results.push(
+          `Warning: images update failed for '${prod.name}': ${imgError.message}`
+        );
+      } else {
+        results.push(`Images uploaded for '${prod.name}': ${uploaded.images.length}`);
+      }
+
+      for (const w of uploaded.warnings) {
+        results.push(`Warning: ${w}`);
+      }
+    }
 
     // Price
     if (priceType) {

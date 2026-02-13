@@ -33,6 +33,7 @@ import {
   createProductSchema,
   createProductFullSchema,
   deleteProductSchema,
+  updateProductSchema,
   createModificationSchema,
   setPricesSchema,
   setPropertyValueSchema,
@@ -41,6 +42,7 @@ import {
   createProduct,
   createProductFull,
   deleteProduct,
+  updateProduct,
   createModification,
   setPrices,
   setPropertyValue,
@@ -175,6 +177,13 @@ server.tool(
   "Delete a product and all related data (modifications, prices, properties, stock).",
   deleteProductSchema.shape,
   async (input) => deleteProduct(deleteProductSchema.parse(input))
+);
+
+server.tool(
+  "update_product",
+  "Update an existing product. Only provided fields will be updated. Images will be uploaded to Supabase Storage.",
+  updateProductSchema.shape,
+  async (input) => updateProduct(updateProductSchema.parse(input))
 );
 
 server.tool(
