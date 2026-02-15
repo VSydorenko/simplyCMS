@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     const revalidated: string[] = [];
 
     if (type === 'theme') {
+      // Інвалідація кешу активної теми (unstable_cache tag)
+      revalidateTag('active-theme', 'max');
       // Повна ревалідація layout (включає всі storefront сторінки)
       revalidatePath('/', 'layout');
       revalidated.push('/');

@@ -1,17 +1,30 @@
 import { unstable_cache } from "next/cache";
-import { createServerSupabaseClient } from "@simplycms/core/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { ThemeRegistry } from "./ThemeRegistry";
 import type { ActiveThemeSSR, ThemeRecord } from "./types";
 
 const DEFAULT_THEME = "default";
 
 /**
+ * Створити анонімний Supabase-клієнт для публічних запитів.
+ * Не використовує cookies() — безпечний для unstable_cache.
+ * Таблиця themes має RLS policy "Themes are viewable by everyone".
+ */
+function createAnonSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+}
+
+/**
  * Отримати запис активної теми з БД.
  * Обгорнуто в unstable_cache для cross-request кешування.
+ * Використовує анонімний клієнт (без cookies) для сумісності з cache.
  */
 const getCachedActiveThemeRecord = unstable_cache(
   async (): Promise<ThemeRecord | null> => {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createAnonSupabaseClient();
     const { data, error } = await supabase
       .from("themes")
       .select("*")
@@ -35,7 +48,7 @@ const getCachedActiveThemeRecord = unstable_cache(
     };
   },
   ["active-theme"],
-  { revalidate: 3600 }
+  { revalidate: 3600, tags: ["active-theme"] }
 );
 
 /**
