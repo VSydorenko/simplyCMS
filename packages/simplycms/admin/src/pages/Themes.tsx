@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@simp
 import { Badge } from "@simplycms/ui/badge";
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
-import { Palette, Check, Settings, Trash2, ArrowLeft } from "lucide-react";
-import { InstallThemeDialog } from "../components/InstallThemeDialog";
+import { Palette, Check, Settings, ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +30,29 @@ interface ThemeRecord {
   author: string | null;
   preview_image: string | null;
   is_active: boolean;
-  installed_at: string;
+  created_at: string;
+}
+
+/** Виклик revalidation API після зміни теми */
+async function revalidateTheme() {
+  try {
+    await fetch("/api/revalidate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "theme",
+        secret: process.env.NEXT_PUBLIC_REVALIDATION_SECRET || "",
+      }),
+    });
+  } catch {
+    // Revalidation — best effort
+  }
 }
 
 export default function Themes() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [deleteThemeId, setDeleteThemeId] = useState<string | null>(null);
+  const [confirmThemeId, setConfirmThemeId] = useState<string | null>(null);
 
   const { data: themes, isLoading } = useQuery({
     queryKey: ["admin-themes"],
@@ -45,7 +60,7 @@ export default function Themes() {
       const { data, error } = await supabase
         .from("themes")
         .select("*")
-        .order("installed_at", { ascending: true });
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data as ThemeRecord[];
     },
@@ -53,27 +68,29 @@ export default function Themes() {
 
   const activateMutation = useMutation({
     mutationFn: async (themeId: string) => {
-      // Deactivate all themes first
+      // Деактивувати всі теми
       const { error: deactivateError } = await supabase
         .from("themes")
         .update({ is_active: false })
         .neq("id", themeId);
-      
+
       if (deactivateError) throw deactivateError;
 
-      // Activate the selected theme
+      // Активувати обрану тему
       const { error: activateError } = await supabase
         .from("themes")
         .update({ is_active: true })
         .eq("id", themeId);
-      
+
       if (activateError) throw activateError;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin-themes"] });
+      await revalidateTheme();
+      setConfirmThemeId(null);
       toast({
         title: "Тему активовано",
-        description: "Зміни будуть застосовані після оновлення сторінки",
+        description: "Зміни застосовані на сайті",
       });
     },
     onError: (error) => {
@@ -85,50 +102,23 @@ export default function Themes() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (themeId: string) => {
-      const { error } = await supabase
-        .from("themes")
-        .delete()
-        .eq("id", themeId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-themes"] });
-      setDeleteThemeId(null);
-      toast({
-        title: "Тему видалено",
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Помилка",
-        description: error instanceof Error ? error.message : "Не вдалося видалити тему",
-      });
-    },
-  });
-
-  const themeToDelete = themes?.find(t => t.id === deleteThemeId);
+  const themeToActivate = themes?.find(t => t.id === confirmThemeId);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/settings">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Теми оформлення</h1>
-            <p className="text-muted-foreground">
-              Управління зовнішнім виглядом магазину
-            </p>
-          </div>
+      <div className="flex items-center gap-4">
+        <Link href="/admin/settings">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold">Теми оформлення</h1>
+          <p className="text-muted-foreground">
+            Управління зовнішнім виглядом магазину
+          </p>
         </div>
-        <InstallThemeDialog />
       </div>
 
       {/* Themes grid */}
@@ -151,9 +141,9 @@ export default function Themes() {
         <Card>
           <CardContent className="text-center py-12">
             <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Немає встановлених тем</h3>
+            <h3 className="text-lg font-semibold mb-2">Немає зареєстрованих тем</h3>
             <p className="text-muted-foreground">
-              Встановіть тему для налаштування зовнішнього вигляду магазину
+              Теми додаються через код проекту та міграції БД
             </p>
           </CardContent>
         </Card>
@@ -215,7 +205,7 @@ export default function Themes() {
                     <>
                       <Button
                         className="flex-1"
-                        onClick={() => activateMutation.mutate(theme.id)}
+                        onClick={() => setConfirmThemeId(theme.id)}
                         disabled={activateMutation.isPending}
                       >
                         Активувати
@@ -225,15 +215,6 @@ export default function Themes() {
                           <Settings className="h-4 w-4" />
                         </Link>
                       </Button>
-                      {theme.name !== "default" && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setDeleteThemeId(theme.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
                     </>
                   )}
                 </div>
@@ -243,23 +224,22 @@ export default function Themes() {
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deleteThemeId} onOpenChange={() => setDeleteThemeId(null)}>
+      {/* Підтвердження активації теми */}
+      <AlertDialog open={!!confirmThemeId} onOpenChange={() => setConfirmThemeId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Видалити тему?</AlertDialogTitle>
+            <AlertDialogTitle>Активувати тему?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ви впевнені, що хочете видалити тему "{themeToDelete?.display_name}"?
-              Цю дію неможливо скасувати.
+              Тема "{themeToActivate?.display_name}" буде активована.
+              Зміни буде застосовано на сайті одразу.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Скасувати</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteThemeId && deleteMutation.mutate(deleteThemeId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => confirmThemeId && activateMutation.mutate(confirmThemeId)}
             >
-              Видалити
+              Активувати
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

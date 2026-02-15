@@ -7,7 +7,6 @@ export { AddProductToOrder } from "./components/AddProductToOrder";
 export { AllProductProperties } from "./components/AllProductProperties";
 export { ImageUpload } from "./components/ImageUpload";
 export { InstallPluginDialog } from "./components/InstallPluginDialog";
-export { InstallThemeDialog } from "./components/InstallThemeDialog";
 export { ProductModifications } from "./components/ProductModifications";
 export { ProductPricesEditor } from "./components/ProductPricesEditor";
 export { ProductPropertyValues } from "./components/ProductPropertyValues";

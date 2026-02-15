@@ -11,7 +11,11 @@ export async function POST(request: Request) {
 
     const revalidated: string[] = [];
 
-    if (type === 'product' && slug && sectionSlug) {
+    if (type === 'theme') {
+      // Повна ревалідація layout (включає всі storefront сторінки)
+      revalidatePath('/', 'layout');
+      revalidated.push('/');
+    } else if (type === 'product' && slug && sectionSlug) {
       revalidatePath(`/catalog/${sectionSlug}/${slug}`);
       revalidatePath(`/catalog/${sectionSlug}`);
       revalidatePath('/catalog');

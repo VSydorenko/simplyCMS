@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import { supabase } from "@simplycms/core/supabase/client";
 import { ThemeRegistry } from "./ThemeRegistry";
@@ -13,12 +14,9 @@ import type {
   ThemeContextType,
   ThemeModule,
   ThemeRecord,
-  ThemeSettingDefinition,
 } from "./types";
 
-/**
- * Convert hex color (#RRGGBB) to HSL string "H S% L%" for CSS variables
- */
+/** Конвертація hex (#RRGGBB) у HSL "H S% L%" для CSS variables */
 function hexToHsl(hex: string): string | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return null;
@@ -59,31 +57,31 @@ const DEFAULT_THEME_NAME = "default";
 interface ThemeProviderProps {
   children: React.ReactNode;
   fallbackTheme?: string;
+  /** Назва теми з SSR — пропускає початковий fetchActiveTheme */
+  initialThemeName?: string;
 }
 
 export function ThemeProvider({
   children,
   fallbackTheme = DEFAULT_THEME_NAME,
+  initialThemeName,
 }: ThemeProviderProps) {
   const [activeTheme, setActiveTheme] = useState<ThemeModule | null>(null);
-  const [themeName, setThemeName] = useState<string>(DEFAULT_THEME_NAME);
+  const [themeName, setThemeName] = useState<string>(
+    initialThemeName || DEFAULT_THEME_NAME
+  );
   const [themeSettings, setThemeSettings] = useState<Record<string, unknown>>(
     {}
   );
   const [themeRecord, setThemeRecord] = useState<ThemeRecord | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialThemeName);
   const [error, setError] = useState<Error | null>(null);
+  const didInit = useRef(false);
 
   const loadTheme = useCallback(
     async (name: string, record?: ThemeRecord) => {
       try {
-        console.log(`[ThemeProvider] Loading theme: ${name}`);
-
-        // Check if theme is registered
         if (!ThemeRegistry.has(name)) {
-          console.warn(
-            `[ThemeProvider] Theme "${name}" not registered, falling back to "${fallbackTheme}"`
-          );
           if (name !== fallbackTheme && ThemeRegistry.has(fallbackTheme)) {
             return loadTheme(fallbackTheme);
           }
@@ -94,7 +92,7 @@ export function ThemeProvider({
         setActiveTheme(theme);
         setThemeName(name);
 
-        // Merge default settings with saved config
+        // Злиття default settings з збереженими
         const defaultSettings: Record<string, unknown> = {};
         if (theme.manifest.settings) {
           for (const [key, setting] of Object.entries(
@@ -104,10 +102,8 @@ export function ThemeProvider({
           }
         }
 
-        const savedConfig = record?.config || {};
-        setThemeSettings({ ...defaultSettings, ...savedConfig });
-
-        console.log(`[ThemeProvider] Theme "${name}" loaded successfully`);
+        const savedSettings = record?.settings || {};
+        setThemeSettings({ ...defaultSettings, ...savedSettings });
       } catch (err) {
         console.error(
           `[ThemeProvider] Failed to load theme "${name}":`,
@@ -125,7 +121,6 @@ export function ThemeProvider({
       setIsLoading(true);
       setError(null);
 
-      // Fetch active theme from database
       const { data, error: fetchError } = await supabase
         .from("themes")
         .select("*")
@@ -137,25 +132,16 @@ export function ThemeProvider({
           "[ThemeProvider] Error fetching active theme:",
           fetchError
         );
-        // Try to load fallback theme
         await loadTheme(fallbackTheme);
         return;
       }
 
       if (!data) {
-        console.warn(
-          "[ThemeProvider] No active theme found, using fallback"
-        );
         await loadTheme(fallbackTheme);
         return;
       }
 
-      // Cast the data to ThemeRecord with proper type handling
-      const configData = data.config as Record<string, unknown> | null;
-      const settingsData = data.settings_schema as Record<
-        string,
-        unknown
-      > | null;
+      const settingsData = data.settings as Record<string, unknown> | null;
 
       const record: ThemeRecord = {
         id: data.id,
@@ -165,11 +151,9 @@ export function ThemeProvider({
         description: data.description,
         author: data.author,
         preview_image: data.preview_image,
-        is_active: data.is_active ?? false,
-        config: configData || {},
-        settings_schema:
-          (settingsData || {}) as Record<string, ThemeSettingDefinition>,
-        installed_at: data.installed_at ?? new Date().toISOString(),
+        is_active: data.is_active,
+        settings: settingsData || {},
+        created_at: data.created_at ?? new Date().toISOString(),
         updated_at: data.updated_at ?? new Date().toISOString(),
       };
 
@@ -188,32 +172,37 @@ export function ThemeProvider({
     await fetchActiveTheme();
   }, [fetchActiveTheme]);
 
+  // Ініціалізація: якщо є initialThemeName — завантажуємо з Registry без fetch
+  // Якщо ні — робимо fetch з БД
   useEffect(() => {
-    fetchActiveTheme();
-  }, [fetchActiveTheme]);
+    if (didInit.current) return;
+    didInit.current = true;
 
-  // Apply theme CSS variables (e.g. primaryColor) to document root
+    if (initialThemeName) {
+      loadTheme(initialThemeName).then(() => setIsLoading(false));
+    } else {
+      fetchActiveTheme();
+    }
+  }, [initialThemeName, loadTheme, fetchActiveTheme]);
+
+  // CSS variables для налаштувань теми
   useEffect(() => {
     if (!themeSettings || Object.keys(themeSettings).length === 0) return;
 
     const root = document.documentElement;
 
-    // Apply primaryColor setting as CSS variable
     if (
       themeSettings.primaryColor &&
       typeof themeSettings.primaryColor === "string"
     ) {
-      const hex = themeSettings.primaryColor as string;
-      const hsl = hexToHsl(hex);
+      const hsl = hexToHsl(themeSettings.primaryColor);
       if (hsl) {
         root.style.setProperty("--primary", hsl);
-        // Also set accent based on primary
         root.style.setProperty("--brand", hsl);
       }
     }
 
     return () => {
-      // Cleanup: remove inline styles on unmount
       root.style.removeProperty("--primary");
       root.style.removeProperty("--brand");
     };

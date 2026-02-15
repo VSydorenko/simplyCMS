@@ -100,10 +100,16 @@ export interface ThemeRecord {
   author: string | null;
   preview_image: string | null;
   is_active: boolean;
-  config: Record<string, unknown>;
-  settings_schema: Record<string, ThemeSettingDefinition>;
-  installed_at: string;
+  settings: Record<string, unknown>;
+  created_at: string;
   updated_at: string;
+}
+
+/** Результат SSR-резолюції теми */
+export interface ActiveThemeSSR {
+  theme: ThemeModule;
+  themeName: string;
+  themeRecord: ThemeRecord;
 }
 
 export interface ThemeContextType {

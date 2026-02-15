@@ -3,6 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@simplycms/core/supabase/client";
+import { ThemeRegistry } from "@simplycms/themes/ThemeRegistry";
 import { Button } from "@simplycms/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@simplycms/ui/card";
 import { Input } from "@simplycms/ui/input";
@@ -12,15 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@simplycms/ui/skeleton";
 import { useToast } from "@simplycms/core/hooks/use-toast";
 import { ArrowLeft, Save, Palette } from "lucide-react";
-import { useState } from "react";
-
-interface ThemeSetting {
-  type: "color" | "boolean" | "select" | "text" | "number";
-  default: string | boolean | number;
-  label: string;
-  description?: string;
-  options?: Array<{ value: string; label: string }>;
-}
+import { useState, useEffect } from "react";
+import type { ThemeSettingDefinition } from "@simplycms/themes/types";
 
 interface ThemeRecord {
   id: string;
@@ -28,8 +22,7 @@ interface ThemeRecord {
   display_name: string;
   version: string;
   description: string | null;
-  config: Record<string, unknown>;
-  settings_schema: Record<string, ThemeSetting>;
+  settings: Record<string, unknown>;
 }
 
 export default function ThemeSettings() {
@@ -38,7 +31,9 @@ export default function ThemeSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [config, setConfig] = useState<Record<string, unknown>>({});
+  const [settingsSchema, setSettingsSchema] = useState<Record<string, ThemeSettingDefinition>>({});
 
+  // Завантаження теми з БД
   const { data: theme, isLoading } = useQuery({
     queryKey: ["admin-theme", themeId],
     queryFn: async () => {
@@ -48,34 +43,43 @@ export default function ThemeSettings() {
         .eq("id", themeId)
         .single();
       if (error) throw error;
-      
-      const configData = data.config as Record<string, unknown> | null;
-      const schemaData = data.settings_schema as Record<string, unknown> | null;
-      
+
+      const settingsData = data.settings as Record<string, unknown> | null;
+
       return {
         ...data,
-        config: configData || {},
-        settings_schema: (schemaData || {}) as Record<string, ThemeSetting>,
+        settings: settingsData || {},
       } as ThemeRecord;
     },
   });
 
-  // Ініціалізація конфігурації при завантаженні теми (adjust state during render)
+  // Отримання схеми налаштувань з manifest через ThemeRegistry
+  useEffect(() => {
+    if (!theme) return;
+    (async () => {
+      if (ThemeRegistry.has(theme.name)) {
+        const themeModule = await ThemeRegistry.load(theme.name);
+        setSettingsSchema(themeModule.manifest.settings || {});
+      }
+    })();
+  }, [theme]);
+
+  // Ініціалізація конфігурації при завантаженні теми
   const [prevThemeId, setPrevThemeId] = useState<string | null>(null);
-  if (theme && theme.id !== prevThemeId) {
+  if (theme && theme.id !== prevThemeId && Object.keys(settingsSchema).length > 0) {
     setPrevThemeId(theme.id);
     const defaults: Record<string, unknown> = {};
-    Object.entries(theme.settings_schema).forEach(([key, setting]) => {
+    Object.entries(settingsSchema).forEach(([key, setting]) => {
       defaults[key] = setting.default;
     });
-    setConfig({ ...defaults, ...theme.config });
+    setConfig({ ...defaults, ...theme.settings });
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("themes")
-        .update({ config: config as never })
+        .update({ settings: config as never })
         .eq("id", themeId);
       if (error) throw error;
     },
@@ -129,41 +133,45 @@ export default function ThemeSettings() {
           <CardDescription>Налаштуйте зовнішній вигляд теми</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {Object.entries(theme.settings_schema).map(([key, setting]) => (
-            <div key={key} className="space-y-2">
-              <Label>{setting.label}</Label>
-              
-              {setting.type === "boolean" && (
-                <Switch
-                  checked={Boolean(config[key] ?? setting.default)}
-                  onCheckedChange={(checked) => handleChange(key, checked)}
-                />
-              )}
+          {Object.keys(settingsSchema).length === 0 ? (
+            <p className="text-muted-foreground">Ця тема не має налаштувань</p>
+          ) : (
+            Object.entries(settingsSchema).map(([key, setting]) => (
+              <div key={key} className="space-y-2">
+                <Label>{setting.label}</Label>
 
-              {setting.type === "color" && (
-                <Input
-                  type="color"
-                  value={String(config[key] ?? setting.default)}
-                  onChange={(e) => handleChange(key, e.target.value)}
-                  className="w-16 h-10"
-                />
-              )}
+                {setting.type === "boolean" && (
+                  <Switch
+                    checked={Boolean(config[key] ?? setting.default)}
+                    onCheckedChange={(checked) => handleChange(key, checked)}
+                  />
+                )}
 
-              {setting.type === "select" && setting.options && (
-                <Select
-                  value={String(config[key] ?? setting.default)}
-                  onValueChange={(value) => handleChange(key, value)}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {setting.options.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          ))}
+                {setting.type === "color" && (
+                  <Input
+                    type="color"
+                    value={String(config[key] ?? setting.default)}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    className="w-16 h-10"
+                  />
+                )}
+
+                {setting.type === "select" && setting.options && (
+                  <Select
+                    value={String(config[key] ?? setting.default)}
+                    onValueChange={(value) => handleChange(key, value)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {setting.options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

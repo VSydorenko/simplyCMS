@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
+import { getActiveThemeSSR } from '@simplycms/themes';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import CatalogSectionPage from '@themes/default/pages/CatalogSectionPage';
 
 export const revalidate = 1800;
 
@@ -26,7 +26,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SectionPage({ params }: Props) {
   const { sectionSlug } = await params;
-  const supabase = await createServerSupabaseClient();
+  const [{ theme }, supabase] = await Promise.all([
+    getActiveThemeSSR(),
+    createServerSupabaseClient(),
+  ]);
 
   const { data: section } = await supabase
     .from('sections')
@@ -45,6 +48,8 @@ export default async function SectionPage({ params }: Props) {
       .order('created_at', { ascending: false }),
     supabase.from('sections').select('*').eq('is_active', true).order('sort_order'),
   ]);
+
+  const CatalogSectionPage = theme.pages.CatalogSectionPage;
 
   return (
     <CatalogSectionPage

@@ -5,6 +5,9 @@ import { Toaster as SonnerToaster } from 'sonner';
 import { Toaster } from '@simplycms/ui/toaster';
 import { Providers } from './providers';
 import './globals.css';
+// Гарантія реєстрації тем на сервері (для SSR resolver)
+import './theme-registry.server';
+import { getActiveThemeSSR } from '@simplycms/themes';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -13,12 +16,21 @@ export const metadata: Metadata = {
   description: 'SimplyCMS — open-source e-commerce CMS platform',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Отримуємо назву активної теми (кешовано через unstable_cache)
+  let initialThemeName: string | undefined;
+  try {
+    const { themeName } = await getActiveThemeSSR();
+    initialThemeName = themeName;
+  } catch {
+    // Fallback: ThemeContext зробить fetch самостійно
+  }
+
   return (
     <html lang="uk" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Providers>
+          <Providers initialThemeName={initialThemeName}>
             {children}
           </Providers>
           <Toaster />
