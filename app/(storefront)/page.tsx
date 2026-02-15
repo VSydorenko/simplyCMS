@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
-import HomePage from '@themes/default/pages/HomePage';
+import { getActiveThemeSSR } from '@simplycms/themes';
 import { parseBannerRow } from '@simplycms/core/lib/bannerUtils';
 
 export const revalidate = 3600;
@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const supabase = await createServerSupabaseClient();
+  const [{ theme }, supabase] = await Promise.all([
+    getActiveThemeSSR(),
+    createServerSupabaseClient(),
+  ]);
 
   const [banners, featured, newProducts, sections] = await Promise.all([
     supabase.from('banners').select('*').eq('is_active', true),
@@ -30,6 +33,8 @@ export default async function Home() {
       .limit(12),
     supabase.from('sections').select('id, name, slug').eq('is_active', true).is('parent_id', null).order('sort_order'),
   ]);
+
+  const HomePage = theme.pages.HomePage;
 
   return (
     <HomePage

@@ -6,67 +6,44 @@ class ThemeRegistryClass {
   private themes: Map<string, ThemeLoader> = new Map();
   private loadedThemes: Map<string, ThemeModule> = new Map();
 
-  /**
-   * Register a theme loader
-   */
+  /** Зареєструвати loader для теми */
   register(name: string, loader: ThemeLoader): void {
     this.themes.set(name, loader);
-    console.log(`[ThemeRegistry] Registered theme: ${name}`);
   }
 
-  /**
-   * Unregister a theme
-   */
+  /** Видалити тему з реєстру */
   unregister(name: string): void {
     this.themes.delete(name);
     this.loadedThemes.delete(name);
-    console.log(`[ThemeRegistry] Unregistered theme: ${name}`);
   }
 
-  /**
-   * Check if a theme is registered
-   */
+  /** Чи зареєстрована тема */
   has(name: string): boolean {
     return this.themes.has(name);
   }
 
-  /**
-   * Get list of registered theme names
-   */
+  /** Список зареєстрованих тем */
   getRegisteredThemes(): string[] {
     return Array.from(this.themes.keys());
   }
 
-  /**
-   * Load a theme by name
-   */
+  /** Завантажити тему за назвою (з кешуванням) */
   async load(name: string): Promise<ThemeModule> {
-    // Return cached theme if already loaded
     const cached = this.loadedThemes.get(name);
-    if (cached) {
-      console.log(`[ThemeRegistry] Returning cached theme: ${name}`);
-      return cached;
-    }
+    if (cached) return cached;
 
-    // Get loader
     const loader = this.themes.get(name);
     if (!loader) {
       throw new Error(`Theme "${name}" is not registered`);
     }
 
-    // Load the theme
-    console.log(`[ThemeRegistry] Loading theme: ${name}`);
     try {
       const themeModule = await loader();
       const theme = themeModule.default;
 
-      // Validate theme structure
       this.validateTheme(name, theme);
-
-      // Cache the loaded theme
       this.loadedThemes.set(name, theme);
 
-      console.log(`[ThemeRegistry] Successfully loaded theme: ${name}`);
       return theme;
     } catch (error) {
       console.error(`[ThemeRegistry] Failed to load theme: ${name}`, error);
@@ -74,9 +51,7 @@ class ThemeRegistryClass {
     }
   }
 
-  /**
-   * Validate theme module structure
-   */
+  /** Валідація структури ThemeModule */
   private validateTheme(name: string, theme: ThemeModule): void {
     if (!theme.manifest) {
       throw new Error(`Theme "${name}" is missing manifest`);
@@ -101,7 +76,6 @@ class ThemeRegistryClass {
       throw new Error(`Theme "${name}" is missing pages`);
     }
 
-    // Validate required pages
     const requiredPages = [
       "HomePage",
       "CatalogPage",
@@ -121,21 +95,16 @@ class ThemeRegistryClass {
     }
   }
 
-  /**
-   * Clear all loaded themes from cache
-   */
+  /** Очистити кеш завантажених тем */
   clearCache(): void {
     this.loadedThemes.clear();
-    console.log("[ThemeRegistry] Cache cleared");
   }
 
-  /**
-   * Get a loaded theme from cache (without loading)
-   */
+  /** Отримати завантажену тему з кешу (без завантаження) */
   getCached(name: string): ThemeModule | undefined {
     return this.loadedThemes.get(name);
   }
 }
 
-// Singleton instance
+// Singleton
 export const ThemeRegistry = new ThemeRegistryClass();

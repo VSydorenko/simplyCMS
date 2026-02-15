@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
+import { getActiveThemeSSR } from '@simplycms/themes';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import PropertyOptionPage from '@themes/default/pages/PropertyOptionPage';
 
 export const revalidate = 86400;
 
@@ -29,7 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function OptionPage({ params }: Props) {
   const { propertySlug, optionSlug } = await params;
-  const supabase = await createServerSupabaseClient();
+  const [{ theme }, supabase] = await Promise.all([
+    getActiveThemeSSR(),
+    createServerSupabaseClient(),
+  ]);
 
   const { data: property } = await supabase
     .from('section_properties')
@@ -53,6 +56,8 @@ export default async function OptionPage({ params }: Props) {
     .select('*, product_modifications!inner(*, modification_property_values!inner(option_id))')
     .eq('product_modifications.modification_property_values.option_id', option.id)
     .eq('is_active', true);
+
+  const PropertyOptionPage = theme.pages.PropertyOptionPage;
 
   return (
     <PropertyOptionPage

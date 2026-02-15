@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@simplycms/core/supabase/server';
+import { getActiveThemeSSR } from '@simplycms/themes';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import ProductPageClient from '@themes/default/pages/ProductPage';
 
 export const revalidate = 3600;
 
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: product.name,
       description: product.description || `Buy ${product.name} at SimplyCMS Store`,
-      images: images.length > 0 
+      images: images.length > 0
         ? images
             .filter((img): img is string => typeof img === 'string')
             .map((img) => ({ url: img }))
@@ -37,7 +37,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { productSlug, sectionSlug } = await params;
-  const supabase = await createServerSupabaseClient();
+  const [{ theme }, supabase] = await Promise.all([
+    getActiveThemeSSR(),
+    createServerSupabaseClient(),
+  ]);
 
   const { data: product } = await supabase
     .from('products')
@@ -75,13 +78,15 @@ export default async function ProductPage({ params }: Props) {
     },
   };
 
+  const ThemedProductPage = theme.pages.ProductPage;
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductPageClient product={product} sectionSlug={sectionSlug} />
+      <ThemedProductPage product={product} sectionSlug={sectionSlug} />
     </>
   );
 }

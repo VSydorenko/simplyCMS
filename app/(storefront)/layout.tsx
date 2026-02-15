@@ -1,6 +1,11 @@
 // Server Component — БЕЗ "use client"
-import { StorefrontShell } from "@themes/default/layouts/StorefrontShell";
+// Гарантія реєстрації тем на сервері
+import "@/theme-registry.server";
+import { getActiveThemeSSR } from "@simplycms/themes";
 
-export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  return <StorefrontShell>{children}</StorefrontShell>;
+export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
+  const { theme } = await getActiveThemeSSR();
+  const Layout = theme.MainLayout;
+
+  return <Layout>{children}</Layout>;
 }

@@ -1712,43 +1712,40 @@ export type Database = {
       themes: {
         Row: {
           author: string | null
-          config: Json | null
+          created_at: string | null
           description: string | null
           display_name: string
           id: string
-          installed_at: string | null
-          is_active: boolean | null
+          is_active: boolean
           name: string
           preview_image: string | null
-          settings_schema: Json | null
+          settings: Json | null
           updated_at: string | null
           version: string
         }
         Insert: {
           author?: string | null
-          config?: Json | null
+          created_at?: string | null
           description?: string | null
           display_name: string
           id?: string
-          installed_at?: string | null
-          is_active?: boolean | null
+          is_active?: boolean
           name: string
           preview_image?: string | null
-          settings_schema?: Json | null
+          settings?: Json | null
           updated_at?: string | null
           version?: string
         }
         Update: {
           author?: string | null
-          config?: Json | null
+          created_at?: string | null
           description?: string | null
           display_name?: string
           id?: string
-          installed_at?: string | null
-          is_active?: boolean | null
+          is_active?: boolean
           name?: string
           preview_image?: string | null
-          settings_schema?: Json | null
+          settings?: Json | null
           updated_at?: string | null
           version?: string
         }
