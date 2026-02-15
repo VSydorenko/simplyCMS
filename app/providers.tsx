@@ -22,14 +22,21 @@ interface ProvidersProps {
   children: React.ReactNode;
   /** Назва активної теми з SSR (передається з layout) */
   initialThemeName?: string;
+  /** Збережені налаштування теми з БД (передаються з layout) */
+  initialThemeSettings?: Record<string, unknown>;
 }
 
-export function Providers({ children, initialThemeName }: ProvidersProps) {
+export function Providers({
+  children,
+  initialThemeName,
+  initialThemeSettings,
+}: ProvidersProps) {
   return (
     <CMSProvider>
       <CMSThemeProvider
         fallbackTheme="default"
         initialThemeName={initialThemeName}
+        initialThemeSettings={initialThemeSettings}
       >
         {children}
       </CMSThemeProvider>

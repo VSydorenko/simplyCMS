@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createAnonSupabaseClient } from "@simplycms/core/supabase/anon";
 import { ThemeRegistry } from "./ThemeRegistry";
@@ -61,52 +62,58 @@ const getCachedActiveThemeRecord = unstable_cache(
  *
  * ВАЖЛИВО: перед викликом потрібно зареєструвати теми через
  * import "app/theme-registry.server.ts" у layout.tsx
+ *
+ * Обгорнуто в React cache() для per-request deduplication —
+ * кілька викликів у layout + page в одному запиті виконають
+ * логіку лише один раз.
  */
-export async function getActiveThemeSSR(): Promise<ActiveThemeSSR> {
-  // Перевірка що теми зареєстровані
-  if (!ThemeRegistry.has(DEFAULT_THEME)) {
-    throw new Error(
-      '[getActiveThemeSSR] ThemeRegistry порожній. ' +
-      'Імпортуйте "app/theme-registry.server.ts" у layout.tsx перед викликом getActiveThemeSSR().'
-    );
+export const getActiveThemeSSR = cache(
+  async (): Promise<ActiveThemeSSR> => {
+    // Перевірка що теми зареєстровані
+    if (!ThemeRegistry.has(DEFAULT_THEME)) {
+      throw new Error(
+        '[getActiveThemeSSR] ThemeRegistry порожній. ' +
+        'Імпортуйте "app/theme-registry.server.ts" у layout.tsx перед викликом getActiveThemeSSR().'
+      );
+    }
+
+    const record = await getCachedActiveThemeRecord();
+
+    // Визначити назву активної теми
+    const dbThemeName = record?.name ?? DEFAULT_THEME;
+
+    // Fallback на default якщо тема не зареєстрована в Registry
+    const resolvedName = ThemeRegistry.has(dbThemeName)
+      ? dbThemeName
+      : DEFAULT_THEME;
+
+    const theme = await ThemeRegistry.load(resolvedName);
+
+    // Нормалізація themeRecord:
+    // - Якщо запису немає — створити з manifest
+    // - Якщо тема впала на fallback — повертаємо record від default
+    let themeRecord: ThemeRecord;
+
+    if (record && resolvedName === dbThemeName) {
+      // Тема з БД знайдена в Registry — використовуємо as-is
+      themeRecord = record;
+    } else {
+      // Fallback або відсутність запису — формуємо з manifest
+      themeRecord = {
+        id: record?.id ?? "",
+        name: resolvedName,
+        display_name: theme.manifest.displayName,
+        version: theme.manifest.version,
+        description: theme.manifest.description ?? null,
+        author: theme.manifest.author ?? null,
+        preview_image: null,
+        is_active: true,
+        settings: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+
+    return { theme, themeName: resolvedName, themeRecord };
   }
-
-  const record = await getCachedActiveThemeRecord();
-
-  // Визначити назву активної теми
-  const dbThemeName = record?.name ?? DEFAULT_THEME;
-
-  // Fallback на default якщо тема не зареєстрована в Registry
-  const resolvedName = ThemeRegistry.has(dbThemeName)
-    ? dbThemeName
-    : DEFAULT_THEME;
-
-  const theme = await ThemeRegistry.load(resolvedName);
-
-  // Нормалізація themeRecord:
-  // - Якщо запису немає — створити з manifest
-  // - Якщо тема впала на fallback — повертаємо record від default
-  let themeRecord: ThemeRecord;
-
-  if (record && resolvedName === dbThemeName) {
-    // Тема з БД знайдена в Registry — використовуємо as-is
-    themeRecord = record;
-  } else {
-    // Fallback або відсутність запису — формуємо з manifest
-    themeRecord = {
-      id: record?.id ?? "",
-      name: resolvedName,
-      display_name: theme.manifest.displayName,
-      version: theme.manifest.version,
-      description: theme.manifest.description ?? null,
-      author: theme.manifest.author ?? null,
-      preview_image: null,
-      is_active: true,
-      settings: {},
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  return { theme, themeName: resolvedName, themeRecord };
-}
+);

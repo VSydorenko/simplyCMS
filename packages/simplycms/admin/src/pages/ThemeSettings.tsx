@@ -16,6 +16,19 @@ import { ArrowLeft, Save, Palette } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { ThemeSettingDefinition } from "@simplycms/themes/types";
 
+/** Виклик revalidation API після зміни налаштувань теми */
+async function revalidateTheme() {
+  try {
+    await fetch("/api/revalidate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "theme" }),
+    });
+  } catch {
+    // Revalidation — best effort
+  }
+}
+
 interface ThemeRecord {
   id: string;
   name: string;
@@ -81,8 +94,9 @@ export default function ThemeSettings() {
         .eq("id", themeId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin-theme", themeId] });
+      await revalidateTheme();
       toast({ title: "Налаштування збережено" });
     },
     onError: () => {

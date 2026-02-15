@@ -59,12 +59,15 @@ interface ThemeProviderProps {
   fallbackTheme?: string;
   /** Назва теми з SSR — пропускає початковий fetchActiveTheme */
   initialThemeName?: string;
+  /** Збережені налаштування теми з БД (передані через SSR) */
+  initialThemeSettings?: Record<string, unknown>;
 }
 
 export function ThemeProvider({
   children,
   fallbackTheme = DEFAULT_THEME_NAME,
   initialThemeName,
+  initialThemeSettings,
 }: ThemeProviderProps) {
   const [activeTheme, setActiveTheme] = useState<ThemeModule | null>(null);
   const [themeName, setThemeName] = useState<string>(
@@ -179,11 +182,15 @@ export function ThemeProvider({
     didInit.current = true;
 
     if (initialThemeName) {
-      loadTheme(initialThemeName).then(() => setIsLoading(false));
+      // Формуємо частковий ThemeRecord зі збереженими settings з SSR
+      const ssrRecord = initialThemeSettings
+        ? ({ settings: initialThemeSettings } as ThemeRecord)
+        : undefined;
+      loadTheme(initialThemeName, ssrRecord).then(() => setIsLoading(false));
     } else {
       fetchActiveTheme();
     }
-  }, [initialThemeName, loadTheme, fetchActiveTheme]);
+  }, [initialThemeName, initialThemeSettings, loadTheme, fetchActiveTheme]);
 
   // CSS variables для налаштувань теми
   useEffect(() => {

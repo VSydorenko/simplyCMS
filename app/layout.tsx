@@ -17,11 +17,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Отримуємо назву активної теми (кешовано через unstable_cache)
+  // Отримуємо активну тему (кешовано через unstable_cache)
   let initialThemeName: string | undefined;
+  let initialThemeSettings: Record<string, unknown> | undefined;
   try {
-    const { themeName } = await getActiveThemeSSR();
+    const { themeName, themeRecord } = await getActiveThemeSSR();
     initialThemeName = themeName;
+    initialThemeSettings = themeRecord.settings;
   } catch {
     // Fallback: ThemeContext зробить fetch самостійно
   }
@@ -30,7 +32,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="uk" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Providers initialThemeName={initialThemeName}>
+          <Providers
+            initialThemeName={initialThemeName}
+            initialThemeSettings={initialThemeSettings}
+          >
             {children}
           </Providers>
           <Toaster />

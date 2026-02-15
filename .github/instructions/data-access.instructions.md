@@ -116,9 +116,18 @@ await fetch('/api/revalidate', {
 });
 ```
 
+## ⚠️ Винятки
+
+### Анонімний клієнт у `unstable_cache` (getActiveThemeSSR)
+`getActiveThemeSSR()` використовує `createAnonSupabaseClient()` замість `createServerSupabase()`.
+Це **навмисний виняток**: `unstable_cache` — cross-request кеш (Data Cache), а `cookies()` —
+динамічний per-request API. Next.js забороняє виклик `cookies()` всередині `unstable_cache`,
+тому cookie-based серверний клієнт тут неможливий. Анонімний клієнт (без cookies, без auth)
+безпечний для цього кейсу, бо таблиця `themes` має RLS `SELECT` для `anon`.
+
 ## ❌ NEVER
 - Не створюй локальні файли міграцій — завжди через MCP supabase.
-- Не використовуй прямий `supabase-js` без обгорток з `@simplycms/core`.
+- Не використовуй прямий `supabase-js` без обгорток з `@simplycms/core` (виняток: `unstable_cache`, див. вище).
 - Не редагуй `supabase/types.ts` вручну — виключно через `pnpm db:generate-types`.
 - Не забувай ISR revalidation після змін даних в адмінці.
 - Не використовуй `queryClient.setQueryData()` для складних кейсів — invalidate замість цього.
