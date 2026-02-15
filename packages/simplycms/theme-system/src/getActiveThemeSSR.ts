@@ -1,21 +1,9 @@
 import { unstable_cache } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+import { createAnonSupabaseClient } from "@simplycms/core/supabase/anon";
 import { ThemeRegistry } from "./ThemeRegistry";
 import type { ActiveThemeSSR, ThemeRecord } from "./types";
 
 const DEFAULT_THEME = "default";
-
-/**
- * Створити анонімний Supabase-клієнт для публічних запитів.
- * Не використовує cookies() — безпечний для unstable_cache.
- * Таблиця themes має RLS policy "Themes are viewable by everyone".
- */
-function createAnonSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
-}
 
 /**
  * Отримати запис активної теми з БД.
@@ -31,7 +19,21 @@ const getCachedActiveThemeRecord = unstable_cache(
       .eq("is_active", true)
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error(
+        '[getActiveThemeSSR] Помилка запиту до БД:',
+        error.message,
+        error.code
+      );
+      return null;
+    }
+
+    if (!data) {
+      console.error(
+        '[getActiveThemeSSR] Немає активної теми в БД (themes.is_active = true)'
+      );
+      return null;
+    }
 
     return {
       id: data.id,
@@ -72,27 +74,39 @@ export async function getActiveThemeSSR(): Promise<ActiveThemeSSR> {
   const record = await getCachedActiveThemeRecord();
 
   // Визначити назву активної теми
-  const themeName = record?.name ?? DEFAULT_THEME;
+  const dbThemeName = record?.name ?? DEFAULT_THEME;
 
   // Fallback на default якщо тема не зареєстрована в Registry
-  const resolvedName = ThemeRegistry.has(themeName) ? themeName : DEFAULT_THEME;
+  const resolvedName = ThemeRegistry.has(dbThemeName)
+    ? dbThemeName
+    : DEFAULT_THEME;
 
   const theme = await ThemeRegistry.load(resolvedName);
 
-  // Якщо запису в БД немає — створити мінімальний ThemeRecord з manifest
-  const themeRecord: ThemeRecord = record ?? {
-    id: "",
-    name: resolvedName,
-    display_name: theme.manifest.displayName,
-    version: theme.manifest.version,
-    description: theme.manifest.description ?? null,
-    author: theme.manifest.author ?? null,
-    preview_image: null,
-    is_active: true,
-    settings: {},
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  // Нормалізація themeRecord:
+  // - Якщо запису немає — створити з manifest
+  // - Якщо тема впала на fallback — повертаємо record від default
+  let themeRecord: ThemeRecord;
+
+  if (record && resolvedName === dbThemeName) {
+    // Тема з БД знайдена в Registry — використовуємо as-is
+    themeRecord = record;
+  } else {
+    // Fallback або відсутність запису — формуємо з manifest
+    themeRecord = {
+      id: record?.id ?? "",
+      name: resolvedName,
+      display_name: theme.manifest.displayName,
+      version: theme.manifest.version,
+      description: theme.manifest.description ?? null,
+      author: theme.manifest.author ?? null,
+      preview_image: null,
+      is_active: true,
+      settings: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
 
   return { theme, themeName: resolvedName, themeRecord };
 }

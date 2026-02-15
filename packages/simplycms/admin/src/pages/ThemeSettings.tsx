@@ -53,27 +53,25 @@ export default function ThemeSettings() {
     },
   });
 
-  // Отримання схеми налаштувань з manifest через ThemeRegistry
+  // Завантаження схеми та ініціалізація config при зміні теми
   useEffect(() => {
     if (!theme) return;
     (async () => {
+      let schema: Record<string, ThemeSettingDefinition> = {};
       if (ThemeRegistry.has(theme.name)) {
         const themeModule = await ThemeRegistry.load(theme.name);
-        setSettingsSchema(themeModule.manifest.settings || {});
+        schema = themeModule.manifest.settings || {};
       }
+      setSettingsSchema(schema);
+
+      // Ініціалізація config з defaults + збережених settings (після await)
+      const defaults: Record<string, unknown> = {};
+      Object.entries(schema).forEach(([key, setting]) => {
+        defaults[key] = setting.default;
+      });
+      setConfig({ ...defaults, ...theme.settings });
     })();
   }, [theme]);
-
-  // Ініціалізація конфігурації при завантаженні теми
-  const [prevThemeId, setPrevThemeId] = useState<string | null>(null);
-  if (theme && theme.id !== prevThemeId && Object.keys(settingsSchema).length > 0) {
-    setPrevThemeId(theme.id);
-    const defaults: Record<string, unknown> = {};
-    Object.entries(settingsSchema).forEach(([key, setting]) => {
-      defaults[key] = setting.default;
-    });
-    setConfig({ ...defaults, ...theme.settings });
-  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

@@ -33,16 +33,13 @@ interface ThemeRecord {
   created_at: string;
 }
 
-/** Виклик revalidation API після зміни теми */
+/** Виклик revalidation API після зміни теми (авторизація через cookie-сесію) */
 async function revalidateTheme() {
   try {
     await fetch("/api/revalidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "theme",
-        secret: process.env.NEXT_PUBLIC_REVALIDATION_SECRET || "",
-      }),
+      body: JSON.stringify({ type: "theme" }),
     });
   } catch {
     // Revalidation — best effort
