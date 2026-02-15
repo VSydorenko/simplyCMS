@@ -1,226 +1,428 @@
-# Task: Перемикання тем в адмінці + SSR theme resolution для storefront
+# Task: Build-time Registration, Runtime Activation — повний рефакторинг системи тем
+
+## Концепція
+
+**Next.js вимагає компіляції** — неможливо завантажувати довільні теми через ZIP як WordPress/OpenCart. Тому SimplyCMS використовує підхід **"Build-time Registration, Runtime Activation":**
+
+- **Розробник** додає тему як код (`themes/<name>/`), реєструє у ThemeRegistry, створює DB-міграцію → deploy
+- **Адміністратор** після деплою бачить список зареєстрованих тем → обирає активну → налаштовує через UI (кольори, параметри з `manifest.settings`)
+- Теми **не можна встановлювати через UI** — тільки через код + міграцію
+
+> **Відхилення від BRD 7.4:** BRD стверджує що зміна теми вимагає rebuild. Це переглянуте рішення: усі теми присутні в коді на етапі збірки, БД зберігає лише яка активна + користувацькі налаштування. Runtime-перемикання працює без rebuild.
 
 ## Контекст
 
-Після міграції з Vite SPA на Next.js система тем частково працює: є `ThemeRegistry` (реєстрація модулів у build), `ThemeContext` (клієнтське завантаження активної теми з БД), адмін-сторінка тем (CRUD в `public.themes`). Проте **переключення теми в адмінці не впливає на storefront**, бо:
+Після міграції з Vite SPA на Next.js система тем частково працює, але має критичні проблеми:
 
-1. **SolarStore відсутній у БД** — seed-міграція вставляє лише запис `default`. SolarStore зареєстрований у `ThemeRegistry` (код є в build), але не "встановлений" у таблицю `themes` → його немає в списку адмінки для перемикання.
-2. **Storefront хардкодить імпорти `@themes/default/...`** — сторінки в `app/(storefront)/` напряму імпортують компоненти дефолтної теми, ігноруючи `ThemeRegistry` і значення `is_active` у БД.
-3. **Відсутній SSR theme resolver** — BRD описує `getActiveTheme()` для Server Components, але поточна реалізація — клієнтський `ThemeContext` з `useEffect` + browser Supabase, який працює тільки після гідрації.
+1. **Storefront хардкодить `@themes/default`** — усі 8+ маршрутів в `app/(storefront)/` напряму імпортують компоненти дефолтної теми, ігноруючи `ThemeRegistry` та `is_active` у БД
+2. **SSR theme resolver відсутній** — `ThemeContext` (клієнтський) завантажує тему з БД після гідрації, що не працює для SSR
+3. **ThemeRegistry не ініціалізований на сервері** — реєстрація тем зроблена в `app/providers.tsx` ("use client"), серверний код не виконує цей модуль
+4. **DB seed розсинхронізований з маніфестами** — запис `default` у БД має `display_name: "SolarStore Default"`, тоді як маніфест каже "Default Theme"
+5. **SolarStore відсутній у БД** — його немає в seed-міграції
+6. **InstallThemeDialog дозволяє ручне створення тем** — суперечить концепції build-time registration
+7. **StorefrontShell дублює MainLayout** — зайва абстракція
+8. **`settings_schema` дублюється** між маніфестом і БД
+9. **`system_settings.active_theme`** — невикористовуваний дублікат `themes.is_active`
 
 ### Діагностика поточного стану
 
 | Компонент | Де | Стан | Проблема |
 |-----------|-----|------|----------|
-| `ThemeRegistry.register()` | `app/providers.tsx` | ✅ `default` + `solarstore` зареєстровані | — |
-| `public.themes` seed | міграція `20260209...` | ⚠️ тільки `default` | SolarStore не вставлений |
-| `InstallThemeDialog` | адмін-панель | ✅ дозволяє "встановити" тему з Registry | Ручний процес, не auto-sync |
-| `ThemeContext.fetchActiveTheme()` | `theme-system/ThemeContext.tsx` | ✅ читає `is_active` з БД (browser client) | Не SSR, працює після гідрації |
-| Storefront pages | `app/(storefront)/*.tsx` | ❌ хардкод `@themes/default/pages/*` | Ігнорують активну тему |
-| Storefront layout | `app/(storefront)/layout.tsx` | ❌ хардкод `@themes/default/layouts/StorefrontShell` | Ігнорує активну тему |
-| `getActiveTheme()` | `theme-system/index.ts` | ⚠️ обгортка над `getCached(name)` | Потребує `name`, не SSR-aware, не ходить у БД |
+| `ThemeRegistry.register()` | `app/providers.tsx` | ✅ `default` + `solarstore` зареєстровані | Тільки client-side |
+| `public.themes` seed | міграція `20260209...` | ⚠️ тільки `default` | SolarStore відсутній |
+| `themes.display_name` | БД | ❌ "SolarStore Default" для default | Має бути "Default Theme" |
+| `themes.settings_schema` | БД | ⚠️ дублює manifest.settings | Джерело істини — код |
+| `system_settings.active_theme` | БД | ❌ дублює `themes.is_active` | Видалити |
+| `InstallThemeDialog` | адмін-панель | ❌ дозволяє ручне створення | Видалити — теми тільки через код |
+| `StorefrontShell` | `themes/default/layouts/` | ❌ дублює MainLayout | Видалити, використовувати MainLayout |
+| `ThemeContext.fetchActiveTheme()` | `theme-system/ThemeContext.tsx` | ✅ працює | Не SSR, тільки після гідрації |
+| Storefront pages | `app/(storefront)/*.tsx` | ❌ хардкод `@themes/default` | Ігнорують активну тему |
+| `getActiveTheme()` | `theme-system/index.ts` | ⚠️ синхронна обгортка | Не SSR-aware, не ходить у БД |
 
-### Пов'язані файли
+### Файли що змінюються
 
-- `app/providers.tsx` — реєстрація тем у `ThemeRegistry` (site-specific)
-- `app/(storefront)/layout.tsx` — hardcoded `StorefrontShell` з `@themes/default`
-- `app/(storefront)/page.tsx` — hardcoded `HomePage` з `@themes/default`
-- `app/(storefront)/catalog/page.tsx` — hardcoded `CatalogPage`
-- `app/(storefront)/catalog/[sectionSlug]/page.tsx` — hardcoded `CatalogSectionPage`
-- `app/(storefront)/catalog/[sectionSlug]/[productSlug]/page.tsx` — hardcoded `ProductPage`
-- `app/(storefront)/properties/page.tsx` — hardcoded `PropertiesPage`
-- `app/(storefront)/properties/[propertySlug]/page.tsx` — hardcoded `PropertyDetailPage`
-- `app/(storefront)/properties/[propertySlug]/[optionSlug]/page.tsx` — hardcoded `PropertyOptionPage`
-- `packages/simplycms/theme-system/src/index.ts` — поточний `getActiveTheme()`
-- `packages/simplycms/theme-system/src/ThemeRegistry.ts` — singleton registry
-- `packages/simplycms/theme-system/src/ThemeContext.tsx` — клієнтський provider (для CSS variables, settings)
-- `packages/simplycms/theme-system/src/types.ts` — `ThemeModule`, `ThemePages`, `ThemeRecord`
-- `supabase/migrations/20260209075414_...sql` — seed тільки `default`
-- `themes/default/manifest.ts` — `name: 'default'`
-- `themes/solarstore/manifest.ts` — `name: 'solarstore'`
-- `packages/simplycms/admin/src/pages/Themes.tsx` — список встановлених тем, активація
-- `packages/simplycms/admin/src/components/InstallThemeDialog.tsx` — встановлення теми з Registry в БД
+**DB міграція (нова):**
+- `supabase/migrations/` — нова міграція: оновлення схеми `themes`, видалення `system_settings.active_theme`
+
+**Theme System (`packages/simplycms/theme-system/src/`):**
+- `types.ts` — оновити `ThemeRecord` (прибрати `settings_schema`, перейменувати `config` → `settings`)
+- `index.ts` — замінити `getActiveTheme()` на `getActiveThemeSSR()` (async, server-only)
+- `ThemeContext.tsx` — додати prop `initialThemeName`, прибрати визначення теми (SSR це робить)
+- `ThemeResolver.ts` — адаптувати під нову серверну логіку
+
+**Server-side registration (нове):**
+- `app/theme-registry.server.ts` — server-only реєстрація тем (імпортується з SSR resolver)
+
+**Storefront (`app/(storefront)/`):**
+- `layout.tsx` — замінити `StorefrontShell` на `theme.MainLayout` через SSR resolver
+- `page.tsx` — замінити хардкод на `theme.pages.HomePage`
+- `catalog/page.tsx` — замінити на `theme.pages.CatalogPage`
+- `catalog/[sectionSlug]/page.tsx` — замінити на `theme.pages.CatalogSectionPage`
+- `catalog/[sectionSlug]/[productSlug]/page.tsx` — замінити на `theme.pages.ProductPage`
+- `properties/page.tsx` — замінити на `theme.pages.PropertiesPage`
+- `properties/[propertySlug]/page.tsx` — замінити на `theme.pages.PropertyDetailPage`
+- `properties/[propertySlug]/[optionSlug]/page.tsx` — замінити на `theme.pages.PropertyOptionPage`
+
+**Admin (`packages/simplycms/admin/src/`):**
+- `components/InstallThemeDialog.tsx` — **видалити файл**
+- `pages/Themes.tsx` — прибрати кнопку "Встановити тему", адаптувати для нового потоку
+
+**Revalidation:**
+- `app/api/revalidate/route.ts` — додати підтримку `type: 'theme'` → `revalidateTag('active-theme')`
+
+**Themes:**
+- `themes/default/layouts/StorefrontShell.tsx` — **видалити файл**
+- `themes/default/index.ts` — прибрати export StorefrontShell якщо є
+
+**Client providers:**
+- `app/providers.tsx` — передавати `initialThemeName` з layout
+
+---
+
+## Прийняті архітектурні рішення
+
+Clarify-питання з попередньої версії задачі **вирішені**:
+
+| Питання | Рішення | Обґрунтування |
+|---------|---------|---------------|
+| **ThemeRegistry на сервері** | Окремий `app/theme-registry.server.ts` (server-only модуль) | Предсказуємо, прозорий контроль; імпортується з SSR resolver |
+| **Кешування SSR resolution** | `unstable_cache` + tag `'active-theme'` + `revalidate: 3600` | Cross-request кеш, інвалідується через `revalidateTag`; Next.js 16 рекомендує для DB queries |
+| **Revalidation при зміні теми** | On-demand `revalidateTag('active-theme')` через `/api/revalidate` | Миттєве перемикання; адмінка після `activateMutation.onSuccess` викликає API |
+| **CSS стилі тем** | Scoping через CSS-класи (`.default-theme`, `.solarstore-theme`) — обидва CSS в білді | Вже працює; CSS тем ~2-3KB кожна; SSR layout ставить правильний className |
+| **StorefrontShell vs MainLayout** | `StorefrontShell` видалити; використовувати `theme.MainLayout` | `StorefrontShell` = дублікат `MainLayout` (той самий Header + main + Footer) |
+| **`settings_schema` — де джерело?** | Тільки в `manifest.settings` (код); БД зберігає тільки `settings` (значення) | Уникає дублювання; адмін UI бере схему через `ThemeRegistry.load()` на клієнті |
+| **Runtime vs rebuild** | Runtime — обидві теми у білді, БД обирає активну | Відхиляє BRD 7.4; ThemeRegistry вже підтримує це |
 
 ---
 
 ## Вимоги
 
-### Фаза 1: SolarStore доступний для перемикання в адмінці
+### Фаза 1: DB — нова структура таблиці `themes`
 
-- [ ] **1.1** Додати seed-міграцію для вставки `solarstore` у таблицю `themes` (як неактивну тему, `is_active=false`), з коректними `display_name`, `version`, `settings_schema` з маніфесту
-- [ ] **1.2** Перевірити/виправити рассинхрон між seed-даними (`default` в БД зветься "SolarStore Default") і реальними маніфестами тем (`default` → "Default Theme", `solarstore` → "SolarStore Default")
-- [ ] **1.3** Впевнитись, що після міграції обидві теми видно в адмінці `/admin/themes` і кнопка "Активувати" працює
+**Мета:** привести БД у відповідність з концепцією "Build-time Registration, Runtime Activation"
 
-### Фаза 2: SSR theme resolution для storefront
+**Scope:** одна нова SQL-міграція
 
-- [ ] **2.1** Створити серверну функцію `getActiveThemeSSR()` у `@simplycms/themes`, яка:
-  - Читає `themes.is_active=true` через server-side Supabase client
-  - Резолвить `ThemeModule` з `ThemeRegistry` за `record.name`
-  - Має fallback на `"default"` якщо тема не знайдена/не registered
-  - Підтримує кешування у рамках одного request (React `cache()` або module-level cache з TTL)
-- [ ] **2.2** Замінити hardcoded імпорти в `app/(storefront)/layout.tsx` на динамічний layout з активної теми
-- [ ] **2.3** Замінити hardcoded імпорти pages в усіх storefront-маршрутах на `getActiveThemeSSR()` + `theme.pages.*`
-- [ ] **2.4** Зберегти існуюче передавання SSR-даних (props) у page-компоненти тем (banners, products, sections) — контракт `ThemePages` дозволяє `Record<string, unknown>` props
-- [ ] **2.5** Зберегти `export const revalidate` та `generateMetadata()` в кожному маршруті — вони залишаються на рівні `app/`
+- [ ] **1.1** Створити міграцію що оновлює таблицю `themes`:
+  - Прибрати колонку `settings_schema` (джерело істини тепер тільки `manifest.settings` в коді)
+  - Перейменувати `config` → `settings` (більш зрозуміма назва для користувацьких значень)
+  - Перейменувати `installed_at` → `created_at` (стандартна конвенція)
+  - Зробити `is_active` NOT NULL DEFAULT false
+- [ ] **1.2** Виправити seed-дані для `default`: `display_name` → "Default Theme", `version` → "0.1.0", `author` → "SimplyCMS" (відповідно до `themes/default/manifest.ts`)
+- [ ] **1.3** Додати запис `solarstore` (`is_active=false`): `display_name` → "SolarStore Default", `version` → "1.0.0", `author` → "SimplyCMS" (відповідно до `themes/solarstore/manifest.ts`)
+- [ ] **1.4** Видалити запис `system_settings` з `key='active_theme'` (дублює `themes.is_active`)
 
-### Фаза 3: Узгодження клієнтського ThemeContext з SSR
+**Ризики:**
+- Partial unique index `themes_active_idx` залишається (тільки одна активна тема)
+- Зміна колонок потребує оновлення типів: `pnpm db:generate-types` після міграції
 
-- [ ] **3.1** `ThemeContext` (клієнтський) залишається і далі потрібний для: CSS variables, `themeSettings`, `themeRecord`, `refreshTheme()` — але не повинен визначати яку тему рендерити
-- [ ] **3.2** Після SSR-рендеру `ThemeContext` гідрується з тим же `themeName` що й сервер — уникати flash/mismatch
-- [ ] **3.3** Розглянути передавання `initialThemeName` з SSR layout → `ThemeProvider` (щоб уникнути зайвого fetch на клієнті)
+**DoD Фази 1:**
+- [ ] Міграція застосовується без помилок
+- [ ] Обидві теми присутні в БД з правильними метаданими
+- [ ] `default` активна, `solarstore` неактивна
+- [ ] Колонки `settings_schema`, `installed_at`, `config` — видалені/перейменовані
+- [ ] `system_settings.active_theme` — видалений
+- [ ] `pnpm db:generate-types` виконано, `supabase/types.ts` оновлено
 
 ---
 
-## Clarify (питання перед імплементацією)
+### Фаза 2: Server-side Theme Registration та SSR Resolver
 
-- [ ] **Q1. ThemeRegistry на сервері: як працює синглтон?**
-  - Чому це важливо: `ThemeRegistry` — це module-level singleton. У Next.js Server Components код виконується на сервері, але модулі кешуються між запитами (у dev — ні). `ThemeRegistry.register()` викликається зараз у `app/providers.tsx` ("use client") — на сервері цей код **не виконується**.
-  - Варіанти:
-    - A) Створити окремий `app/theme-registry.server.ts` з реєстрацією (без "use client"), імпортувати його з `getActiveThemeSSR()`
-    - B) Зареєструвати теми в `next.config.ts` або `instrumentation.ts` (Next.js instrumentation hook)
-    - C) `getActiveThemeSSR()` сам реєструє теми лениво при першому виклику
-  - Вплив на рішення: архітектура, production vs dev поведінка
+**Мета:** SSR-сторінки storefront рендерять активну тему з БД, а не хардкод
 
-- [ ] **Q2. Кешування SSR theme resolution**
-  - Чому це важливо: кожна storefront-сторінка викликатиме `getActiveThemeSSR()` → це DB запит на кожен рендер
-  - Варіанти:
-    - A) `React.cache()` — кешує в рамках одного запиту (per-request dedup)
-    - B) `unstable_cache()` + revalidateTag — кешує між запитами, інвалідується при зміні теми в адмінці
-    - C) Module-level cache з TTL (наприклад, 60s) — простіше, але stale дані
-  - Вплив на рішення: продуктивність, свіжість даних після перемикання теми
+**Scope:** `@simplycms/themes` (core) + `app/theme-registry.server.ts` (site-level)
 
-- [ ] **Q3. Revalidation при зміні теми**
-  - Чому це важливо: після `activateMutation` в адмінці потрібно щоб storefront почав рендерити нову тему
-  - Варіанти:
-    - A) On-demand revalidation: адмінка викликає API route `/api/revalidate?tag=active-theme` після перемикання
-    - B) Time-based: `revalidate = 60` — нова тема з'явиться максимум через 60 секунд
-    - C) Комбінований: `unstable_cache` з tag + on-demand revalidation для миттєвого перемикання
-  - Вплив на рішення: UX (затримка після перемикання), складність
+- [ ] **2.1** Створити `app/theme-registry.server.ts` — server-only модуль реєстрації тем:
+  - Без `"use client"`
+  - Ті ж `ThemeRegistry.register()` виклики що й у `app/providers.tsx`
+  - `ThemeRegistry.has()` guard від подвійної реєстрації (вже є в `providers.tsx`)
+- [ ] **2.2** Оновити `ThemeRecord` у `types.ts`:
+  - Прибрати `settings_schema` (тепер тільки manifest)
+  - Перейменувати `config` → `settings`
+  - `installed_at` → `created_at`
+- [ ] **2.3** Створити `getActiveThemeSSR()` у `packages/simplycms/theme-system/src/`:
+  - Server-only async функція (без `"use client"`)
+  - Імпортує `app/theme-registry.server.ts` для гарантії реєстрації **(увага: залежність core → app — потрібно вирішити через параметр або lazy init)**
+  - Читає `themes` з БД через `createServerSupabaseClient()` → `WHERE is_active = true`
+  - Резолвить `ThemeModule` через `ThemeRegistry.load(record.name)`
+  - Fallback на `"default"` якщо тема не знайдена
+  - Обгорнуто в `unstable_cache` з key `['active-theme']`, tag `'active-theme'`, `revalidate: 3600`
+  - Повертає `{ theme: ThemeModule; themeName: string; themeRecord: ThemeRecord }`
+- [ ] **2.4** Вирішити проблему залежності `core → app`:
+  - **Варіант A (рекомендований):** `getActiveThemeSSR()` перевіряє `ThemeRegistry.has('default')`, і якщо порожній — кидає зрозумілу помилку "Call ensureThemesRegistered() before using SSR resolver". Реєстрацію виконує `app/theme-registry.server.ts`, який імпортується в `app/(storefront)/layout.tsx`
+  - **Варіант B:** `getActiveThemeSSR()` приймає параметр `registrationFn` що лениво реєструє теми
+- [ ] **2.5** Оновити exports у `packages/simplycms/theme-system/src/index.ts`:
+  - Замінити синхронну `getActiveTheme(name)` на async `getActiveThemeSSR()` 
+  - Зберегти `resolveTheme()`, `resolveThemeWithFallback()`, `getAvailableThemes()` для зворотної сумісності
 
-- [ ] **Q4. theme.css (стилі теми) — як перемикати?**
-  - Чому це важливо: кожна тема має `styles/theme.css` з CSS variables. Зараз `import "./styles/theme.css"` у `themes/default/index.ts` бандлиться статично.
-  - Варіанти:
-    - A) CSS variables injection через `<style>` тег у layout (SSR) — динамічно на основі активної теми і `themeSettings`
-    - B) Кожна тема має свій CSS file, який підключається через `<link>` у `<head>` (потребує public assets)
-    - C) Тримати `import` в обох темах (обидва CSS завантажуються), а перемикання через CSS specificity / data-theme attribute
-  - Вплив на рішення: CSS bundle size, FOUC, DX
+**Ризики:**
+- `ThemeRegistry` — module-level singleton; в dev-режимі module cache може очищатись між запитами. `has()` guard + повторна реєстрація вирішує це
+- `unstable_cache` — "unstable" API, але Next.js 16 офіційно рекомендує його для DB кешування; fallback — `React.cache()` для per-request dedup
 
-- [ ] **Q5. StorefrontShell vs MainLayout**
-  - Чому це важливо: зараз `app/(storefront)/layout.tsx` імпортує `StorefrontShell` з `@themes/default/layouts/`. У `ThemeModule` contract є `MainLayout` — це одне й те саме чи різне?
-  - Потрібно уточнити: чи `StorefrontShell` = `MainLayout` (тоді перейменувати/уніфікувати), чи це обгортка навколо `MainLayout`
-  - Вплив на рішення: які layouts тема має експортувати
+**DoD Фази 2:**
+- [ ] `app/theme-registry.server.ts` створено, без `"use client"`
+- [ ] `getActiveThemeSSR()` повертає правильний ThemeModule з БД
+- [ ] Fallback на `default` працює якщо активна тема не в Registry
+- [ ] Кешування через `unstable_cache` + tag `'active-theme'`
+- [ ] `ThemeRecord` type оновлений (без `settings_schema`, з `settings`)
+- [ ] Typecheck проходить (`pnpm typecheck`)
+
+---
+
+### Фаза 3: Storefront — заміна хардкоду на SSR resolver
+
+**Мета:** всі storefront-маршрути рендерять сторінки з активної теми
+
+**Scope:** `app/(storefront)/` — layout + 8 page files
+
+- [ ] **3.1** `app/(storefront)/layout.tsx`:
+  - Імпортувати `app/theme-registry.server.ts` (гарантія реєстрації)
+  - Виклик `getActiveThemeSSR()` → отримати `theme` + `themeName`
+  - Рендерити `<theme.MainLayout>{children}</theme.MainLayout>` 
+  - Передавати `themeName` далі (через props або context)
+  - Видалити імпорт `StorefrontShell`
+- [ ] **3.2** `app/(storefront)/page.tsx`:
+  - `const { theme } = await getActiveThemeSSR()`
+  - `const HomePage = theme.pages.HomePage`
+  - `return <HomePage {...ssrProps} />`
+  - Зберегти існуючий SSR data fetching (banners, products, sections)
+  - Зберегти `export const revalidate` та `export const metadata`
+- [ ] **3.3** Аналогічно для решти маршрутів:
+  - `catalog/page.tsx` → `theme.pages.CatalogPage`
+  - `catalog/[sectionSlug]/page.tsx` → `theme.pages.CatalogSectionPage`
+  - `catalog/[sectionSlug]/[productSlug]/page.tsx` → `theme.pages.ProductPage`
+  - `properties/page.tsx` → `theme.pages.PropertiesPage`
+  - `properties/[propertySlug]/page.tsx` → `theme.pages.PropertyDetailPage`
+  - `properties/[propertySlug]/[optionSlug]/page.tsx` → `theme.pages.PropertyOptionPage`
+- [ ] **3.4** Видалити `themes/default/layouts/StorefrontShell.tsx`
+- [ ] **3.5** Перевірити що SSR-дані (props) продовжують передаватись як раніше — контракт `ThemePages` дозволяє `Record<string, unknown>`
+
+**Ризики:**
+- Layout — Server Component, але `theme.MainLayout` у обох темах `"use client"` (через `useEffect` для `classList`). Це нормально — Server Component може рендерити Client Component
+- Якщо `unstable_cache` повертає stale тему — fallback через ISR `revalidate` на рівні page
+
+**DoD Фази 3:**
+- [ ] Жоден storefront-файл не імпортує напряму з `@themes/default`
+- [ ] SSR рендерить сторінки з активної теми
+- [ ] При зміні теми в адмінці → storefront оновлюється (через revalidation)
+- [ ] SSR-дані (banners, products, sections) передаються як props
+- [ ] `StorefrontShell.tsx` видалено
+- [ ] `generateMetadata()` та `export const revalidate` збережені в кожному маршруті
+
+---
+
+### Фаза 4: ThemeContext — синхронізація з SSR + прибирання зайвого
+
+**Мета:** клієнтський ThemeContext не конфліктує з SSR, не дублює роботу
+
+**Scope:** `@simplycms/themes` (ThemeContext.tsx) + `app/providers.tsx`
+
+- [ ] **4.1** Додати prop `initialThemeName` до `ThemeProvider`:
+  - SSR layout передає `themeName` (з `getActiveThemeSSR()`) → `<Providers initialThemeName={themeName}>`
+  - `ThemeContext` при `initialThemeName` пропускає `fetchActiveTheme()` на першому рендері
+  - `refreshTheme()` залишається для ре-фетчу (потрібний адмінці)
+- [ ] **4.2** Оновити `app/providers.tsx`:
+  - Прийняти `initialThemeName` як prop
+  - Передати в `<CMSThemeProvider initialThemeName={...}>`
+- [ ] **4.3** Оновити `app/(storefront)/layout.tsx`:
+  - Передати `themeName` у `<Providers>` 
+- [ ] **4.4** ThemeContext: оновити `fetchActiveTheme()` під нову структуру БД:
+  - Читати `settings` замість `config`
+  - Не читати `settings_schema` (брати з manifest)
+  - ThemeRecord type вже оновлений у Фазі 2
+
+**Ризики:**
+- Flash якщо `initialThemeName` не передано → fallback на fetch (повільніше, але працює)
+- `Providers` зараз — client component; передавання prop з Server Component layout — стандартний Next.js патерн
+
+**DoD Фази 4:**
+- [ ] Немає flash/mismatch між SSR і клієнтом
+- [ ] CSS variables активної теми застосовуються коректно
+- [ ] `ThemeContext.themeName` === SSR theme name
+- [ ] `refreshTheme()` працює для адмінки
+- [ ] Немає зайвого `fetchActiveTheme()` при наявності `initialThemeName`
+
+---
+
+### Фаза 5: Admin — прибирання InstallThemeDialog + revalidation
+
+**Мета:** адмінка відповідає концепції "теми тільки через код + міграцію"
+
+**Scope:** `@simplycms/admin` + `app/api/revalidate/`
+
+- [ ] **5.1** Видалити `packages/simplycms/admin/src/components/InstallThemeDialog.tsx`
+- [ ] **5.2** Оновити `packages/simplycms/admin/src/pages/Themes.tsx`:
+  - Прибрати імпорт та рендер `<InstallThemeDialog />`
+  - Оновити запити під нову схему (без `settings_schema`, з `settings`)
+  - Після `activateMutation.onSuccess` → виклик `/api/revalidate` з `{ type: 'theme', secret }` 
+  - Toast: "Тему активовано. Зміни застосовані на сайті"
+- [ ] **5.3** Оновити `app/api/revalidate/route.ts`:
+  - Додати обробку `type === 'theme'` → `revalidateTag('active-theme')`
+  - Додати `revalidatePath('/', 'layout')` для повної інвалідації storefront layout
+- [ ] **5.4** Видалити файл `StorefrontShell.tsx` якщо не зроблено у Фазі 3
+- [ ] **5.5** Прибрати `console.log` з `ThemeRegistry.ts` та `ThemeContext.tsx` (production cleanup)
+
+**Ризики:**
+- `revalidateTag` в Next.js 16 вимагає другий аргумент `profile` (рекомендовано `'max'` для stale-while-revalidate)
+- Theme Settings page (`/admin/themes/${id}/settings`) — схему налаштувань тепер потрібно брати з `ThemeRegistry.load(name).manifest.settings` на клієнті, а не з БД
+
+**DoD Фази 5:**
+- [ ] `InstallThemeDialog.tsx` видалено
+- [ ] Адмінка не показує кнопку "Встановити тему"
+- [ ] Після активації теми → revalidation storefront
+- [ ] Storefront оновлюється протягом кількох секунд після перемикання
+- [ ] Немає `console.log` у production коді theme-system
+
+---
+
+### Фаза 6: Очистка та фінальна верифікація
+
+**Мета:** прибрати все зайве, перевірити типи та лінтинг
+
+**Scope:** весь проект
+
+- [ ] **6.1** `pnpm db:generate-types` — оновити `supabase/types.ts` під нову схему
+- [ ] **6.2** Перевірити що всі імпорти `ThemeRecord` (у core, admin, themes) сумісні з новим типом
+- [ ] **6.3** `pnpm typecheck` — без помилок
+- [ ] **6.4** `pnpm lint` — без помилок  
+- [ ] **6.5** `pnpm build` — білд проходить
+- [ ] **6.6** Перевірити в dev: storefront рендерить default тему
+- [ ] **6.7** Перевірити в dev: зміна активної теми в адмінці → storefront оновлюється
+- [ ] **6.8** Перевірити: немає console errors у browser dev tools
+
+**DoD Фази 6:**
+- [ ] Всі команди якості проходять
+- [ ] Manual smoke test пройдений
 
 ---
 
 ## Рекомендовані патерни
 
-### SSR Theme Resolution (Server-only utility)
-Серверна async-функція, що читає БД → резолвить ThemeModule з Registry → повертає повний об'єкт теми. Використовує `React.cache()` або `unstable_cache()` для dedup/кешування. Fallback на `"default"` при помилці.
-- Де шукати приклад: BRD секція 7.2, `packages/simplycms/theme-system/src/ThemeResolver.ts`
+### Build-time Registration (DX workflow)
+Розробник додає нову тему:
+1. Створити `themes/<name>/` (manifest, index, layouts, pages, components, styles)
+2. Зареєструвати в `app/providers.tsx` (client) **та** `app/theme-registry.server.ts` (server)
+3. Створити міграцію: `INSERT INTO themes (name, display_name, version, ...) VALUES (...)`
+4. `pnpm build` → deploy → адмін бачить нову тему
 
-### Server-side Theme Registration
-Реєстрація доступних тем у контексті серверного рендеру (не "use client"). Може бути окремий файл або lazy-ініціалізація всередині `getActiveThemeSSR()`.
-- Де шукати приклад: `app/providers.tsx` (поточна клієнтська реєстрація), адаптувати для server
+### SSR Theme Resolution
+Серверна async-функція `getActiveThemeSSR()` обгорнута в `unstable_cache`:
+- Читає `themes WHERE is_active = true` через `createServerSupabaseClient()`
+- Резолвить ThemeModule з `ThemeRegistry.load(name)`
+- Fallback на `"default"` при помилці
+- Інвалідується через `revalidateTag('active-theme')`
+- Де шукати приклад: `packages/simplycms/theme-system/src/ThemeResolver.ts`
 
 ### Dynamic Theme Page Rendering
-Storefront page.tsx як Server Component робить `const theme = await getActiveThemeSSR()` → `const Page = theme.pages.HomePage` → `return <Page {...ssrProps} />`. Серверні дані (props) залишаються на рівні route page.tsx.
-- Де шукати приклад: BRD секція 7.2 (концептуальний приклад)
+`app/(storefront)/page.tsx` як Server Component:
+- `const { theme } = await getActiveThemeSSR()`
+- `const Page = theme.pages.HomePage`
+- `return <Page {...ssrProps} />`
+- SSR data fetching залишається на рівні route page.tsx
+- Де шукати приклад: BRD секція 7.2
 
 ### On-demand Revalidation After Theme Switch
-Адмінка після `activateMutation.onSuccess` викликає `/api/revalidate` з відповідним tag → `revalidateTag('active-theme')` → наступний запит до storefront отримає нову тему.
-- Де шукати приклад: `app/api/revalidate/route.ts` (вже існує)
+Адмінка після `activateMutation.onSuccess`:
+- POST `/api/revalidate` з `{ type: 'theme', secret }`
+- Route handler викликає `revalidateTag('active-theme')` → наступний запит отримає нову тему
+- Де шукати приклад: `app/api/revalidate/route.ts`
 
-### Theme Settings Hydration (Client)
-`ThemeContext` отримує `initialThemeName` з SSR → уникає зайвого fetch. CSS variables застосовуються на клієнті через існуючий `useEffect` у `ThemeContext`.
-- Де шукати приклад: `packages/simplycms/theme-system/src/ThemeContext.tsx`
+### Theme Settings — розділення відповідальностей
+- **Схема (що можна налаштувати):** тільки `manifest.settings` в коді — source of truth
+- **Значення (що налаштовано):** `themes.settings` в БД (jsonb)
+- **Адмін UI:** бере схему через `ThemeRegistry.load(name).manifest.settings`, значення з `themes.settings`
+- **Клієнт:** CSS variables застосовує ThemeContext через `useEffect` (без змін)
 
 ---
 
 ## Антипатерни (уникати)
 
 ### ❌ Динамічний `import()` на основі рядка з БД без Registry
-Не робити `import(\`@themes/${dbThemeName}/index\`)` напряму — це порушує webpack static analysis, не працює на Vercel, і обходить валідацію ThemeRegistry. Тільки pre-registered loaders.
+Не робити `import(\`@themes/${name}/index\`)` — порушує webpack static analysis, не працює на Vercel. Тільки pre-registered loaders через `ThemeRegistry`.
 
-### ❌ Подвійний рендер (SSR fallback → client re-render з іншою темою)
-Якщо SSR рендерить `default`, а клієнт через ThemeContext виявляє `solarstore` — буде flash. Треба щоб SSR вже знав правильну тему.
+### ❌ Подвійний рендер (SSR default → client re-render solarstore)
+Flash/mismatch. SSR має знати правильну тему через `getActiveThemeSSR()`.
 
 ### ❌ Бізнес-логіка в темах
-Теми — чиста візуалізація. Fetching даних, enrichment, price resolution — це рівень `app/` page.tsx або `@simplycms/core`. Тема отримує готові props.
+Теми — чиста візуалізація. Fetching, enrichment, price resolution залишаються в `app/` page.tsx або `@simplycms/core`.
 
 ### ❌ `"use client"` у SSR theme resolver
-`getActiveThemeSSR()` має бути server-only. Не додавати `"use client"` — це серверна функція з `createServerSupabaseClient()`.
+`getActiveThemeSSR()` — server-only функція з `createServerSupabaseClient()`. Без `"use client"`.
 
-### ❌ Видалення ThemeContext повністю
-`ThemeContext` все ще потрібний для клієнтських потреб: CSS variables, dynamic settings, `refreshTheme()` для адмінки. Не видаляти, а розмежувати відповідальності: SSR → визначає тему, Client → застосовує settings.
+### ❌ Ручне встановлення тем через адмін UI
+Теми — це код. Новий код = rebuild + deploy. Адмінка тільки **перемикає** та **налаштовує**.
 
-### ❌ Seed-міграція з `is_active=true` для обох тем
-Constraint `themes_active_idx` дозволяє тільки одну активну тему. Не вставляти дві з `is_active=true` — міграція впаде.
+### ❌ `settings_schema` в БД
+Дублювання → розсинхрон. Manifest — єдине джерело схеми налаштувань.
 
-### ❌ Зберігання theme module code в БД
-Теми — це код у build. БД зберігає тільки: яка активна, налаштування (config), метадані. Нова тема = новий код + deploy.
+### ❌ Seed з `is_active=true` для кількох тем
+Partial unique index `themes_active_idx` дозволяє тільки одну активну. Міграція впаде.
+
+### ❌ `console.log` в production коді
+ThemeRegistry і ThemeContext мають багато `console.log` — прибрати або замінити на `console.error` для помилок.
 
 ---
 
 ## Архітектурні рішення
 
-- **Фаза 1 (seed):** міграція в `supabase/migrations/` (project-level)
-- **Фаза 2 (SSR resolver):** `@simplycms/themes` (`packages/simplycms/theme-system/src/`)
-- **Фаза 2 (storefront pages):** `app/(storefront)/` (site-level, використовує API з `@simplycms/themes`)
-- **Фаза 3 (ThemeContext sync):** `@simplycms/themes` (`ThemeContext.tsx`)
-- Rendering стратегія storefront: **SSR + ISR** (без змін — тільки джерело компонентів стає динамічним)
-- Rendering стратегія admin themes page: **Client-only** (без змін)
-- Реєстрація тем (site-specific): залишається в `app/` (реєструє які модулі доступні у build)
-- Міграція з `temp/`: не застосовується (це нова логіка для Next.js, а не порт)
+| Компонент | Пакет | Деталі |
+|-----------|-------|--------|
+| DB міграція | `supabase/migrations/` (site-level) | Нова структура themes, seed для обох тем |
+| SSR Resolver | `@simplycms/themes` (core) | `getActiveThemeSSR()` + `unstable_cache` |
+| Server Registration | `app/theme-registry.server.ts` (site-level) | Server-only реєстрація модулів |
+| Storefront pages | `app/(storefront)/` (site-level) | Динамічний рендер через SSR resolver |
+| ThemeContext | `@simplycms/themes` (core) | `initialThemeName` prop, без визначення теми |
+| Admin Themes | `@simplycms/admin` (core) | Без InstallDialog, з revalidation |
+| Revalidation | `app/api/revalidate/` (site-level) | + type `theme` → `revalidateTag('active-theme')` |
+
+- **Rendering storefront:** SSR + ISR (без змін — джерело компонентів стає динамічним)
+- **Rendering admin:** Client-only (без змін)
+- **Реєстрація тем:** site-specific (`app/`) — і client, і server файли
+- **Міграція з `temp/`:** не застосовується (нова архітектура)
 
 ---
 
 ## MCP Servers (за потреби)
 
 - **context7** — для перевірки актуальних API:
-  - Next.js `unstable_cache`, `revalidateTag`, `React.cache()`
-  - Next.js `instrumentation.ts` hook
+  - Next.js `unstable_cache`, `revalidateTag` (Next.js 16 вимагає profile як другий аргумент)
   - Dynamic imports у Server Components
-- **supabase** — для перевірки seed-міграції та типів після зміни схеми
+- **supabase** — для виконання міграції та генерації типів після зміни схеми
 - **shadcn** — не потрібен для цієї задачі
 
 ---
 
 ## Пов'язана документація
 
-- `BRD_SIMPLYCMS_NEXTJS.md` секція 7 — система тем (ThemeModule, ThemeManifest, ThemePages, як тема підключається до app/)
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 7 — система тем (ThemeModule, ThemeManifest, ThemePages)
+- `BRD_SIMPLYCMS_NEXTJS.md` секція 7.4 — **УВАГА: описує "rebuild required" — ми свідомо відхиляємо це**
 - `BRD_SIMPLYCMS_NEXTJS.md` секція 6.2 — структура app/ (route groups, rendering стратегії)
-- `.github/instructions/architecture-core.instructions.md` — правила архітектури, rendering стратегії по route groups
-- `.github/instructions/ui-architecture.instructions.md` — система тем, ThemeModule contract, приклад SSR getActiveTheme()
-- `packages/simplycms/theme-system/src/` — поточна реалізація (ThemeRegistry, ThemeContext, ThemeResolver, types)
-- `themes/default/` — еталонна тема (manifest, pages, layouts, components)
-- `themes/solarstore/` — друга тема для перемикання
-- `app/providers.tsx` — реєстрація тем (site-specific)
-- `supabase/migrations/20260209075414_...sql` — seed `themes` таблиці
+- `.github/instructions/architecture-core.instructions.md` — правила архітектури
+- `.github/instructions/ui-architecture.instructions.md` — система тем, ThemeModule contract
+- `.github/instructions/data-access.instructions.md` — Supabase клієнти, ISR revalidation
+- `packages/simplycms/theme-system/src/` — поточна реалізація
+- `themes/default/manifest.ts` — `name: 'default'`, `displayName: 'Default Theme'`, `version: '0.1.0'`
+- `themes/solarstore/manifest.ts` — `name: 'solarstore'`, `displayName: 'SolarStore Default'`, `version: '1.0.0'`
+- `app/providers.tsx` — клієнтська реєстрація тем
+- `supabase/migrations/20260209075414_...sql` — поточний seed (тільки `default`, з помилковим display_name)
 
 ---
 
-## Definition of Done
+## Definition of Done (загальне)
 
-### Фаза 1
-- [ ] Обидві теми (`default` і `solarstore`) відображаються на сторінці `/admin/themes`
-- [ ] Кнопка "Активувати" перемикає активну тему в БД
-- [ ] Імена та описи тем у БД відповідають маніфестам (`themes/*/manifest.ts`)
-
-### Фаза 2
+- [ ] DB міграція застосована, обидві теми в БД з правильними метаданими
 - [ ] Storefront SSR рендерить сторінки з **активної** теми (не hardcoded `default`)
-- [ ] Після перемикання теми в адмінці → storefront відображає нову тему (з допустимою затримкою revalidation)
-- [ ] Усі 8+ storefront-маршрутів використовують `getActiveThemeSSR()` замість прямих імпортів
-- [ ] Fallback: якщо активна тема не знайдена в Registry → рендер `default`
-- [ ] Існуючі SSR-дані (banners, products, sections) продовжують передаватись як props
-- [ ] ISR revalidation працює як раніше (`export const revalidate`)
-
-### Фаза 3
-- [ ] Немає flash/mismatch між SSR-рендером і клієнтською гідрацією
+- [ ] Перемикання теми в адмінці → storefront оновлюється через revalidation
+- [ ] Усі 8+ storefront-маршрутів використовують `getActiveThemeSSR()`
+- [ ] Fallback на `default` якщо активна тема не в Registry
+- [ ] SSR-дані (banners, products, sections) передаються як props (без змін)
+- [ ] Немає flash/mismatch між SSR і клієнтом
 - [ ] CSS variables активної теми застосовуються коректно
-- [ ] `ThemeContext.themeName` відповідає SSR-рендеру
-
-### Загальне
-- [ ] Лінтинг без помилок (`pnpm lint`)
-- [ ] Typecheck проходить (`pnpm typecheck`)
-- [ ] Немає console errors у browser dev tools
-- [ ] Clarify-питання вирішені або задокументовані як прийняті рішення
+- [ ] `InstallThemeDialog` видалено
+- [ ] `StorefrontShell` видалено
+- [ ] `settings_schema` прибрано з БД
+- [ ] `system_settings.active_theme` видалено
+- [ ] `console.log` прибрано з theme-system
+- [ ] `pnpm typecheck` — без помилок
+- [ ] `pnpm lint` — без помилок
+- [ ] `pnpm build` — білд проходить
